@@ -22,8 +22,8 @@ function MO_enPozo(o){
   for(const z of MO_pozos)if(cx>z.x0+1&&cx<z.x1-1)return true;
   return false;
 }
-// ¿hay un momento en pantalla? (M1 hasta que el robot terminó de salir del fuego; M2 y M3 enteros)
-const MO_activo=()=>!!((MO.m1&&MO.m1.t<200)||MO.m2||MO.m3);
+// ¿hay un momento en pantalla? (M1 hasta que el robot terminó de salir del fuego; M2 y M3 enteros; o el cartel de jefe)
+const MO_activo=()=>!!((MO.m1&&MO.m1.t<200)||MO.m2||MO.m3||(typeof DIB_jefe!=='undefined'&&DIB_jefe&&DIB_jefe.t<150)); // y el cartel de jefe (dibujito.js)
 // carteles y avisos que llegan durante un momento: esperan en fila y salen de a uno cuando termina
 const MO_fila=[];
 function MO_guarda(k,a,b,c){if(!MO_activo()||MO_soltando)return false;MO_fila.push([k,a,b,c]);if(MO_fila.length>4)MO_fila.shift();return true;}

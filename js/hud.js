@@ -118,8 +118,8 @@ function drawHUD(){
     ctx.fillStyle='#ff3b30';ctx.fillRect(x+w-1,6,3,5);ctx.fillStyle='#fff';ctx.fillRect(x+w*pr-1,6.5,2,4);
     txt((vuelta>1?'V'+vuelta+' · M':'MISIÓN ')+(levelIdx+1),160,12,4,vuelta>1?'#ffe08a':'#aaa','center',false);
   }
-  // con el cartel de jefe a la vista (dibujito.js), el aviso grande va debajo para no pisarse
-  if(banner&&banner.t>0&&state!=='pause'){const by=typeof DIB_jefe!=='undefined'&&DIB_jefe&&DIB_jefe.t<170?82:50;ctx.globalAlpha=Math.min(1,banner.t/20,(banner.max-banner.t+1)/8);txt(banner.s,W/2,by,11,'#ffe08a','center');ctx.globalAlpha=1;}
+  // con el cartel de jefe a la vista (dibujito.js) los avisos esperan en fila (momentos.js)
+  if(banner&&banner.t>0&&state!=='pause'){const by=50;ctx.globalAlpha=Math.min(1,banner.t/20,(banner.max-banner.t+1)/8);txt(banner.s,W/2,by,11,'#ffe08a','center');ctx.globalAlpha=1;}
   if(goT>0&&(T>>4)%2)txt('¡ADELANTE! ▶',W-8,PC_aviso?100:78,9,'#fff','right'); // con el aviso de tramo, más abajo
   if(toasts.length){const t=toasts[0],a=Math.min(1,t.t/15,(170-t.t+1)/10);ctx.globalAlpha=a;
     const y=27;ctx.fillStyle='rgba(18,12,24,0.78)';ctx.fillRect(W/2-80,y,160,22);ctx.fillStyle=t.col;ctx.fillRect(W/2-80,y,160,1);
@@ -226,8 +226,9 @@ function drawTitle(){
   // menú vertical corto: ↑ ↓ elegir · ENTER o ✕ entrar
   const ops=tituloOps(),st=11,y0=78;
   ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;
-    if(on){const w=hudTW(o,8)+30;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(W/2-w/2,y-1.5,w,st-0.5);
-      txt('▶',W/2-w/2+5+((T>>4)%2),y,8,'#ffe08a','left',false);}
+    // resaltado: la flecha va a la izquierda del texto y el recuadro abraza a los dos con el mismo margen
+    if(on){const tw=hudTW(o,8),ax=W/2-tw/2-11,x0=ax-6,x1=W/2+tw/2+6;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(x0,y-1.5,x1-x0,st-0.5);
+      txt('▶',ax+((T>>4)%2),y,8,'#ffe08a','left',false);}
     txt(o,W/2,y,8,on?'#ffe08a':'#aaa','center');});
   // una sola línea chica abajo, con los botones del control que se usó último (en táctil, entre la palanca y el rombo)
   const pie=(onTouch()?'palanca ↑ ↓':'↑ ↓')+' · '+btn('ok')+': ELEGIR';
@@ -307,7 +308,7 @@ function drawSelect(){
     txt(s,cx,ry+2,6,lk?'#6a5f72':'#fff','center');
     if(lk)drawLock(cx+hw+3,ry+1,selNo>0?'#ff6b5b':'#8a7f92');
     selArrows(W/2+16,ry+2,hw+(lk?12:4),6,selLevel>0,selLevel<LEVELS.length-1,on);
-    txt((selLevel+1)+'/'+LEVELS.length,W-46,ry+2.5,4,'#8a7f92','right',false);
+    txt((typeof mundoDe==='function'?MU_NOMBRE[mundoDe(selLevel)]+' · ':'')+(selLevel+1)+'/'+LEVELS.length,W-46,ry+2.5,4,'#8a7f92','right',false);
     ry+=12;
   }
   // dificultad
@@ -326,7 +327,7 @@ function drawSelect(){
   else if(padFree()&&(T>>5)%2===0)txt('JUGADOR 2: APRETÁ '+btn('jump','free')+' PARA SUMARTE',W/2,ry+16,5,P_COL[1],'center');
   else if(!padFree()&&!onTouch()&&(T>>5)%2===0)txt('JUGADOR 2 CON EL MISMO TECLADO: APRETÁ '+KB_NOMBRE.Period,W/2,ry+16,5,P_COL[1],'center');
   // recién entró el jugador 2 por teclado: las teclas de los dos (3 s o hasta que alguien apriete)
-  if(kb2On()&&kb2Tarjeta>0){dim(0.9);txt('DE A 2 CON UN TECLADO',W/2,34,10,'#ffe08a','center');txt('controles simples',W/2,47,5,'#aaa','center',false);drawSimples2(58,true);
+  if(kb2On()&&kb2Tarjeta>0){ctx.fillStyle='#120c18';cubrir();txt('DE A 2 CON UN TECLADO',W/2,34,10,'#ffe08a','center');txt('controles simples',W/2,47,5,'#aaa','center',false);drawSimples2(58,true);
     ctx.fillStyle='#f3c969';ctx.fillRect(30,136,260*kb2Tarjeta/180,1);}
 }
 // número de jugador sobre la tarjeta elegida

@@ -456,7 +456,7 @@ function CAT_drawCage(c){
     ctx.fillStyle='#5a3a22';ctx.fillRect(x-1,y,18,2);ctx.fillRect(x-1,y+12,18,2);
     ctx.fillStyle='#7a5232';ctx.fillRect(x-1,y,18,0.8);ctx.fillRect(x-1,y+12,18,0.6);
     ctx.fillStyle='#2a2a30';ctx.fillRect(x+6,y-2,4,1);ctx.fillRect(x+6,y-2,1,2);ctx.fillRect(x+9,y-2,1,2);
-    if(nearAny(x+8,120)&&(T>>4)%3)globo('¡MIAU!',x+8,y-3,{t:(T%48)-16,dur:32}); // globo de habla (globos.js)
+    if(c.glT0!==undefined)globo('¡MIAU!',x+8,y-3,{t:T-c.glT0}); // globo de habla; desde cuándo se ve: globos.js (en cada paso) // globo de habla (globos.js): pop al acercarse y queda
   }else{ // jaula abierta: queda la base y se desvanece
     ctx.globalAlpha=clamp(1-c.t/90,0,1);
     ctx.fillStyle='#5a3a22';ctx.fillRect(x-1,y+12,18,2);

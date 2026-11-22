@@ -423,7 +423,11 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
     e.stopPropagation(); delCampo.add(e.key);
     if (e.key === 'Enter') { e.preventDefault(); campo.blur(); tecla('Enter'); }
   });
-  campo.addEventListener('blur', () => { campo.style.pointerEvents = 'none'; });
+  // historial.js se queda con el keydown del nombre (stopImmediatePropagation) y el campo se cierra al guardar:
+  // el keyup de esa tecla llega después, fuera del campo. Lo que se suelta hasta 0,5 s después de cerrarlo
+  // viene del teclado del celular, no de uno de verdad (con la máquina cargada pasaba y escondía los controles).
+  let campoCerrado = -1e9;
+  campo.addEventListener('blur', () => { campo.style.pointerEvents = 'none'; campoCerrado = performance.now(); });
 
   // ---------- pantalla completa (Android) y aviso de "Agregar a inicio" (iPhone) ----------
   function pantallaCompleta() {
@@ -492,7 +496,10 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
   // pantalla del nombre, historial.js frena el keydown.
   const deTeclado = e => e.isTrusted && e.target !== campo && document.activeElement !== campo;
   addEventListener('keydown', e => { if (deTeclado(e)) esconder(); }, true);
-  addEventListener('keyup', e => { if (delCampo.delete(e.key)) return; if (deTeclado(e)) esconder(); }, true);
+  addEventListener('keyup', e => {
+    if (delCampo.delete(e.key) || performance.now() - campoCerrado < 500) return;
+    if (deTeclado(e)) esconder();
+  }, true);
   addEventListener('blur', soltarTodo);
   document.addEventListener('visibilitychange', () => { if (document.hidden) soltarTodo(); });
   // sin zoom con dos dedos, sin lupa ni menú al mantener, sin gestos del navegador sobre los controles

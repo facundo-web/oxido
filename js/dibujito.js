@@ -81,10 +81,13 @@ drawSoldier=function(e){
 };
 // ---------- cartel de jefe ----------
 let DIB_jefe=null,DIB_jefeRef=null;
+const DIB_jefeVisible=b=>onScreen(b,-8)&&b.y+b.h>camY+20&&b.y<camY+VH;
 ON_START.push(()=>{DIB_jefe=null;DIB_jefeRef=null;});
 ON_STEP.push(()=>{
-  if(bossRef&&bossRef!==DIB_jefeRef){DIB_jefeRef=bossRef;DIB_jefe={name:bossRef.name||bossName(),mini:!!bossRef.mini,t:0};
-    if(banner&&banner.s==='¡PELIGRO!')banner=null;} // el cartel de la arena le deja lugar
+  // el cartel sale cuando el jefe ya se ve (no cuando aparece afuera de la pantalla); lo que había escrito espera
+  if(bossRef&&bossRef!==DIB_jefeRef&&DIB_jefeVisible(bossRef)){DIB_jefeRef=bossRef;
+    if(banner&&banner.s==='¡PELIGRO!')banner=null;else if(typeof MO_guardaVisible==='function')MO_guardaVisible();
+    DIB_jefe={name:bossRef.name||bossName(),mini:!!bossRef.mini,guardian:bossRef.guardian||0,t:0};}
   if(!bossRef)DIB_jefeRef=null;
   if(DIB_jefe&&++DIB_jefe.t>170)DIB_jefe=null;
 });
@@ -103,7 +106,7 @@ ON_HUD.push(()=>{
   ctx.fillStyle='#120c18';ctx.fillRect(x+2.5,y+2.5,w+1,h+1);ctx.fillRect(x-1.5,y-1.5,w+3,h+3);
   ctx.fillStyle='#ffe066';ctx.fillRect(x,y,w,h);
   ctx.fillStyle='rgba(224,86,58,0.35)';for(let yy=y+2;yy<y+h-1;yy+=3)for(let xx=x+2+((yy-y)%2);xx<x+w-1;xx+=3)ctx.fillRect(xx,yy,0.9,0.9);
-  txt(j.mini?'¡CUIDADO!':'¡EL JEFE!',cx,y+3.5,5,'#120c18','center',false);
+  txt(j.guardian?'¡GUARDIÁN DEL MUNDO '+j.guardian+'!':j.mini?'¡CUIDADO!':'¡EL JEFE!',cx,y+3.5,5,'#120c18','center',false);
   txt(nm,cx,y+11,12,'#ffffff','center');
   ctx.restore();
 });

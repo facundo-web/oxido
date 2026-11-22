@@ -106,3 +106,10 @@ function globo(s,ax,ay,o={}){
 }
 // texto que flota (+N, −1 ♥, etc.): pixel con borde oscuro
 function pfFlota(s,x,y,col,a){ctx.globalAlpha=a;pfTxt(s,x,y,col||'#ffe08a','center',GL_TINTA);ctx.globalAlpha=1;}
+// los globos de los que piden ayuda (prisionero atado y gatito en la jaula): se anota en cada paso desde cuándo hay alguien
+// cerca, así el pop sale una vez al acercarse y después queda a tamaño completo (no depende de cuántas veces se dibuje)
+ON_STEP.push(()=>{
+  for(const pr of prisoners){const cerca=pr.state==='tied'&&nearAny(pr.x+5,110);if(cerca&&pr.glT0===undefined)pr.glT0=T;else if(!cerca)pr.glT0=undefined;}
+  const c=typeof gatoJaula!=='undefined'?gatoJaula:null;
+  if(c){const cerca=nearAny(c.x+8,120);if(cerca&&c.glT0===undefined)c.glT0=T;else if(!cerca)c.glT0=undefined;}
+});

@@ -63,17 +63,19 @@ COMIC.registrar('corrido',{tipo:'corrido',capa:'pantalla',dur:8,draw:e=>COMIC_co
 // ---------- 3. onomatopeyas ----------
 // Con la fuente pixel de los globos (globos.js), a escala 2, con borde y sombra, inclinadas; entran con un pop y se van.
 // Se corren para arriba si tapan al jugador. Van en la capa del mundo: el jugador y las balas quedan por encima.
-const COMIC_ONO={pum:{s:'¡PUM!',col:'#ffd25a'},crash:{s:'¡CRASH!',col:'#ffb04a'},zas:{s:'¡ZAS!',col:'#ffffff'},boom:{s:'¡BOOM!',col:'#ff6a4a',esc:3}};
+const COMIC_ONO={pum:{s:'¡PUM!',col:'#ffd25a'},crash:{s:'¡CRASH!',col:'#ffb04a'},zas:{s:'¡ZAS!',col:'#ffffff'},boom:{s:'¡BOOM!',col:'#ff6a4a',esc:2.2}};
 for(const n in COMIC_ONO){const o=COMIC_ONO[n];
   COMIC.registrar(n,{tipo:'onomato',dur:o.esc?50:34,
-    crear:e=>{e.ang=(Math.random()<0.5?-1:1)*rand(0.12,0.22);e.esc=o.esc||2;
-      // que no tape al jugador: si cae encima, sube
-      const w=pfW(o.s)*e.esc,h=6*e.esc;for(const p of players){if(p.dead)continue;const b=hurtbox(p);
-        if(e.x+w/2>b.x-4&&e.x-w/2<b.x+b.w+4&&e.y+h/2>b.y-4&&e.y-h/2<b.y+b.h+4)e.y=b.y-h/2-8;}
-      // ni encima de la otra onomatopeya que esté a la vista: sube
-      for(const o2 of COMIC.vivos){if(o2===e||o2.d.tipo!=='onomato'||o2.w===undefined)continue;
-        if(Math.abs(o2.x-e.x)<(o2.w+w)/2+2&&Math.abs(o2.y-e.y)<(o2.h+h)/2+2)e.y=o2.y-(o2.h+h)/2-4;}
-      e.y=Math.max(e.y,camY+28/ZOOM+h/2);e.w=w;e.h=h;},
+    crear:e=>{e.ang=(Math.random()<0.5?-1:1)*rand(0.1,0.18);e.esc=o.esc||1.5;
+      // arriba del impacto; si tapa a un jugador, un enemigo, un número que flota u otra onomatopeya, sube hasta que no
+      const w=pfW(o.s)*e.esc+4,h=6*e.esc+4;e.y-=10;
+      const cajas=()=>{const r=[];for(const p of players)if(!p.dead){const b=hurtbox(p);r.push([b.x,b.y,b.w,b.h]);}
+        for(const en of enemies)if(!en.gone&&onScreen(en,0))r.push([en.x,en.y,en.w,en.h]);
+        for(const pa of parts)if(pa.k==='txt'){const tw=pfW(pa.s)+2;r.push([pa.x-tw/2,pa.y-18,tw,27]);} // los números suben: se reserva su camino
+        for(const o2 of COMIC.vivos)if(o2!==e&&o2.d.tipo==='onomato'&&o2.w!==undefined)r.push([o2.x-o2.w/2,o2.y-o2.h/2,o2.w,o2.h]);return r;};
+      const rs=cajas();
+      for(let k=0;k<8;k++){const c=rs.find(([x,y,bw,bh])=>e.x+w/2>x&&e.x-w/2<x+bw&&e.y+h/2>y&&e.y-h/2<y+bh);if(!c)break;e.y=c[1]-h/2-2;}
+      e.x=clamp(e.x,camX+w/2+2,camX+VW-w/2-2);e.y=Math.max(e.y,camY+28/ZOOM+h/2);e.w=w;e.h=h;},
     draw:e=>{const k=e.t<3?1.3*e.t/3:e.t<6?1.3-0.3*(e.t-3)/3:e.t>e.dur-6?Math.max(0,(e.dur-e.t)/6):1;if(k<=0.02)return;
       const w=pfW(o.s),c1=pfLienzo(o.s,'#120c18'),c2=pfLienzo(o.s,o.col,'#120c18');
       ctx.save();ctx.translate(Math.round(e.x),Math.round(e.y));ctx.rotate(e.ang);ctx.scale(e.esc*k,e.esc*k);
@@ -121,21 +123,21 @@ let COMIC_jefeRef=null;
 COMIC.registrar('vineta',{capa:'pantalla',dur:90,draw:e=>{
   const b=e.ref;if(!b||b.gone)return;
   const k=e.t<60?0:(e.t-60)/30,ab=k*k*(3-2*k); // 0 = recuadro, 1 = pantalla completa
-  // el recuadro: un panel grande corrido hacia donde está el jefe (o hacia la derecha, si todavía no se ve), con margen
-  // de papel arriba (para el cartel con el nombre) y a los costados
-  const bx=b.x+b.w/2>camX+VW?W:clamp(HX(b.x+b.w/2),W*0.35,W*0.75);
-  const px=Math.max(8,bx-W*0.42),qx=Math.min(W-8,bx+W*0.42),py=58,qy=HC-10;
-  const x0=px*(1-ab),y0=py*(1-ab),x1=qx+(W-qx)*ab,y1=qy+(HC-qy)*ab;
+  // el recuadro: centrado en el jefe (que ya se ve), con papel alrededor. La franja de arriba del HUD queda sin papel.
+  const top=26,bx=clamp(HX(b.x+b.w/2),W*0.3,W*0.7),by=clamp(HY(b.y+b.h/2),top+30,HC-30);
+  const hw=Math.max(70,HX(b.x+b.w)-HX(b.x)+40),hh=Math.max(52,HY(b.y+b.h)-HY(b.y)+30);
+  const px=Math.max(8,bx-hw),qx=Math.min(W-8,bx+hw),py=Math.max(top+4,by-hh),qy=Math.min(HC-8,by+hh);
+  const x0=px*(1-ab),y0=py+(top-py)*ab,x1=qx+(W-qx)*ab,y1=qy+(HC-qy)*ab;
   ctx.save();ctx.setTransform(S,0,0,S,0,0);
-  // papel con trama alrededor del recuadro
-  ctx.beginPath();ctx.rect(0,0,W,HC);ctx.rect(x0,y0,x1-x0,y1-y0);ctx.clip('evenodd');
-  ctx.fillStyle='#f3e6c4';ctx.fillRect(0,0,W,HC);
-  ctx.fillStyle='#e0563a';for(let y=0;y<HC;y+=4)for(let x=(y>>2)%2*2;x<W;x+=4)ctx.fillRect(x+1,y+1,1.2,1.2);
+  // papel con trama alrededor del recuadro (no en la franja del HUD de arriba)
+  ctx.beginPath();ctx.rect(0,top,W,HC-top);ctx.rect(x0,y0,x1-x0,y1-y0);ctx.clip('evenodd');
+  ctx.fillStyle='#f3e6c4';ctx.fillRect(0,top,W,HC-top);
+  ctx.fillStyle='#e0563a';for(let y=top;y<HC;y+=4)for(let x=(y>>2)%2*2;x<W;x+=4)ctx.fillRect(x+1,y+1,1.2,1.2);
   ctx.restore();
   ctx.save();ctx.setTransform(S,0,0,S,0,0);ctx.strokeStyle='#120c18';ctx.lineWidth=3;ctx.strokeRect(x0+1.5,y0+1.5,x1-x0-3,y1-y0-3);ctx.restore();
 }});
 ON_STEP.push(()=>{
-  if(bossRef&&bossRef!==COMIC_jefeRef){COMIC_jefeRef=bossRef;COMIC.efecto('vineta',{ref:bossRef});}
+  if(bossRef&&bossRef!==COMIC_jefeRef&&typeof DIB_jefeVisible==='function'&&DIB_jefeVisible(bossRef)){COMIC_jefeRef=bossRef;COMIC.efecto('vineta',{ref:bossRef});}
   if(!bossRef)COMIC_jefeRef=null;
 });
 // lo que va en la capa de pantalla, sobre el mundo y debajo del HUD (renderMain)

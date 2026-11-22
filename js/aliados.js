@@ -62,8 +62,9 @@ function drawPrisoner(pr){
     const dx=strug?(((tt>>2)&1)?1:-1)*0.75:0,dy=strug?((tt>>3)&1):bob;
     ctx.drawImage(SPR.a.crouch[1],q(x-2+dx),q(y-1+dy));
     ctx.fillStyle='#b08a4a';ctx.fillRect(x,y+7,10,1);ctx.fillRect(x+1,y+10,9,1);
-    // globo de grito (globos.js): aparece 32 de cada 48 cuadros, con el pop del estilo dibujito
-    if(nearAny(x+5,110)&&(T>>4)%3)globo('¡AYUDA!',x+5,y-3,{grito:true,t:(T%48)-16,dur:32});
+    // globo de grito (globos.js)
+    // un pop al acercarse y queda a tamaño completo mientras estés cerca
+    if(pr.glT0!==undefined)globo('¡AYUDA!',x+5,y-3,{grito:true,t:T-pr.glT0}); // desde cuándo se ve: globos.js (en cada paso)
   }else if(pr.state==='freed'){
     if(pr.t<20){const up=-Math.sin(pr.t/20*Math.PI)*8;ctx.drawImage(SPR.a.jump[0],q(x-2),q(y-4+up));}
     else{
