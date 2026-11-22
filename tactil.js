@@ -2,19 +2,23 @@
 // Va solo en la copia pública (dist/): armar.mjs lo carga después de los js del juego.
 // No cambia la lógica del juego: aprieta las mismas acciones que el teclado (keys y pressed de input.js).
 //
-// A la derecha, siempre el rombo ✕ ○ □ △. A la izquierda, la palanca (jugando) o la cruz (menús).
+// A la derecha, siempre el rombo ✕ ○ □ △. A la izquierda, la palanca flotante (jugando y en los menús:
+// es lo mismo que dice la ayuda del juego). Si la pantalla tiene barras negras (más ancha que 16:9, o una
+// tablet), los controles se ubican en las barras; si no entran, se pegan al borde para tapar lo menos posible.
 //   Jugando:  ✕ saltar · □ disparar (mantener = ráfaga) · ○ granada · △ arma (tocar = cambiar,
 //             mantener = avión, con anillo de carga) · II pausa. Palanca flotante con diagonales.
-//   Menús:    ✕ aceptar · ○ volver · cruz para elegir.
+//   Menús:    ✕ aceptar · ○ volver · palanca para elegir (un movimiento = un paso, sin diagonales).
 //   Fin del juego y misión cumplida: ✕ seguir · mantener ○ terminar (con anillo, para no perder la partida sin querer).
 //   Pausa:    ✕ u ○ seguir · △ dos veces salir · II seguir.
-//   Nombre:   ✕ listo · ○ borrar · cruz para las letras · ESCRIBIR abre el teclado del celular.
+//   Nombre:   ✕ listo · ○ borrar · palanca para las letras · ESCRIBIR abre el teclado del celular.
 // Extras:    la pantalla no se apaga mientras jugás · pantalla completa en Android · en iPhone, cómo
 //            agregarlo a inicio · "Girá la pantalla" con pausa · sin zoom ni gestos del navegador ·
 //            el gesto de "atrás" pausa en vez de salir del juego.
 // Se muestran al tocar la pantalla y se esconden al usar el teclado o un joystick. En escritorio no aparece nada.
 // window.OXIDO_TOQUE dice si el último control fue la pantalla: el juego lo lee con onTouch() para
-// nombrar los botones (✕ ○ □ △) en sus textos.
+// nombrar los botones (✕ ○ □ △) en sus textos. window.OXIDO_TACTIL_LIBRE dice, en coordenadas del juego,
+// la franja que los controles dejan libre abajo ({x0, x1, y0}: de x0 a x1 no hay controles por debajo de y0),
+// para que la ayuda de controles del menú se acomode ahí. Es null si los controles no se ven.
 //
 // Usa del juego: keys, pressed, state, audioInit y, si existe, AIR_HOLD.
 window.OXIDO_TACTIL = true; // apaga el aviso "se juega con teclado o joystick" (aviso-tactil.js)
@@ -45,10 +49,10 @@ window.OXIDO_TOQUE = false;
   // ---------- dibujos ----------
   const svg = d => '<svg viewBox="0 0 24 24" aria-hidden="true">' + d + '</svg>';
   const ICO = {
-    x: svg('<path d="M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
-    o: svg('<circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2.6"/>'),
-    c: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="1" fill="none" stroke="currentColor" stroke-width="2.6"/>'),
-    t: svg('<path d="M12 4.5l8 13.5H4z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>'),
+    x: svg('<path d="M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'),
+    o: svg('<circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="3"/>'),
+    c: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="1" fill="none" stroke="currentColor" stroke-width="3"/>'),
+    t: svg('<path d="M12 4.5l8 13.5H4z" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round"/>'),
     flecha: svg('<path d="M12 5l7 9H5z" fill="currentColor"/>'),
     teclado: svg('<rect x="2" y="6" width="20" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 10h1M10 10h1M14 10h1M18 10h1M6 14h1M18 14h1M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
   };
@@ -59,25 +63,29 @@ window.OXIDO_TOQUE = false;
   const css = document.createElement('style');
   css.textContent = `
 html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
-#tactil{--u:clamp(52px,17vh,84px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
+html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-sizing:border-box} /* tablet: el juego arriba, los controles en la barra de abajo */
+#tactil{--u:clamp(52px,15.5vh,72px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
   --borde:12px; /* lejos de los bordes, donde están los gestos del sistema */
+  /* acomodar() pisa estos valores en px según las barras negras de la pantalla */
+  --rx:calc(var(--sr) + var(--borde));--ry:calc(var(--sb) + var(--borde));--px:calc(10px + var(--sl));--py:calc(10px + var(--st));
   position:fixed;inset:0;z-index:5;pointer-events:none;display:none;color:#fff;font:bold 12px/1 ui-monospace,Menlo,Consolas,monospace;transition:opacity .4s}
 #tactil.on{display:block}
-#tactil.quieto{opacity:.45}
+#tactil.quieto{opacity:.5}
 #tactil .b,#tactil .zona,#tactil .girar,#tactil .inicio{pointer-events:auto;touch-action:none}
-/* botones casi transparentes: se ve el juego detrás */
+/* botones transparentes (se ve el juego detrás) pero con borde lleno y un halo oscuro, para que se vean sobre fondos claros y oscuros */
 #tactil .b{--c:255,224,138;position:absolute;display:none;align-items:center;justify-content:center;border-radius:50%;box-sizing:border-box;
-  background:rgba(10,8,14,.14);border:2px solid rgba(var(--c),.7);color:rgb(var(--c));transition:transform .06s,background .06s,opacity .15s}
+  background:rgba(10,8,14,.24);border:2.5px solid rgba(var(--c),.95);color:rgb(var(--c));
+  box-shadow:0 0 0 1.5px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.4);transition:transform .06s,background .06s,opacity .15s}
 #tactil .b::before{content:"";position:absolute;inset:-8px;border-radius:inherit}
-#tactil .b svg{width:48%;height:48%;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.8));pointer-events:none}
+#tactil .b svg{width:50%;height:50%;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.95)) drop-shadow(0 1px 1px rgba(0,0,0,.8));pointer-events:none}
 #tactil .b.a{background:rgba(var(--c),.4);transform:scale(.92)}
-#tactil .b.apagado{opacity:.28}
-/* rombo de PlayStation */
-#tactil .ps{display:flex;width:calc(var(--u)*.9);height:calc(var(--u)*.9)}
-#tactil .ps.x{--c:124,180,255;right:calc(var(--sr) + var(--borde) + var(--u)*1.1);bottom:calc(var(--sb) + var(--borde) + var(--u)*.18)}
-#tactil .ps.o{--c:255,107,107;right:calc(var(--sr) + var(--borde) + var(--u)*.28);bottom:calc(var(--sb) + var(--borde) + var(--u)*1)}
-#tactil .ps.c{--c:244,154,216;right:calc(var(--sr) + var(--borde) + var(--u)*1.92);bottom:calc(var(--sb) + var(--borde) + var(--u)*1)}
-#tactil .ps.t{--c:63,214,168;right:calc(var(--sr) + var(--borde) + var(--u)*1.1);bottom:calc(var(--sb) + var(--borde) + var(--u)*1.82)}
+/* los botones sin uso en una pantalla se ven igual (Facu: en el menú □ y △ casi no se veían); solo no hacen nada */
+/* rombo de PlayStation: un cuadrado de 2,36 × --u con la esquina de abajo a la derecha en (--rx, --ry) */
+#tactil .ps{display:flex;width:calc(var(--u)*.84);height:calc(var(--u)*.84)}
+#tactil .ps.x{--c:140,192,255;right:calc(var(--rx) + var(--u)*.76);bottom:var(--ry)}
+#tactil .ps.o{--c:255,122,122;right:var(--rx);bottom:calc(var(--ry) + var(--u)*.76)}
+#tactil .ps.c{--c:255,170,228;right:calc(var(--rx) + var(--u)*1.52);bottom:calc(var(--ry) + var(--u)*.76)}
+#tactil .ps.t{--c:96,238,192;right:calc(var(--rx) + var(--u)*.76);bottom:calc(var(--ry) + var(--u)*1.52)}
 #tactil .b svg.anillo{position:absolute;left:-6px;top:-6px;width:calc(100% + 12px);height:calc(100% + 12px);transform:rotate(-90deg);opacity:0;filter:none}
 #tactil .anillo circle{fill:none;stroke:rgb(var(--c));stroke-width:3;stroke-dasharray:100;stroke-dashoffset:100}
 #tactil .b.carga svg.anillo{opacity:1}
@@ -85,38 +93,30 @@ html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;us
 @keyframes oxCarga{to{stroke-dashoffset:0}}
 /* pausa (II) arriba a la izquierda, jugando y en pausa */
 #tactil .pausa{width:max(46px,calc(var(--u)*.7));height:max(46px,calc(var(--u)*.7));border-radius:14px;font-size:18px;
-  left:calc(10px + var(--sl));top:calc(10px + var(--st))}
+  left:var(--px);top:var(--py)}
 #tactil[data-modo=play] .pausa,#tactil[data-modo=pausa] .pausa{display:flex}
 /* ESCRIBIR (nombre del récord) arriba a la derecha */
 #tactil .escribir{border-radius:999px;height:max(46px,calc(var(--u)*.7));padding:0 18px;gap:8px;font-size:14px;
   right:calc(12px + var(--sr));top:calc(10px + var(--st))}
 #tactil .escribir svg{width:22px;height:22px}
 #tactil[data-modo=nombre] .escribir{display:flex}
-/* palanca (jugando) */
+/* palanca (jugando y en los menús; en la pausa no hace falta) */
 #tactil .zona{position:absolute;left:calc(var(--sl) + 24px);bottom:calc(var(--sb) + 8px);width:44vw;top:calc(var(--u)*.95 + var(--st));display:none}
-#tactil[data-modo=play] .zona{display:block}
+#tactil.on:not([data-modo=pausa]) .zona{display:block}
 #tactil .base{position:absolute;width:calc(var(--u)*1.9);height:calc(var(--u)*1.9);margin:calc(var(--u)*-.95) 0 0 calc(var(--u)*-.95);border-radius:50%;box-sizing:border-box;
-  background:rgba(10,8,14,.12);border:2px solid rgba(255,224,138,.45);opacity:.7;transition:opacity .15s;pointer-events:none}
-#tactil .zona:not(.toca) .base{left:calc(var(--u)*1.05);top:calc(100% - var(--u)*1.1)}
+  background:rgba(10,8,14,.2);border:2.5px solid rgba(255,224,138,.75);box-shadow:0 0 0 1.5px rgba(0,0,0,.5);opacity:.8;transition:opacity .15s;pointer-events:none}
+/* quieta es solo una pista: más chica, para no tapar al jugador cuando arranca la misión (al tocar aparece entera donde apoyás) */
+#tactil .zona:not(.toca) .base{left:var(--bx,calc(var(--u)*1.05));top:var(--by,calc(100% - var(--u)*1.1));transform:scale(.85)}
 #tactil .zona.toca .base{opacity:1}
 #tactil .perilla{position:absolute;left:50%;top:50%;width:calc(var(--u)*.85);height:calc(var(--u)*.85);margin:calc(var(--u)*-.425) 0 0 calc(var(--u)*-.425);border-radius:50%;box-sizing:border-box;
-  background:rgba(255,224,138,.22);border:2px solid rgba(255,224,138,.8)}
-#tactil .base i{position:absolute;width:14px;height:14px;color:rgba(255,224,138,.5)}
+  background:rgba(255,224,138,.25);border:2.5px solid rgba(255,224,138,.95)}
+#tactil .base i{position:absolute;width:14px;height:14px;color:rgba(255,224,138,.7)}
 #tactil .base i svg{width:100%;height:100%;display:block}
 #tactil .base i.on{color:#ffe08a;filter:drop-shadow(0 0 4px #ffe08a)}
 #tactil .base .u{left:50%;top:6px;margin-left:-7px}
 #tactil .base .d{left:50%;bottom:6px;margin-left:-7px;transform:rotate(180deg)}
 #tactil .base .l{top:50%;left:6px;margin-top:-7px;transform:rotate(-90deg)}
 #tactil .base .r{top:50%;right:6px;margin-top:-7px;transform:rotate(90deg)}
-/* cruz (menús y nombre): compacta, tapa lo menos posible */
-#tactil .f{width:max(46px,calc(var(--u)*.72));height:max(46px,calc(var(--u)*.72));border-radius:12px}
-#tactil .f svg{width:46%;height:46%}
-#tactil .f[data-a=up]{left:calc(var(--sl) + var(--borde) + var(--u)*1.03);bottom:calc(var(--sb) + var(--borde) + var(--u)*1.55)}
-#tactil .f[data-a=down]{left:calc(var(--sl) + var(--borde) + var(--u)*1.03);bottom:calc(var(--sb) + var(--borde) + var(--u)*.25)}
-#tactil .f[data-a=left]{left:calc(var(--sl) + var(--borde) + var(--u)*.25);bottom:calc(var(--sb) + var(--borde) + var(--u)*.9)}
-#tactil .f[data-a=right]{left:calc(var(--sl) + var(--borde) + var(--u)*1.81);bottom:calc(var(--sb) + var(--borde) + var(--u)*.9)}
-#tactil .f[data-a=down] svg{transform:rotate(180deg)}#tactil .f[data-a=left] svg{transform:rotate(-90deg)}#tactil .f[data-a=right] svg{transform:rotate(90deg)}
-#tactil[data-modo=menu] .f,#tactil[data-modo=fin] .f,#tactil[data-modo=nombre] .f{display:flex}
 /* avisos */
 #tactil .girar{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;
   background:#0b0a10;color:#ffe08a;font:bold 18px/1.35 ui-monospace,Menlo,Consolas,monospace;text-align:center;padding:24px}
@@ -143,7 +143,6 @@ html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;us
   rombo.t.style.setProperty('--dur', durAvion + 's');
   rombo.o.style.setProperty('--dur', DUR_TERMINAR + 's');
   const pausa = el('b pausa', 'pause', 'II');
-  for (const d of ['up', 'down', 'left', 'right']) el('b f', d, ICO.flecha);
   const escribir = el('b escribir', 'escribir', ICO.teclado + 'ESCRIBIR');
   const zona = el('zona');
   const base = document.createElement('div'); base.className = 'base';
@@ -268,6 +267,10 @@ html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;us
         if (ux > 0.42 - h('right')) nueva.right = 1; else if (ux < -0.42 + h('left')) nueva.left = 1;
         // agacharse pide más inclinación, para no frenar sin querer mientras corrés
         if (uy < -0.5 + h('up')) nueva.up = 1; else if (uy > 0.64 - h('down')) nueva.down = 1;
+        // en los menús, una sola dirección por vez: la que más se movió (si no, ↗ cambia de fila y de opción a la vez)
+        if (raiz.dataset.modo !== 'play' && (nueva.up || nueva.down) && (nueva.left || nueva.right)) {
+          if (Math.abs(ux) > Math.abs(uy)) { delete nueva.up; delete nueva.down; } else { delete nueva.left; delete nueva.right; }
+        }
       }
       const k = Math.min(d, R * 0.8) / (d || 1);
       perilla.style.transform = `translate(${dx * k}px,${dy * k}px)`;
@@ -294,6 +297,65 @@ html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;us
     if (palancaDedo === null) tomarPalanca(e);
   });
 
+  // ---------- ubicar los controles en las barras negras ----------
+  // El juego se ve en 16:9 y fit() (base.js) lo centra: en un celular más ancho sobran barras a los costados,
+  // y en una tablet sobra arriba y abajo. En la tablet el juego se sube, así abajo queda una sola barra más alta.
+  // Si el rombo entra en una barra (con botones de 47 px o más), va ahí, centrado. Si no entra, se pega al borde,
+  // que es lo que menos tapa. La palanca queda a la misma altura que el rombo, como en un joystick.
+  const lienzo = document.getElementById('c');
+  const sonda = document.createElement('div'); // para leer los márgenes seguros (muesca, esquinas redondeadas)
+  sonda.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
+    'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+  document.body.appendChild(sonda);
+  const M = 12, LADO = 2.36, U_MIN = 54, QUIETA = 0.85; // QUIETA = tamaño de la palanca en reposo (scale en el CSS) // borde · ancho y alto del rombo en unidades de --u · --u mínima
+  let claveVieja = '';
+  function acomodar() {
+    if (!lienzo) return;
+    const vw = innerWidth, vh = innerHeight, on = raiz.classList.contains('on');
+    const cs = getComputedStyle(sonda), px = k => parseFloat(cs[k]) || 0;
+    // De los márgenes seguros se usa el de abajo (la barrita de inicio) y el de arriba. Los de los costados no: en el
+    // iPhone acostado son ~47-59 px de cada lado (por la muesca, que ocupa solo el medio de un costado) y empujaban
+    // la palanca y el rombo encima del juego. Abajo y en las esquinas no hay muesca, y ahí van los controles.
+    const sl = 0, sr = 0, sb = px('paddingBottom'), st = px('paddingTop');
+    raiz.style.setProperty('--sl', '0px'); raiz.style.setProperty('--sr', '0px');
+    const clave = [vw, vh, lienzo.offsetWidth, lienzo.offsetHeight, sb, st, on].join();
+    if (clave === claveVieja) return;
+    claveVieja = clave;
+    const hueco = vh - lienzo.offsetHeight, arriba = on && hueco > 2;
+    document.documentElement.classList.toggle('ox-arriba', arriba);
+    document.documentElement.style.setProperty('--ox-top', (arriba ? Math.min(st, hueco) : 0) + 'px');
+    const r = lienzo.getBoundingClientRect();
+    const bl = r.left, br = vw - r.right, bb = vh - r.bottom; // barras: izquierda, derecha, abajo
+    const u0 = Math.max(U_MIN, Math.min(0.155 * vh, 72));
+    const uLado = (Math.min(bl - sl, br - sr) - 2 * M) / LADO, uAbajo = (bb - sb - M - 6) / LADO;
+    const entra = Math.max(uLado, uAbajo) >= U_MIN;
+    const u = entra ? Math.min(u0, Math.max(uLado, uAbajo)) : u0, lado = LADO * u, R = 0.95 * u * QUIETA;
+    let rx = sr + M, ry = sb + M;
+    if (entra && uLado >= uAbajo) rx = Math.max(rx, (br - lado) / 2);
+    else if (entra) ry = Math.max(ry, (bb - lado) / 2);
+    // palanca en reposo: a la altura del centro del rombo; en la barra de la izquierda si entra
+    const cx = entra && uLado >= uAbajo ? Math.max(sl + M + R, bl / 2) : sl + M + R;
+    const cy = vh - (ry + lado / 2);
+    // II: en la barra de la izquierda (arriba, lejos de la esquina redondeada), o en el medio de la barra de abajo,
+    // o, si no hay barras, a la izquierda justo debajo del marcador (y = 38 del juego), para no pisar el HUD
+    const pw = Math.max(46, 0.7 * u), k0 = r.width / 320;
+    let ppx, ppy;
+    if (bl >= pw + 16) { ppx = (bl - pw) / 2; ppy = st + 16; }
+    else if (bb - sb >= pw + 16) { ppx = (vw - pw) / 2; ppy = r.bottom + (bb - sb - pw) / 2; }
+    else { ppx = 10; ppy = Math.max(st + 10, r.top + 38 * k0); }
+    const v = { '--u': u, '--rx': rx, '--ry': ry, '--px': ppx, '--py': ppy,
+      '--bx': cx - (sl + 24), '--by': cy - (st + 0.95 * u) }; // la zona de la palanca empieza en (sl + 24, st + 0,95u)
+    for (const k in v) raiz.style.setProperty(k, v[k].toFixed(1) + 'px');
+    // franja libre para la ayuda del menú, en coordenadas del juego
+    const k = r.width / (typeof W === 'number' ? W : 320);
+    window.OXIDO_TACTIL_LIBRE = on && k > 0 ? {
+      x0: Math.max(0, Math.ceil((cx + R - r.left) / k)),
+      x1: Math.min(r.width / k, Math.floor((vw - rx - lado - r.left) / k)),
+      y0: Math.max(0, Math.floor((Math.min(vh - ry - lado, cy - R) - r.top) / k)),
+    } : null;
+  }
+  addEventListener('resize', acomodar);
+
   // ---------- teclado del celular para el nombre del récord ----------
   // Las letras llegan al juego como teclas (historial.js ya sabe leerlas). Si el teclado manda teclas con
   // nombre, historial.js las toma directo. Si no (iPhone a veces manda "Unidentified", y los teclados que
@@ -314,8 +376,9 @@ html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;us
     for (const ch of v.slice(comun)) tecla(ch);
     previo = v;
   });
+  const delCampo = new Set(); // teclas que bajaron en el campo: su keyup llega después del blur y no es "teclado de verdad"
   campo.addEventListener('keydown', e => {
-    e.stopPropagation();
+    e.stopPropagation(); delCampo.add(e.key);
     if (e.key === 'Enter') { e.preventDefault(); campo.blur(); tecla('Enter'); }
   });
   campo.addEventListener('blur', () => { campo.style.pointerEvents = 'none'; });
@@ -365,17 +428,18 @@ html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;us
   // ---------- mostrar y esconder ----------
   let ultimoToque = performance.now();
   function despertar() { ultimoToque = performance.now(); raiz.classList.remove('quieto'); }
-  function mostrar() { window.OXIDO_TOQUE = true; raiz.classList.add('on'); ponerResguardo(); }
+  function mostrar() { window.OXIDO_TOQUE = true; raiz.classList.add('on'); ponerResguardo(); acomodar(); }
   function esconder() {
     window.OXIDO_TOQUE = false;
     if (raiz.classList.contains('on')) { raiz.classList.remove('on'); soltarTodo(); }
+    acomodar();
   }
   addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { mostrar(); despertar(); } }, true);
   // teclado de verdad: se esconden (las teclas que manda ESCRIBIR no cuentan). keyup también: en la
   // pantalla del nombre, historial.js frena el keydown.
   const deTeclado = e => e.isTrusted && e.target !== campo && document.activeElement !== campo;
   addEventListener('keydown', e => { if (deTeclado(e)) esconder(); }, true);
-  addEventListener('keyup', e => { if (deTeclado(e)) esconder(); }, true);
+  addEventListener('keyup', e => { if (delCampo.delete(e.key)) return; if (deTeclado(e)) esconder(); }, true);
   addEventListener('blur', soltarTodo);
   document.addEventListener('visibilitychange', () => { if (document.hidden) soltarTodo(); });
   // sin zoom con dos dedos, sin lupa ni menú al mantener, sin gestos del navegador sobre los controles
@@ -387,6 +451,7 @@ html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;us
   let modoViejo = '', pantallaVieja = '';
   function cuadro() {
     requestAnimationFrame(cuadro);
+    acomodar(); // no hace nada si no cambió el tamaño (en iPhone, al girar, resize a veces llega antes que el tamaño nuevo)
     const s = estado();
     const modo = s === 'play' ? 'play' : s === 'pause' ? 'pausa' : s === 'nombre' ? 'nombre' : s === 'over' || s === 'win' ? 'fin' : 'menu';
     if (modo !== modoViejo) {

@@ -89,7 +89,7 @@ updPlayer=function(){
   const wasAir=!p.onGround,vy0=p.vy;
   if(en.ci===0)EN_pasoFacu(p,en);else if(en.ci===1)EN_pasoJose(p,en);else EN_pasoLauti(p,en);
   if(!p.en)return;                                   // terminó en este cuadro
-  p.x=clamp(p.x,camX+2,camX+W-10);
+  p.x=clamp(p.x,camX+2,camX+VW-10);
   animStep(p,wasAir,vy0);
   en.lx=p.x;en.ly=p.y;
 };
@@ -242,7 +242,7 @@ function EN_updBalls(){
       if(b.m==='misil'&&b.g===0)b.g=0.28;
     }
     if(b.m==='suelta')b.vx*=0.95;
-    if(b.life<=0||b.x<camX-12||b.x>camX+W+12||b.y<-12)b.gone=true;
+    if(b.life<=0||b.x<camX-12||b.x>camX+VW+12||b.y<-12)b.gone=true;
   }
   for(let i=EN_balls.length;i--;)if(EN_balls[i].gone)EN_balls.splice(i,1);
 }

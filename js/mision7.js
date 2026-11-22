@@ -109,9 +109,9 @@ function M7_newBicho(o){
 }
 function M7_dummy(){return{type:'m7Bicho',gone:true,x:-9999,y:M7_HIDE,w:1,h:1,hp:1,cd:0,score:0};}
 function M7_mkBicho(x){
-  const fromR=Math.abs(x-(camX+W+12))<0.5,fromL=Math.abs(x-(camX-20))<0.5;
+  const fromR=Math.abs(x-(camX+VW+12))<0.5,fromL=Math.abs(x-(camX-20))<0.5;
   let e=null;
-  if(fromR||fromL)e=M7_newBicho({st:'duct',hx:fromR?camX+W+30:camX-30,face:fromR?-1:1});
+  if(fromR||fromL)e=M7_newBicho({st:'duct',hx:fromR?camX+VW+30:camX-30,face:fromR?-1:1});
   else{
     // al lado de una rejilla de pared libre: sale por la pared; si no, ya está en el ducto
     let v=null;for(const [d,s] of M7.vents)if(!s.busy&&Math.abs(d.x+7-x)<50){v=d;break;}
@@ -122,12 +122,12 @@ function M7_mkBicho(x){
   return e||M7_dummy();
 }
 // raspador que entra al ducto desde un punto (lo usan los jefes)
-function M7_ductBicho(hx,small){const e=M7_newBicho({st:'duct',hx,small,face:hx>camX+W/2?-1:1});if(e){e.hp=Math.max(1,Math.round(e.hp*DIFF().ehp));enemies.push(e);}return e;}
+function M7_ductBicho(hx,small){const e=M7_newBicho({st:'duct',hx,small,face:hx>camX+VW/2?-1:1});if(e){e.hp=Math.max(1,Math.round(e.hp*DIFF().ehp));enemies.push(e);}return e;}
 // rejilla del techo hacia donde va: un poco antes del jugador más cercano, del lado de donde viene
 function M7_pickGrate(e){
   const p=nearestPlayer?nearestPlayer(e.hx,30):P,pc=M7_pc(p),side=Math.sign(e.hx-pc.x)||1;
-  const want=clamp(pc.x+side*rand(24,56),camX+18,camX+W-18);
-  const gs=M7_gratesIn(camX+12,camX+W-12);if(!gs.length)return null;
+  const want=clamp(pc.x+side*rand(24,56),camX+18,camX+VW-18);
+  const gs=M7_gratesIn(camX+12,camX+VW-12);if(!gs.length)return null;
   let best=gs[0],bd=1e9;for(const g of gs){let d=Math.abs(g-want);
     for(const o of enemies)if(o!==e&&o.type==='m7Bicho'&&o.gx===g&&(o.st==='duct'||o.st==='grate'))d+=60;
     if(d<bd){bd=d;best=g;}}
@@ -145,9 +145,9 @@ function M7_updBicho(e){
     if(e.gx===null)return;
     const d=e.gx-e.hx,sp=e.dlife>600?3:e.spd;
     e.face=d<0?-1:1;e.hx+=clamp(d,-sp,sp);
-    const vis=e.hx>camX-10&&e.hx<camX+W+10;
+    const vis=e.hx>camX-10&&e.hx<camX+VW+10;
     if(vis&&e.anim%6===0)M7_dust(e.hx+rand(-5,5),M7_DUCT+1,1);
-    if(e.hx>camX-90&&e.hx<camX+W+90&&e.anim%13===0){const dd=pc?Math.abs(pc.x-e.hx):200;M7_sfx('m7Raspa',clamp(1-dd/260,0.2,1));}
+    if(e.hx>camX-90&&e.hx<camX+VW+90&&e.anim%13===0){const dd=pc?Math.abs(pc.x-e.hx):200;M7_sfx('m7Raspa',clamp(1-dd/260,0.2,1));}
     if(Math.abs(e.gx-e.hx)<0.5){e.hx=e.gx;e.st='grate';e.t=e.small?40:52;
       if(M7.told<2){M7.told=2;setBanner('¡CUIDADO ARRIBA!',80);}}
     return;}
@@ -161,7 +161,7 @@ function M7_updBicho(e){
   case 'wait':
     M7_hidden(e);
     {const v=e.vent;if(v.x<camX-30){e.gone=true;M7.vents.get(v).busy=false;return;}
-     if(v.x>camX+12&&v.x<camX+W-20&&players.some(p=>!p.dead&&Math.abs(M7_pc(p).x-v.x)<220)){e.st='wallT';e.t=46;}}
+     if(v.x>camX+12&&v.x<camX+VW-20&&players.some(p=>!p.dead&&Math.abs(M7_pc(p).x-v.x)<220)){e.st='wallT';e.t=46;}}
     return;
   case 'wallT':{
     M7_hidden(e);const v=e.vent,s=M7.vents.get(v);s.shk=Math.max(s.shk,e.t);
@@ -180,7 +180,7 @@ function M7_updBicho(e){
     if(--e.t<=0){const tx=pc?pc.x:e.x+e.face*40;e.vx=clamp((tx-(e.x+e.w/2))/28,-2.6,2.6);e.vy=-3.3;e.st='leap';e.hitL=false;M7_sfx('m7Salto');}
     return;
   case 'leap':
-    e.vy+=0.235;e.x+=e.vx;e.y+=e.vy;e.x=clamp(e.x,camX+2,camX+W-e.w-2);e.hx=e.x;
+    e.vy+=0.235;e.x+=e.vx;e.y+=e.vy;e.x=clamp(e.x,camX+2,camX+VW-e.w-2);e.hx=e.x;
     if(!e.hitL)for(const p of players)if(!p.dead&&overlap(hurtbox(p),e)){withP(p,()=>hurtPlayer(1));e.hitL=true;break;}
     if(e.y+e.h>=GROUND&&e.vy>0){e.y=GROUND-e.h;e.st='rec';e.t=30;e.cd=rand(110,170)*DIFF().fire;dust(e.x+e.w/2,GROUND,3);}
     return;
@@ -197,10 +197,10 @@ function M7_updBicho(e){
   else if(pc){const dx=pc.x-cx;if(Math.abs(dx)>3)e.face=dx<0?-1:1;e.x+=Math.abs(dx)>3?e.face*(e.small?1.35:1.15):Math.sin(e.anim/4)*0.6;
     if(onScreen(e,-6))e.cd--;
     if(!e.small&&e.cd<=0&&Math.abs(dx)<72&&Math.abs(dx)>16){e.st='leapT';e.t=24;M7_sfx('m7Chillido');}}
-  e.x=clamp(e.x,camX+2,camX+W-e.w-2);e.y=GROUND-e.h;e.hx=e.x;
+  e.x=clamp(e.x,camX+2,camX+VW-e.w-2);e.y=GROUND-e.h;e.hx=e.x;
   if(e.bite<=0)for(const p of players)if(!p.dead&&overlap(hurtbox(p),{x:e.x+1,y:GROUND-5,w:e.w-2,h:5})){withP(p,()=>hurtPlayer(1));e.back=24;e.bite=60;M7_sfx('m7Chillido');break;}
   // si no te alcanza en 14 s, vuelve al ducto de un salto (sin puntos)
-  if(e.life>840){const gs=M7_gratesIn(camX+12,camX+W-12);if(gs.length){let g=gs[0];for(const k of gs)if(Math.abs(k-cx)<Math.abs(g-cx))g=k;
+  if(e.life>840){const gs=M7_gratesIn(camX+12,camX+VW-12);if(gs.length){let g=gs[0];for(const k of gs)if(Math.abs(k-cx)<Math.abs(g-cx))g=k;
     e.gx=g;e.st='flee';e.vy=-7.4;e.vx=clamp((g-cx)/31,-3,3);M7_sfx('m7Salto');}}
 }
 function M7_killBicho(e){
@@ -246,7 +246,7 @@ ENEMY_MAKERS.m7Bicho=M7_mkBicho;
 function M7_bulbUpd(){
   for(const [d,s] of M7.bulbs){
     if(s.st==='closed'){
-      if(d.x<camX+24||d.x>camX+W-24)continue;
+      if(d.x<camX+24||d.x>camX+VW-24)continue;
       if(players.some(p=>{if(p.dead)return false;const x=M7_pc(p).x;return x>d.x-140&&x<d.x+30;})){s.st='swell';s.t=70;M7_sfx('m7Bulbo');}
     }else if(s.st==='swell'){
       if(s.t%6===0)M7_spark(d.x+6+rand(-4,4),GROUND-20,1,'#ffb050');
@@ -290,7 +290,7 @@ M7_LVL.upd=function(){
   // luces que fallan: cada tanto el pasillo parpadea un ratito
   if(M7.flick>0)M7.flick--;else if(Math.random()<0.004)M7.flick=18+((Math.random()*20)|0);
   // vapor de los caños
-  if(T%3===0)for(const d of M7_LVL.decor){if(d.k!=='vapor'||d.x<camX-20||d.x>camX+W+20)continue;const ph=(T+((d.x*7)|0))%170;
+  if(T%3===0)for(const d of M7_LVL.decor){if(d.k!=='vapor'||d.x<camX-20||d.x>camX+VW+20)continue;const ph=(T+((d.x*7)|0))%170;
     if(ph<30){parts.push({k:'smoke',col:'200,206,220',x:d.x+9,y:GROUND-30,vx:rand(0.2,0.7),vy:rand(-0.5,-0.15),life:rand(28,40),maxl:40,size:rand(1.2,2.2),rise:1});
       if(ph===0)M7_sfx('m7Vapor');}}
 };
@@ -366,7 +366,7 @@ M7_LVL.drawBG=function(){
 
 // ================== techo con ducto, piso y avisos de caída (en el mundo) ==================
 function M7_drawCeiling(){
-  const x0=Math.floor(camX)-10,x1=camX+W+10;
+  const x0=Math.floor(camX)-10,x1=camX+VW+10;
   ctx.fillStyle='#14161e';ctx.fillRect(x0,0,W+20,M7_CEIL);
   for(let t=Math.floor(camX/48)-1;t<x1/48;t++){ctx.fillStyle='#0c0e14';ctx.fillRect(t*48,0,1,M7_CEIL);ctx.fillStyle='#2a2e3a';ctx.fillRect(t*48+3,M7_CEIL-3,1,1);ctx.fillRect(t*48+44,M7_CEIL-3,1,1);}
   ctx.fillStyle='#22262f';ctx.fillRect(x0,M7_CEIL-2,W+20,2);
@@ -406,7 +406,7 @@ M7_LVL.drawGround=function(){
   const x0=Math.floor(camX)-10;
   ctx.fillStyle='#2a2d36';ctx.fillRect(x0,GROUND,W+20,H-GROUND);
   ctx.fillStyle='#4a505e';ctx.fillRect(x0,GROUND,W+20,1.5);ctx.fillStyle='#6a7282';ctx.fillRect(x0,GROUND,W+20,0.6);
-  for(let t=Math.floor(camX/24)-1;t<(camX+W)/24+1;t++){const h=hash(t+900),x=t*24;
+  for(let t=Math.floor(camX/24)-1;t<(camX+VW)/24+1;t++){const h=hash(t+900),x=t*24;
     ctx.fillStyle='#1a1d24';ctx.fillRect(x,GROUND+1.5,0.8,H-GROUND);
     ctx.fillStyle='#22252e';for(let r=GROUND+4;r<H;r+=3)ctx.fillRect(x+3,r,18,1);
     if(h<0.15){ctx.fillStyle='rgba(20,22,30,0.7)';ctx.beginPath();ctx.ellipse(x+12,GROUND+6,7,1.4,0,0,7);ctx.fill();}   // mancha de aceite
@@ -425,9 +425,9 @@ M7_LVL.drawFx=function(){
   ctx.fillStyle=`rgba(255,30,20,${0.025+0.04*a})`;ctx.fillRect(0,0,W,H);
   // un raspador que viene por el ducto desde afuera de la pantalla: flechita violeta en el borde, a la altura del techo
   for(const e of enemies){if(e.type!=='m7Bicho'||e.st!=='duct')continue;
-    const sx=e.hx-camX;if(sx>=-4&&sx<=W+4)continue;
-    const left=sx<0,d=left?-sx:sx-W;if(d>220)continue;
-    const x=left?3:W-3,y=M7_DUCT+5,on=(T>>2)%2,s=left?1:-1;
+    const sx=e.hx-camX;if(sx>=-4&&sx<=VW+4)continue;
+    const left=sx<0,d=left?-sx:sx-VW;if(d>220)continue;
+    const x=left?3:VW-3,y=M7_DUCT+5,on=(T>>2)%2,s=left?1:-1;
     ctx.fillStyle='#120c18';ctx.beginPath();ctx.moveTo(x-s*1,y);ctx.lineTo(x+s*8,y-5);ctx.lineTo(x+s*8,y+5);ctx.closePath();ctx.fill();
     ctx.fillStyle=on?'#f0c0ff':'#b45ae0';ctx.beginPath();ctx.moveTo(x+s*0.5,y);ctx.lineTo(x+s*7,y-3.6);ctx.lineTo(x+s*7,y+3.6);ctx.closePath();ctx.fill();}
 };

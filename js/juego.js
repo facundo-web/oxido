@@ -33,10 +33,11 @@ function startLevel(i,carry){
   evIdx=0;arenaIdx=0;lock=null;goT=0;bossRef=null;winT=0;overT=0;
   // jugadores: el 1 siempre; el 2 si se sumó con su joystick en la pantalla de personaje
   const p1ci=charIdx,n=p2Pad>=0?2:1;players=[];P=null;
+  // en táctil, xLibre (camara.js) corre el arranque para que nadie aparezca debajo de la palanca
   for(let s=0;s<n;s++){
     const o=old[s],keep=keepOf(o);
     charIdx=s?p2Ci:p1ci;inSlot=s;maxHp=o?o.mhp:carry?maxHp:CH().hp;
-    P=mkPlayer(s?22:40,GROUND-18);if(keep)Object.assign(P,keep);else giveStart();
+    P=mkPlayer(xLibre(40,1)-(s?18:0),GROUND-18);if(keep)Object.assign(P,keep);else giveStart();
     players.push(P);
   }
   usePlayer(players[0]);
@@ -53,7 +54,7 @@ function addScore(n,x,y){score+=n;parts.push({k:'txt',s:'+'+n,x,y,life:40,maxl:4
 function updCam(){
   if(lock)camX=lock.a.at;
   else{
-    const target=Math.min(leadP().x-110,LEVEL_END-W);
+    const target=Math.min(leadP().x-VW*0.34,LEVEL_END-VW);
     if(target>camX)camX=target;
     const a=L.arenas[arenaIdx];
     if(a&&camX>=a.at){
@@ -63,13 +64,14 @@ function updCam(){
       if(a.boss||a.mini)playMusic('boss');
     }
   }
+  camZoomStep(); // camara.js: zoom, seguimiento vertical y arenas de jefe
   while(evIdx<levelEvents.length&&camX>=levelEvents[evIdx].at){for(const it of levelEvents[evIdx].spawn)spawnQ.push({...it,d:it.d||0});evIdx++;}
 }
 function updArena(){
   if(!lock)return;const a=lock.a;
   if(a.boss){if(!lock.spawned&&++lock.t>=100){bossRef=spawnBoss(a.at);enemies.push(bossRef);lock.spawned=true;}return;}
   if(a.mini){if(!lock.spawned&&++lock.t>=80){bossRef=spawnMiniBoss(a.at);enemies.push(bossRef);lock.spawned=true;}return;}
-  for(const e of enemies){const [x0,x1]=enemySpan(e);if(x1<camX+4||x0>camX+W-4)e.offT=(e.offT||0)+1;else e.offT=0;if(e.offT>300&&!isBoss(e)&&e.type!=='turret')e.gone=true;}
+  for(const e of enemies){const [x0,x1]=enemySpan(e);if(x1<camX+4||x0>camX+VW-4)e.offT=(e.offT||0)+1;else e.offT=0;if(e.offT>300&&!isBoss(e)&&e.type!=='turret')e.gone=true;}
   const alive=enemies.some(e=>!e.gone&&e.type!=='turret');
   if(spawnQ.length||alive){lock.t=0;return;}
   if(++lock.t<40)return;
@@ -89,7 +91,7 @@ function step(){
   updMechs();updCam();
   // 2 jugadores: nadie se queda fuera de cuadro cuando la cámara avanza con el que va adelante
   if(players.length>1)for(const p of players){if(p.dead)continue;
-    if(p.ride)p.ride.x=clamp(p.ride.x,camX+2,camX+W-24);else p.x=clamp(p.x,camX+2,camX+W-10);}
+    if(p.ride)p.ride.x=clamp(p.ride.x,camX+2,camX+VW-24);else p.x=clamp(p.x,camX+2,camX+VW-10);}
   updArena();updPrisoners();
   // los amigos siguen al jugador 1 (o al otro si el 1 está caído)
   usePlayer(players[0].dead?leadP():players[0]);updAllies();usePlayer(players[0]);
@@ -157,7 +159,7 @@ function update(){
 }
 function drawWorld(){
   drawGround();
-  for(const d of L.decor)if(d.x>camX-60&&d.x<camX+W+10)drawDecor(d);
+  for(const d of L.decor)if(d.x>camX-60&&d.x<camX+VW+10)drawDecor(d);
   drawPlatforms();drawCover();
   for(const c of crates)if(onScreen(c,10))drawCrate(c);
   for(const k of pickups)drawPickup(k);
@@ -214,12 +216,16 @@ function renderMain(){
   const sx=(shake?rand(-shake,shake):0)+kickX,sy=(shake?rand(-shake,shake):0)+kickY;
   const hs=histOk()&&histIsScreen(),menu=state==='title'||state==='select'||hs;
   if(menu&&L!==LEVELS[0]){L=LEVELS[0];platforms=L.platforms;LEVEL_END=L.end;}
+  if(menu&&(ZOOM!==1||camY)){setZoom(1);camY=0;} // los menús se ven como siempre
+  // fondo, mundo y efectos van con zoom (camara.js); el HUD, sin zoom
+  SQ=S*ZOOM;ctx.setTransform(SQ,0,0,SQ,0,0);ctx.translate(0,-q(camY));
   if(L.drawBG)L.drawBG();else if(L.theme==='port')drawBGPort();else drawBGDusk();
   ctx.save();ctx.translate(q(-camX+sx),q(sy));
-  if(menu){drawGround();for(const d of L.decor)if(d.x>camX-60&&d.x<camX+W+10)drawDecor(d);drawPlatforms();}
+  if(menu){drawGround();for(const d of L.decor)if(d.x>camX-60&&d.x<camX+VW+10)drawDecor(d);drawPlatforms();}
   else drawWorld();
   ctx.restore();
   if(L.drawFx)L.drawFx();else if(L.theme==='port')drawRain();
+  SQ=S;ctx.setTransform(S,0,0,S,0,0);
   if(hs){histDraw();return;}
   if(state==='title'){drawTitle();return;}
   if(state==='select'){drawSelect();return;}

@@ -30,8 +30,8 @@ const playerSet=p=>altLook(p)?SPR.chars2[p.ci]:SPR.chars[p.ci];
 const playerHelmet=p=>altLook(p)?ALT2[p.ci].helmet:CHARS[p.ci].helmet;
 const P_COL=['#ffe08a','#7ad8ff']; // color de cada jugador (cartelito sobre la cabeza y HUD)
 function respawnPlayer(p){
-  const i=players.indexOf(p);let x=camX+40;
-  if(twoP()){const o=players.find(q=>q!==p&&!q.dead);if(o)x=clamp((o.ride?o.ride.x+8:o.x)+(o.face>0?-14:14),camX+10,camX+W-30);}
+  const i=players.indexOf(p);let x=camX+xLibre(40);
+  if(twoP()){const o=players.find(q=>q!==p&&!q.dead);if(o)x=clamp((o.ride?o.ride.x+8:o.x)+(o.face>0?-14:14),camX+10,camX+VW-30);}
   P=mkPlayer(x,-24);P.mhp=p.mhp;players[i]=P;giveStart();
   setBanner(twoP()?'¡VUELVE EL JUGADOR '+(p.slot+1)+'!':'¡DE NUEVO AL FRENTE!',70);
 }
@@ -67,7 +67,7 @@ function updPlayer(){
     p.airJ++;p.vy=-c.jump*0.85;SFX.jump();parts.push({k:'ring',x:p.x+4,y:p.y+18,r:2,max:7,life:10,maxl:10,col:'180,230,255'});
   }
   if(p.onGround)p.airJ=0;
-  p.x=clamp(p.x+p.vx,camX+2,camX+W-10);
+  p.x=clamp(p.x+p.vx,camX+2,camX+VW-10);
   const pb=p.y+p.h,wasAir=!p.onGround;
   p.vy=Math.min(p.vy+0.32,6);p.y+=p.vy;
   if(p.drop>0)p.drop--;

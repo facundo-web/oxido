@@ -192,8 +192,8 @@ const M6_PAL_VW=Object.fromEntries(Object.keys(M6_PAL_V).map(k=>[k,'#ffffff']));
 const M6_VG=build(M6_PAL_V,M6_HEAD_V,M6_TORSO_V),M6_VGW=build(M6_PAL_VW,M6_HEAD_V,M6_TORSO_V);
 function M6_mkVigia(x,y){
   // si viene de un borde (x:'R' o 'L') se arma adentro de la pantalla, cerca de ese borde
-  const edge=Math.abs(x-(camX+W+12))<0.5||Math.abs(x-(camX-20))<0.5;
-  const hx=edge?clamp(x,camX+26,camX+W-36):x,hy=y??GROUND-18;
+  const edge=Math.abs(x-(camX+VW+12))<0.5||Math.abs(x-(camX-20))<0.5;
+  const hx=edge?clamp(x,camX+26,camX+VW-36):x,hy=y??GROUND-18;
   const e=mkSoldier(hx,hy,'soldier');
   Object.assign(e,{type:'vigia',hp:4,score:300,spd:1.05,range:rand(55,115),st:'mat',matT:40,hx,hy,x:-9999,
     dcd:rand(40,90),dodge:0,ddir:1,burst:0,bt:0,upd:M6_updVigia,draw:M6_drawVigia,onKill:M6_killVigia});
@@ -204,14 +204,14 @@ function M6_updVigia(e){
   if(e.flash>0)e.flash--;
   if(e.st==='mat'){                                                    // se arma de píxeles: todavía no se le puede pegar
     e.x=-9999;
-    const vis=e.hx>camX-4&&e.hx<camX+W-4;
+    const vis=e.hx>camX-4&&e.hx<camX+VW-4;
     if(vis&&!e.matS){e.matS=1;M6_sfx('m6arma');}
     if(vis&&--e.matT<=0){e.st='walk';e.x=e.hx;e.y=e.hy;e.vy=0;}
     if(e.hx<camX-60)e.gone=true;
     return;
   }
   if(e.st==='dodge'){                                                  // paso al costado: un parpadeo donde no está
-    e.dodge--;e.hx=clamp(e.hx+e.ddir*0.75,camX+4,camX+W-12);
+    e.dodge--;e.hx=clamp(e.hx+e.ddir*0.75,camX+4,camX+VW-12);
     e.x=e.dodge>3&&e.dodge<15?-9999:e.hx;
     if(e.dodge<=0){e.st='walk';e.x=e.hx;}
     return;
@@ -233,7 +233,7 @@ function M6_updVigia(e){
     e.vx=d>e.range?e.face*e.spd:d<40?-e.face*e.spd:(Math.sin((T+e.ph)/36)>0.55?e.face*e.spd*0.6:0);
     if(e.onGround)e.air=false;
     chaseStep(e,px,ex);
-    if(e.x<camX+6)e.vx=0.9;else if(e.x>camX+W-14)e.vx=-0.9;
+    if(e.x<camX+6)e.vx=0.9;else if(e.x>camX+VW-14)e.vx=-0.9;
     if(!P.dead&&onScreen(e,-6))e.cd--;
     if(e.cd<=0&&e.onGround&&!e.air){e.state='aim';e.t=30;M6_sfx('m6carga');}
   }else if(e.state==='aim'){e.vx=0;if(--e.t<=0){e.state='burst';e.burst=3;e.bt=0;}}
@@ -259,7 +259,7 @@ function M6_updVigia(e){
 }
 // se arma: píxeles que caen y se juntan en la silueta, con un anillo ámbar en el piso
 function M6_drawMat(e){
-  if(e.hx<camX-20||e.hx>camX+W+4)return;
+  if(e.hx<camX-20||e.hx>camX+VW+4)return;
   const k=1-e.matT/40,x=e.hx,y=e.hy,on=(T>>1)%2;
   ctx.strokeStyle=`rgba(255,180,58,${0.4+0.5*k})`;ctx.lineWidth=0.8;ctx.beginPath();ctx.ellipse(x+4,y+18,6+k*2,1.4,0,0,7);ctx.stroke();
   ctx.fillStyle=`rgba(58,216,255,${0.10+0.2*k})`;ctx.fillRect(x-1,y+18-k*20,10,k*20);
@@ -310,7 +310,7 @@ function M6_anillosUpd(){
     const near=players.some(p=>!p.dead&&Math.abs(pCenter(p).x-(a.x+7))<90);
     if(a.st==='idle'&&near){a.st='on';M6_sfx('m6anillo');}
     if(a.st==='on'){a.ch=Math.min(1,a.ch+0.03);
-      if(a.t%40===0&&a.x>camX&&a.x<camX+W)M6_sfx('m6anillo');
+      if(a.t%40===0&&a.x>camX&&a.x<camX+VW)M6_sfx('m6anillo');
       const box={x:a.x+1,y:GROUND-26,w:12,h:26};
       const p=players.find(p=>!p.dead&&overlap(hurtbox(p),box));
       if(p){a.st='done';a.t=0;M6.foco=M6_FOCO;M6.lock=false;addScore(300,a.x+7,GROUND-30);
@@ -434,18 +434,18 @@ M6_LVL.drawGround=function(){
   // vereda con borde que brilla
   ctx.fillStyle='#1a1240';ctx.fillRect(x0,GROUND,W+20,5);
   ctx.fillStyle=M6_C.cian;ctx.fillRect(x0,GROUND,W+20,0.7);ctx.fillStyle='#2a1c5a';ctx.fillRect(x0,GROUND+5,W+20,0.8);
-  ctx.fillStyle='#120c2e';for(let t=Math.floor(camX/12)-1;t<(camX+W)/12+1;t++)ctx.fillRect(t*12,GROUND+0.7,0.6,4.3);
+  ctx.fillStyle='#120c2e';for(let t=Math.floor(camX/12)-1;t<(camX+VW)/12+1;t++)ctx.fillRect(t*12,GROUND+0.7,0.6,4.3);
   // calle: grilla en perspectiva (líneas que se abren hacia adelante) y franjas horizontales
   ctx.fillStyle='rgba(176,106,255,0.28)';
   for(const y of [GROUND+8,GROUND+11.5,GROUND+16,GROUND+22])ctx.fillRect(x0,y,W+20,0.6);
   ctx.strokeStyle='rgba(58,216,255,0.22)';ctx.lineWidth=0.6;ctx.beginPath();
-  const cx=camX+W/2;
-  for(let t=Math.floor(camX/16)-6;t<(camX+W)/16+6;t++){const xa=t*16,xb=cx+(xa-cx)*1.9;ctx.moveTo(xa,GROUND+6);ctx.lineTo(xb,H);}
+  const cx=camX+VW/2;
+  for(let t=Math.floor(camX/16)-6;t<(camX+VW)/16+6;t++){const xa=t*16,xb=cx+(xa-cx)*1.9;ctx.moveTo(xa,GROUND+6);ctx.lineTo(xb,H);}
   ctx.stroke();
   // celdas del piso que se encienden de a una
-  for(let t=Math.floor(camX/16);t<(camX+W)/16;t++){const h=hash(t*31+((T>>4)|0));if(h<0.06){ctx.fillStyle=h<0.015?'rgba(255,180,58,0.35)':'rgba(58,216,255,0.25)';ctx.fillRect(t*16+1,GROUND+8.6,14,2.9);}}
+  for(let t=Math.floor(camX/16);t<(camX+VW)/16;t++){const h=hash(t*31+((T>>4)|0));if(h<0.06){ctx.fillStyle=h<0.015?'rgba(255,180,58,0.35)':'rgba(58,216,255,0.25)';ctx.fillRect(t*16+1,GROUND+8.6,14,2.9);}}
   // marcas ámbar en la calle
-  ctx.fillStyle='rgba(255,180,58,0.55)';for(let t=Math.floor(camX/48)-1;t<(camX+W)/48+1;t++)ctx.fillRect(t*48+10,GROUND+13.5,14,0.8);
+  ctx.fillStyle='rgba(255,180,58,0.55)';for(let t=Math.floor(camX/48)-1;t<(camX+VW)/48+1;t++)ctx.fillRect(t*48+10,GROUND+13.5,14,0.8);
 };
 
 // ================== capa de arriba: efecto de cámara lenta, fallas de imagen y motas ==================

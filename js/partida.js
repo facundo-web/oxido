@@ -146,11 +146,15 @@ function terminarPartida(kind){
 }
 // ---------- historial (historial.js): conexión con guardas ----------
 const histOk=()=>typeof histOpen==='function'&&typeof histUpdate==='function'&&typeof histDraw==='function'&&typeof histIsScreen==='function';
-const tituloOps=()=>histOk()?['JUGAR','LOGROS','RÉCORDS']:['JUGAR'];
+// TAMAÑO: GRANDE (mundo con zoom) / NORMAL (como antes); se guarda en el store (camara.js)
+const tamanoTxt=()=>'TAMAÑO: '+(tamano==='grande'?'GRANDE':'NORMAL');
+const tituloOps=()=>(histOk()?['JUGAR','LOGROS','RÉCORDS']:['JUGAR']).concat(typeof setTamano==='function'?[tamanoTxt()]:[]);
 function updTitulo(){
   const ops=tituloOps();tituloSel=clamp(tituloSel,0,ops.length-1);
   if(pressed.up&&tituloSel>0){tituloSel--;SFX.swap();}
   else if(pressed.down&&tituloSel<ops.length-1){tituloSel++;SFX.swap();}
+  else if(ops[tituloSel].startsWith('TAMAÑO')&&(pressed.left||pressed.right||pressed.start||pressed.shoot||pressed.jump)){
+    audioInit();setTamano(tamano==='grande'?'normal':'grande');SFX.swap();}
   else if(pressed.start||pressed.shoot||pressed.jump){
     audioInit();const o=ops[tituloSel];
     if(o==='JUGAR'){state='select';selT=0;selLevel=Math.min(selLevel,unlocked);}

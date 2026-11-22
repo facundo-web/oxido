@@ -181,7 +181,7 @@ function J7_updMar(b){
   if(b.state==='enter'){
     if(b.t===1){setBanner('¡ALGO CRECE EN EL REACTOR!',110);J7_sfx('m7Rugido');}
     b.grow=M7_ease(b.t/120);shake=Math.max(shake,0.6+b.grow*1.5);
-    if(b.t%10===0){for(const g of M7_gratesIn(camX+10,camX+W-10))M7.shk.set(g,10);J7_sfx('m7Reja');}
+    if(b.t%10===0){for(const g of M7_gratesIn(camX+10,camX+VW-10))M7.shk.set(g,10);J7_sfx('m7Reja');}
     if(b.t%5===0)M7_dust(A+rand(20,240),M7_DUCT+1,1);
     if(b.t>=120){b.state='intro';b.t=0;b.hp=0;}
     return;}
@@ -226,7 +226,7 @@ function J7_updMar(b){
       b.mode='idle';b.cd=ph?48:66;}
     break;}
   case 'criasT':b.shud=1;
-    if(b.mt%8===0){for(const g of M7_gratesIn(camX+10,camX+W-10))M7.shk.set(g,6);J7_sfx('m7Reja');}
+    if(b.mt%8===0){for(const g of M7_gratesIn(camX+10,camX+VW-10))M7.shk.set(g,6);J7_sfx('m7Reja');}
     if(b.mt===36){const n=ph?3:2;for(let i=0;i<n;i++)M7_ductBicho(i===0?A-30:A+250+i*6,i>0);setBanner('¡CRÍAS EN EL DUCTO!',60);}
     if(b.mt>=50){b.mode='idle';b.cd=ph?40:56;}
     break;

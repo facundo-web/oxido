@@ -39,7 +39,7 @@ function updAllies(){
     if(t)a.face=t.x+t.w/2<a.x+4?-1:1;else if(a.vx)a.face=Math.sign(a.vx);
     const py=P.ride?P.ride.y+P.ride.h:P.y+P.h;
     if(a.onGround&&!P.dead&&py<a.y+a.h-20&&Math.abs(P.x-a.x)<50){a.vy=-6.1;a.onGround=false;}
-    a.x=clamp(a.x+a.vx,camX+2,camX+W-10);
+    a.x=clamp(a.x+a.vx,camX+2,camX+VW-10);
     const pb=a.y+a.h,wasAir=!a.onGround;a.vy=Math.min(a.vy+0.32,6);a.y+=a.vy;const vyA=a.vy;land(a,pb,true);
     animStep(a,wasAir,vyA);
     if(a.vx&&a.onGround)a.anim++;

@@ -41,7 +41,7 @@ function J9_flameUpd(o,hb){
   o.t++;o.x+=o.vx;o.y+=o.vy;
   if(o.t%3===0)parts.push({k:'p',x:o.x,y:o.y,vx:0,vy:-0.3,g:0,life:10,maxl:10,size:1,col:o.t%2?'#d8b8ff':'#fff'});
   if(hb&&overlapPt(hb,o.x,o.y,o.r)){hurtPlayer(1);o.gone=true;return;}
-  if(o.y>=GROUND-1||o.t>260||o.x<camX-20||o.x>camX+W+20){o.gone=true;M9_mist(o.x,Math.min(o.y,GROUND-2),2,'200,170,240');}
+  if(o.y>=GROUND-1||o.t>260||o.x<camX-20||o.x>camX+VW+20){o.gone=true;M9_mist(o.x,Math.min(o.y,GROUND-2),2,'200,170,240');}
 }
 function J9_flameDraw(o){
   ctx.fillStyle='rgba(185,140,255,0.3)';circle(o.x,o.y,o.r+2);

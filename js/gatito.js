@@ -197,7 +197,7 @@ function CAT_comer(g,f,quien){
   const antes=g.hp;g.hp=Math.min(CAT_MAXHP,g.hp+CAT_COMIDA_CURA);g.heartT=Math.max(g.heartT,90);
   // se suma como todo lo demás (recolectar.js): la comida vuela a la barrita, y la barrita sube cuando llega,
   // con el mismo golpecito, brillo y sonido de llegada
-  if(typeof RC_vuela==='function'){RC_ancla('gato',g.x+6-camX,g.y-5);RC_vuela('comida',f.x+3-camX,f.y+2,'gato',null,g.hp-antes,{pop:6});}
+  if(typeof RC_vuela==='function'){RC_ancla('gato',HX(g.x+6),HY(g.y-5));RC_vuela('comida',HX(f.x+3),HY(f.y+2),'gato',null,g.hp-antes,{pop:6});}
   else g.barB=12;
   // ronroneo corto (o miau si la trajo un jugador)
   if(quien==='gato'){for(let i=0;i<4;i++)later(i*70,()=>noise(0.06,0.02,180));}else later(60,()=>CAT_meow());
@@ -205,11 +205,11 @@ function CAT_comer(g,f,quien){
 function CAT_updComida(g){
   const vivo=CAT_vivo()&&g&&g.st!=='free';
   // cada tanto aparece una en el mapa (cae del cielo un poco adelante)
-  if(vivo&&!lock&&g.hp<70&&++gatoComidaT>1500){gatoComidaT=0;CAT_soltarComida(camX+W*0.7+rand(-30,30),-10,1);}
+  if(vivo&&!lock&&g.hp<70&&++gatoComidaT>1500){gatoComidaT=0;CAT_soltarComida(camX+VW*0.7+rand(-30,30),-10,1);}
   // la que quedó atrás se guarda y vuelve adelante cuando hace falta (de a una, cada 2 s como mucho)
   for(const f of gatoComida)if(!f.fade&&f.x+f.w<camX-4){f.fade=-1;gatoReserva++;}
   if(vivo&&gatoReserva>0&&g.hp<CAT_MAXHP&&gatoComida.filter(f=>!f.fade).length<3&&T%120===0&&!CAT_comidaCerca(g)){
-    gatoReserva--;CAT_ponerComida(camX+W*0.6+rand(-20,20),-10);}
+    gatoReserva--;CAT_ponerComida(camX+VW*0.6+rand(-20,20),-10);}
   for(const f of gatoComida){
     f.t++;if(f.fade>0&&--f.fade===0)f.fade=-1;
     if(!f.onGround){const pb=f.y+f.h;f.x+=f.vx;f.vy=Math.min(f.vy+0.18,5);f.y+=f.vy;land(f,pb,!f.piso);}
@@ -249,7 +249,7 @@ function CAT_drawComida(f,hud){
 function CAT_dibIcono(x,y){CAT_drawComida({x:Math.round(x)-3,y:Math.round(y)-2,h:5,t:0,fade:0,onGround:false,k:'lata'},true);} // en el HUD (pantalla)
 function CAT_drawBar(g){
   const sal=typeof RC_salto==='function'?RC_salto('gato'):0,luz=typeof RC_luz==='function'&&RC_luz('gato');
-  if(typeof RC_ancla==='function')RC_ancla('gato',g.x+6-camX,g.y-5);
+  if(typeof RC_ancla==='function')RC_ancla('gato',HX(g.x+6),HY(g.y-5));
   const w=12,x=q(g.x),y=q(g.y-(g.st==='scratch'||g.st==='pounce'?6:5))+sal,ks=g.shown/CAT_MAXHP,k=Math.min(g.hp/CAT_MAXHP,ks+(g.shown<g.hp?0:1));
   if(k<0.2&&(T>>3)%2)return;
   ctx.fillStyle='#17141f';ctx.fillRect(x-1,y-1,w+2,3);
@@ -394,7 +394,7 @@ ON_STEP.push(function(){
   }
   if(g.st!=='scratch'&&g.trail.length)g.trail.shift();
   // nunca se queda fuera de cuadro (salvo cuando huye)
-  if(gato&&CAT_vivo()&&g.st!=='pounce'&&g.st!=='scratch')g.x=clamp(g.x,camX+2,camX+W-g.w-2);
+  if(gato&&CAT_vivo()&&g.st!=='pounce'&&g.st!=='scratch')g.x=clamp(g.x,camX+2,camX+VW-g.w-2);
   // la barrita persigue a la vida real: baja rápido y sube de a poco (así se ve sumar al comer)
   // mientras la comida vuela, lo que suma queda retenido; al llegar, sube de a poco
   const vuela=typeof RC_vuelos!=='undefined'?RC_vuelos.filter(f=>f.anc==='gato').reduce((a,f)=>a+f.amt,0):0,meta=Math.max(0,g.hp-vuela);

@@ -15,8 +15,8 @@ function bossTouch(b){
   if(!P.dead&&overlap(hb,b)){
     hurtPlayer(b.touch||2);
     if(b.noPush)return;const c=b.x+b.w/2;
-    if(P.ride){const m=P.ride;m.x=clamp((m.x+11<c)?b.x-m.w-1:b.x+b.w+1,camX+2,camX+W-24);}
-    else{P.x=clamp((P.x+4<c)?b.x-9:b.x+b.w+1,camX+2,camX+W-10);}
+    if(P.ride){const m=P.ride;m.x=clamp((m.x+11<c)?b.x-m.w-1:b.x+b.w+1,camX+2,camX+VW-24);}
+    else{P.x=clamp((P.x+4<c)?b.x-9:b.x+b.w+1,camX+2,camX+VW-10);}
   }
 }
 function bossDeathTick(b){
@@ -52,7 +52,7 @@ function updBoss(b){
         eproj.push({kind:'shell',x:cx,y:cy,vx:(tx-cx)/74,vy:-4,g:0.12,r:3,blast:22,t:0});}
       noise(0.3,0.25,600);shake=Math.max(shake,2);b.cd=ph2?80:110;}
     else if(a==='mg'){b.burst=ph2?14:10;b.bt=24;b.cd=ph2?70:100;}
-    else{enemies.push(mkDrone(camX+W+10,40),mkDrone(camX-20,55));b.cd=90;}
+    else{enemies.push(mkDrone(camX+VW+10,40),mkDrone(camX-20,55));b.cd=90;}
   }
   bossContact(b);
 }
@@ -82,7 +82,7 @@ function updBoss2(b){
         SFX.eshoot();parts.push({k:'flash',x:bcx,y:b.y+b.h,life:4,maxl:4,size:5});b.cd=ph2?70:95;}
       else if(a==='dive'){b.mode='tele';b.mt=0;SFX.alarm();}
       else if(a==='mines'){b.mode='mines';b.mt=0;b.drops=0;b.dir=bcx<A+160?1:-1;}
-      else{enemies.push(mkDrone(camX+W+10,45),mkDrone(camX-20,60));b.cd=90;}
+      else{enemies.push(mkDrone(camX+VW+10,45),mkDrone(camX-20,60));b.cd=90;}
     }
     break;}
   case 'tele':b.x+=Math.sin(b.mt)*0.6;if(b.mt>=45){b.mode='dive';b.dir=bcx<A+160?1:-1;b.face=b.dir;}break;

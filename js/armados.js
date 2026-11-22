@@ -107,7 +107,7 @@ function ARM_updCohete(b,hb){
   let boom=b.y>=GROUND-2||b.t>280||coverBlocks({x:b.x,y:b.y,vx:b.vx,vy:b.vy,r:b.r,kind:'ecohete'});
   if(!boom&&hb&&overlapPt(hb,b.x,b.y,b.r))boom=true;
   if(!boom)for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){boom=true;break;}
-  if(!boom){if(b.x<camX-30||b.x>camX+W+30)b.gone=true;return;}
+  if(!boom){if(b.x<camX-30||b.x>camX+VW+30)b.gone=true;return;}
   b.gone=true;const y=Math.min(b.y,GROUND-2);explodeFx(b.x,y,b.blast);
   for(const a of allies)if(Math.hypot(a.x+4-b.x,a.y+9-y)<b.blast+4)killAlly(a);
   for(const p of players){if(p.dead)continue;const h=hurtbox(p);if(Math.hypot(h.x+h.w/2-b.x,h.y+h.h/2-y)<b.blast+(p.ride?10:5))withP(p,()=>hurtPlayer(1));}

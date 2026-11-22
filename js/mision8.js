@@ -102,14 +102,14 @@ function M8_thump(k){
   M8.trem=Math.max(M8.trem,k);if(k>0.3)M8.alert=Math.max(M8.alert,1);
   shake=Math.max(shake,0.5+k*3.2);
   M8_sfx('m8paso',k);
-  if(k>0.25&&M8_LVL.decor.some(d=>d.k==='charco'&&d.x>camX&&d.x<camX+W))later(90,()=>M8_sfx('m8gota'));
+  if(k>0.25&&M8_LVL.decor.some(d=>d.k==='charco'&&d.x>camX&&d.x<camX+VW))later(90,()=>M8_sfx('m8gota'));
   // piedritas que saltan del piso
   const n=Math.round(2+k*7);
   for(let i=0;i<n;i++)parts.push({k:'p',x:camX+rand(4,W-4),y:GROUND-1,vx:rand(-0.3,0.3),vy:-rand(0.6,1.1+k*1.6),g:0.16,life:rand(16,26),maxl:26,size:Math.random()<0.3?1.5:1,col:i%2?'#6a6a58':'#4a4034'});
   // hojas que caen de arriba
   if(k>0.4)for(let i=0;i<Math.round(k*4);i++)parts.push({k:'p',x:camX+rand(0,W),y:rand(-4,6),vx:rand(-0.35,0.35),vy:rand(0.25,0.5),g:0.002,life:rand(110,150),maxl:150,size:1.5,col:pick(['#4a7a2a','#6a9a3a','#3a5a22'])});
   // aserrín que cae del lomo del tronco hueco
-  const t=M8_TUN;if(k>0.3&&t.x<camX+W&&t.x+t.w>camX)for(let i=0;i<Math.round(k*5);i++)parts.push({k:'p',x:t.x+rand(6,t.w-6),y:t.y+10,vx:0,vy:rand(0.2,0.5),g:0.05,life:rand(28,40),maxl:40,size:1,col:'#8a6a44'});
+  const t=M8_TUN;if(k>0.3&&t.x<camX+VW&&t.x+t.w>camX)for(let i=0;i<Math.round(k*5);i++)parts.push({k:'p',x:t.x+rand(6,t.w-6),y:t.y+10,vx:0,vy:rand(0.2,0.5),g:0.05,life:rand(28,40),maxl:40,size:1,col:'#8a6a44'});
   // pájaros que salen volando
   if(k>0.2&&M8.birds.length<14)M8_bandada(k);
 }
@@ -165,8 +165,8 @@ function M8_gigWalk(g,sp,kPaso){
 }
 function M8_empuja(p,g){
   const dir=(p.ride?p.ride.x+11:p.x+4)<g.x?-1:1;
-  if(p.ride){p.ride.x=clamp(p.ride.x+dir*16,camX+2,camX+W-24);return;}
-  p.x=clamp(p.x+dir*18,camX+2,camX+W-10);if(p.onGround){p.vy=-2.2;p.onGround=false;p.plat=null;}
+  if(p.ride){p.ride.x=clamp(p.ride.x+dir*16,camX+2,camX+VW-24);return;}
+  p.x=clamp(p.x+dir*18,camX+2,camX+VW-10);if(p.onGround){p.vy=-2.2;p.onGround=false;p.plat=null;}
 }
 // golpe del gigante a los jugadores que no estén escondidos. Devuelve true si le pegó a alguno.
 function M8_gigDanio(g,extra){
@@ -180,7 +180,7 @@ function M8_gigUpd(g,s){
   g.t++;if(g.flash>0)g.flash--;
   if(g.st==='walk'){
     M8_gigWalk(g,1.15,1);g.head+=(0-g.head)*0.08;g.jaw*=0.9;
-    if(!g.sniffed){const t=M8_TUN,ok=t.x+t.w>camX&&t.x<camX+W,sx=ok?t.x+50:camX+W*0.55;if(g.x<=sx){g.st='sniff';g.t=0;g.sniffed=true;}}
+    if(!g.sniffed){const t=M8_TUN,ok=t.x+t.w>camX&&t.x<camX+VW,sx=ok?t.x+50:camX+VW*0.55;if(g.x<=sx){g.st='sniff';g.t=0;g.sniffed=true;}}
   }else if(g.st==='sniff'){
     g.head=g.t<84?Math.min(1,g.head+0.035):Math.max(0,g.head-0.06);
     if(g.t%28===14&&g.t<84)M8_resoplido(g);
@@ -201,13 +201,13 @@ function M8_pasoUpd(){
     for(const [f,k] of M8_GOLPES)if(s.t===f+1)M8_thump(k);
     if(s.t===120)setBanner('¡ALGO GRANDE SE ACERCA!',100);
     if(s.t===240)setBanner('¡ESCONDETE EN EL TRONCO!',150);
-    if(s.t>=490){s.st='cruce';s.t=0;s.g=M8_mkGig(camX+W+82);}
+    if(s.t>=490){s.st='cruce';s.t=0;s.g=M8_mkGig(camX+VW+82);}
   }else if(s.st==='cruce'){
     M8_gigUpd(s.g,s);
     if(s.g.x<camX-125){s.st='aleja';s.t=0;}
   }else if(s.st==='aleja'){
     if(s.t===30)M8_thump(0.55);if(s.t===80)M8_thump(0.35);if(s.t===130)M8_thump(0.16);
-    if(s.t===40){if(!s.hit){toast('¡NI TE OLIÓ!','+1000 por esconderte','#c8e070');addScore(1000,camX+W/2,70);}else setBanner('SE ALEJA…',90);}
+    if(s.t===40){if(!s.hit){toast('¡NI TE OLIÓ!','+1000 por esconderte','#c8e070');addScore(1000,camX+VW/2,70);}else setBanner('SE ALEJA…',90);}
     if(s.t>=160)s.st='done';
   }
 }
@@ -215,7 +215,7 @@ function M8_pasoUpd(){
 ON_DRAW.push(()=>{
   if(L!==M8_LVL)return;const s=M8.paso;
   const show=(s.st==='temblor'&&s.t>=240)||(s.st==='cruce'&&s.g.st==='walk'&&!s.g.sniffed);
-  if(!show)return;const t=M8_TUN;if(t.x+t.w<camX||t.x>camX+W)return;
+  if(!show)return;const t=M8_TUN;if(t.x+t.w<camX||t.x>camX+VW)return;
   const on=(T>>3)%2,bob=Math.sin(T/6)*1.5;
   for(const ax of [t.x+16,t.x+t.w-16]){const y=t.y-14+bob;
     ctx.fillStyle='#120c18';ctx.beginPath();ctx.moveTo(ax-5,y-1);ctx.lineTo(ax+5,y-1);ctx.lineTo(ax,y+6);ctx.closePath();ctx.fill();
@@ -261,7 +261,7 @@ function M8_updGarra(e){
     const mine=Math.sign(ex-pc.x)||1;
     const side=e.role==='flanquea'&&e.partner?(-Math.sign(e.partner.x+7-pc.x)||1):mine;
     const want=e.role==='distrae'?64:e.role==='flanquea'?50:56;
-    const tx=clamp(pc.x+side*want,camX+12,camX+W-12);
+    const tx=clamp(pc.x+side*want,camX+12,camX+VW-12);
     // rodeo: para cruzar al otro lado salta por arriba del jugador (sin tocarlo)
     if(side!==mine&&ad<46&&e.onGround&&Math.abs(pfy-efy)<12){e.st='rodeo';e.vy=-4.6;e.vx=side*1.9;e.face=side;e.onGround=false;e.plat=null;M8_sfx('m8salto');break;}
     const d=tx-ex,sp=e.spd*(Math.abs(d)<10?0.3:1);
@@ -308,7 +308,7 @@ function M8_updGarra(e){
     else if(e.st==='rodeo'){e.st='corre';e.cd=Math.max(e.cd,30);dust(e.x+7,e.y+e.h,2);}
   }
   if(e.plat&&e.st==='corre'){/* camina hasta el borde y cae solo */}
-  if(e.x<camX-60||e.x>camX+W+80&&e.st!=='corre')e.gone=true;
+  if(e.x<camX-60||e.x>camX+VW+80&&e.st!=='corre')e.gone=true;
 }
 function M8_killGarra(e){
   M8_sfx('m8chillido');
@@ -609,7 +609,7 @@ M8_LVL.drawGround=function(){
   ctx.fillStyle=M8_C.tierra;ctx.fillRect(x0,GROUND,W+20,H-GROUND);
   ctx.fillStyle='#3a4a22';ctx.fillRect(x0,GROUND,W+20,3);
   ctx.fillStyle=M8_C.musgo;ctx.fillRect(x0,GROUND,W+20,1.2);ctx.fillStyle=M8_C.musgoC;ctx.fillRect(x0,GROUND,W+20,0.5);
-  for(let t=Math.floor(camX/10)-1;t<(camX+W)/10+1;t++){
+  for(let t=Math.floor(camX/10)-1;t<(camX+VW)/10+1;t++){
     const h=hash(t*7+3);
     if(h<0.5){ctx.fillStyle=h<0.2?'#4a7a2a':'#3a6022';const s=Math.sin(T/30+t)*0.4+M8.trem*Math.sin(T*0.8+t)*0.8;   // matitas de pasto
       ctx.fillRect(t*10+h*6,GROUND-2,0.8,2);ctx.fillRect(t*10+h*6+1.4+s*0.4,GROUND-3,0.8,3);ctx.fillRect(t*10+h*6+2.8,GROUND-1.6,0.8,1.6);}

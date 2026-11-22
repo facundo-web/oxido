@@ -9,13 +9,13 @@ const ON_START=[],ON_STEP=[],ON_DRAW=[],ON_HUD=[];
 const ON_EVENT=[];
 function emit(type,data){for(const f of ON_EVENT){try{f(type,data||{});}catch(e){console.error('evento '+type,e);}}}
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-let S=4;
+let S=4,SQ=4; // SQ: escala para redondear a píxel (con zoom, S×ZOOM mientras se dibuja el mundo)
 function fit(){
   const k=Math.min(innerWidth/W,innerHeight/H);
   const cw=Math.floor(W*k),ch=Math.floor(H*k);
   cv.style.width=cw+'px';cv.style.height=ch+'px';
   const dpr=Math.min(2,window.devicePixelRatio||1);
-  cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);S=cv.width/W;
+  cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);S=cv.width/W;SQ=S;
 }
 addEventListener('resize',fit);fit();
 
@@ -24,7 +24,7 @@ const rand=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const hash=n=>{n=(n<<13)^n;return((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/0x7fffffff;};
-const q=v=>Math.round(v*S)/S;
+const q=v=>Math.round(v*SQ)/SQ;
 const angDiff=(a,b)=>((a-b+Math.PI*3)%(Math.PI*2))-Math.PI;
 function circle(x,y,r){ctx.beginPath();ctx.arc(x,y,Math.max(0,r),0,Math.PI*2);ctx.fill();}
 function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
@@ -70,7 +70,7 @@ function txtSeg(s,x,y,size,col,align,stroke){
     ctx.fillStyle=col;ctx.fillText(p,cx,y);cx+=ctx.measureText(p).width;}
 }
 const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
-const onScreen=(e,m)=>e.x+e.w>camX-m&&e.x<camX+W+m;
+const onScreen=(e,m)=>e.x+e.w>camX-m&&e.x<camX+VW+m;
 function hurtbox(p=P){if(p.ride){const m=p.ride;return{x:m.x,y:m.y,w:m.w,h:m.h};}
   return p.crouch?{x:p.x,y:p.y+4,w:8,h:14}:{x:p.x,y:p.y,w:8,h:18};}
 const hittable=e=>!e.gone&&(!isBoss(e)||e.state==='fight');
@@ -84,12 +84,12 @@ function kick(dx,dy){kickX=clamp(kickX+dx,-3,3);kickY=clamp(kickY+dy,-3,3);}
 // temblor según la distancia al jugador más cercano: fuerte al lado, suave lejos
 function shakeAt(x,y,amt){
   let d=1e9;for(const p of players)if(!p.dead)d=Math.min(d,Math.hypot(p.x+4-x,p.y+9-y));
-  if(d===1e9)d=Math.abs(x-(camX+W/2));
+  if(d===1e9)d=Math.abs(x-(camX+VW/2));
   shake=Math.max(shake,amt*clamp(1.2-d/230,0.35,1));
 }
 ON_STEP.push(()=>{kickX*=0.55;kickY*=0.55;if(Math.abs(kickX)<0.15)kickX=0;if(Math.abs(kickY)<0.15)kickY=0;
   for(let i=scorches.length;i--;)if(--scorches[i].life<=0)scorches.splice(i,1);});
-ON_DRAW.push(()=>{for(const s of scorches){if(s.x+s.w<camX||s.x-s.w>camX+W)continue;const a=Math.min(1,s.life/80);
+ON_DRAW.push(()=>{for(const s of scorches){if(s.x+s.w<camX||s.x-s.w>camX+VW)continue;const a=Math.min(1,s.life/80);
   ctx.fillStyle=`rgba(18,10,14,${0.5*a})`;ctx.fillRect(q(s.x-s.w/2),GROUND,Math.round(s.w),1);ctx.fillRect(q(s.x-s.w/3),GROUND+1,Math.round(s.w*2/3),1);
   if(s.life>s.max-50&&(T>>2)%2){ctx.fillStyle='#ff8a2a';ctx.fillRect(q(s.x-s.w/4),GROUND,1,1);ctx.fillRect(q(s.x+s.w/5),GROUND,1,1);}}});
 ON_START.push(()=>{scorches.length=0;hitStop=0;stopT=-99;kickX=0;kickY=0;});

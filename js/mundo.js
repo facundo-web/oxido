@@ -78,8 +78,8 @@ function drawGround(){
   if(L.theme==='port'){
     ctx.fillStyle='#262b33';ctx.fillRect(x0,GROUND,W+20,H-GROUND);
     ctx.fillStyle='#5a616c';ctx.fillRect(x0,GROUND,W+20,1.5);
-    for(let x=Math.floor(camX/12)*12-12;x<camX+W+12;x+=12){ctx.fillStyle='#c9a43a';ctx.fillRect(x,GROUND+3,6,1);ctx.fillStyle='#1d2128';ctx.fillRect(x,GROUND+5,0.6,H-GROUND-5);}
-    for(let t=Math.floor(camX/40)-1;t<(camX+W)/40+1;t++){const h=hash(t+77);if(h<0.5)continue;
+    for(let x=Math.floor(camX/12)*12-12;x<camX+VW+12;x+=12){ctx.fillStyle='#c9a43a';ctx.fillRect(x,GROUND+3,6,1);ctx.fillStyle='#1d2128';ctx.fillRect(x,GROUND+5,0.6,H-GROUND-5);}
+    for(let t=Math.floor(camX/40)-1;t<(camX+VW)/40+1;t++){const h=hash(t+77);if(h<0.5)continue;
       ctx.fillStyle='rgba(140,170,210,0.16)';ctx.beginPath();ctx.ellipse(t*40+h*20,GROUND+11,8+h*8,1.6,0,0,7);ctx.fill();
       const r=((T+t*13)%40)/40;ctx.strokeStyle=`rgba(180,210,240,${0.4*(1-r)})`;ctx.lineWidth=0.5;ctx.beginPath();ctx.ellipse(t*40+h*20,GROUND+11,r*5,r*1.2,0,0,7);ctx.stroke();}
     return;
@@ -87,7 +87,7 @@ function drawGround(){
   ctx.fillStyle='#3b2620';ctx.fillRect(x0,GROUND,W+20,H-GROUND);
   ctx.fillStyle='#7a4a2e';ctx.fillRect(x0,GROUND,W+20,2);
   ctx.fillStyle='#a8693d';ctx.fillRect(x0,GROUND,W+20,0.75);
-  for(let t=Math.floor(camX/12)-1;t<(camX+W)/12+1;t++){
+  for(let t=Math.floor(camX/12)-1;t<(camX+VW)/12+1;t++){
     const h=hash(t);if(h<0.55){ctx.fillStyle=h<0.2?'#5a3a2a':'#2c1b16';const s=1+Math.floor(h*10)%3;ctx.fillRect(t*12+h*8,GROUND+4+Math.floor(h*977)%16,s,s*0.7);}
   }
 }
@@ -116,7 +116,7 @@ function drawDecor(d){
 }
 function drawPlatforms(){
   for(const pl of platforms){
-    if(pl.x>camX+W||pl.x+pl.w<camX)continue;
+    if(pl.x>camX+VW||pl.x+pl.w<camX)continue;
     if(L.drawPlat&&L.drawPlat(pl))continue; // gancho por misión
     if(pl.roof){dibTunelFondo(pl);continue;}
     if(pl.pyr){dibEscalon(pl);continue;}
@@ -294,7 +294,7 @@ function coverBlocks(b){
 function drawCover(){
   if(cobLvl!==L)armarCoberturas();
   for(const c of coberturas){
-    if(c.x>camX+W||c.x+c.w<camX)continue;
+    if(c.x>camX+VW||c.x+c.w<camX)continue;
     const x=c.x,w=c.w,top=c.top,h=c.h,col=COB_COL[c.k]||['#888','#aaa'];
     if(L.drawCover&&L.drawCover(c)){if(T<c.fl){ctx.fillStyle='rgba(255,240,210,0.55)';ctx.fillRect(c.x,c.top,c.w,c.h);}continue;} // gancho por misión
     if(c.vida<=0){ // escombro bajo, ya no frena nada
@@ -349,7 +349,7 @@ function drawCover(){
 function drawForeground(){
   if(cobLvl!==L)armarCoberturas();
   for(const t of techos){
-    if(t.x>camX+W||t.x+t.w<camX)continue;
+    if(t.x>camX+VW||t.x+t.w<camX)continue;
     if(L.drawTunnelFront&&L.drawTunnelFront(t))continue; // gancho por misión
     const iy=t.y+t.th,port=t.k==='pier';
     ctx.fillStyle=port?'rgba(2,4,12,0.34)':'rgba(24,8,16,0.30)';ctx.fillRect(t.x,iy,t.w,GROUND-iy);

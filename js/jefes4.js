@@ -252,7 +252,7 @@ function J4_curseUpd(o,hb){
   o.vx=Math.cos(na)*sp;o.vy=Math.sin(na)*sp;o.x+=o.vx;o.y+=o.vy;
   if(o.t%5===0)parts.push({k:'p',x:o.x,y:o.y,vx:0,vy:0,g:0,life:12,maxl:12,size:1,col:'#7affd0'});
   if(hb&&overlapPt(hb,o.x,o.y,o.r)){hurtPlayer(1);o.gone=true;return;}
-  if(o.y>=GROUND-1||o.t>320||o.x<camX-20||o.x>camX+W+20){o.gone=true;M4_sand(o.x,Math.min(o.y,GROUND),4,'#7affd0');}
+  if(o.y>=GROUND-1||o.t>320||o.x<camX-20||o.x>camX+VW+20){o.gone=true;M4_sand(o.x,Math.min(o.y,GROUND),4,'#7affd0');}
 }
 function J4_curseDraw(o){
   const p=(Math.sin(o.t/4)+1)/2;

@@ -315,7 +315,7 @@ function PL_updBrote(e){
   e.t++;const pc=PL_pc(),cx=e.x+4;e.face=pc.x<cx?-1:1;
   if(e.onGround){e.vx=e.face*0.5;if(--e.cd<=0&&!P.dead){e.vy=-3.2;e.vx=e.face*1.4;e.onGround=false;e.cd=rand(45,75);tone('triangle',500,900,0.06,0.025);}}
   e.x+=e.vx*(L.speedMul?L.speedMul(e):1);const pb=e.y+e.h;e.vy=Math.min(e.vy+0.25,5);e.y+=e.vy;land(e,pb,true);
-  e.x=clamp(e.x,camX+2,camX+W-10);
+  e.x=clamp(e.x,camX+2,camX+VW-10);
   if(touchAny(e)){PL_hurtBox(e,1);e.vx=-e.face*1.5;e.vy=-2;e.onGround=false;e.x-=e.face*3;}
 }
 function PL_drawBrote(e){

@@ -137,14 +137,14 @@ function M10_newVib(o){
     anim:rand(0,99),spd:0.8,bite:0,life:0,rise:0,hx:null,bush:null,hitL:false,upd:M10_updVib,draw:M10_drawVib,onKill:M10_killVib},o);
 }
 function M10_mkVib(x){
-  const fromR=Math.abs(x-(camX+W+12))<0.5,fromL=Math.abs(x-(camX-20))<0.5;
+  const fromR=Math.abs(x-(camX+VW+12))<0.5,fromL=Math.abs(x-(camX-20))<0.5;
   if(M10_nVib()>=M10_MAXV)return{type:'m10Vibora',gone:true,x:-9999,y:GROUND,w:1,h:1,hp:1,cd:0,score:0};
   if(!fromR&&!fromL){
     let b=null;for(const [d,s] of M10.bush)if(!s.busy&&Math.abs(d.x+9-x)<60){b=d;break;}
     if(b){M10.bush.get(b).busy=true;return M10_newVib({st:'hide',bush:b,x:-9999,hx:b.x+2});}
     return M10_newVib({x,st:'run'});
   }
-  return M10_newVib({x:fromR?camX+W+2:camX-18,face:fromL?1:-1});
+  return M10_newVib({x:fromR?camX+VW+2:camX-18,face:fromL?1:-1});
 }
 function M10_updVib(e){
   if(e.flash>0)e.flash--;e.anim++;
@@ -152,7 +152,7 @@ function M10_updVib(e){
   switch(e.st){
   case 'hide':{const b=e.bush,s=M10.bush.get(b);e.x=-9999;
     if(b.x<camX-30){e.gone=true;s.busy=false;return;}
-    if(b.x>camX+10&&b.x<camX+W-20&&players.some(p=>!p.dead&&Math.abs(M10_pc(p).x-b.x)<170)){e.st='rustle';e.t=44;M10_sfx('m10Siseo');}
+    if(b.x>camX+10&&b.x<camX+VW-20&&players.some(p=>!p.dead&&Math.abs(M10_pc(p).x-b.x)<170)){e.st='rustle';e.t=44;M10_sfx('m10Siseo');}
     return;}
   case 'rustle':{const s=M10.bush.get(e.bush);s.shk=Math.max(s.shk,e.t);e.x=-9999;
     if(e.t%8===0)M10_chips(e.bush.x+9,GROUND-10,1,['#3f7a3a','#5a9a4a']);
@@ -178,7 +178,7 @@ function M10_updVib(e){
     if(e.bite<=0)for(const p of players)if(!p.dead&&overlap(hurtbox(p),{x:e.x+2,y:GROUND-5,w:e.w-4,h:5})){withP(p,()=>hurtPlayer(1));e.bite=70;e.x-=e.face*8;M10_sfx('m10Mordida');break;}
     if(e.life>1500&&!onScreen(e,20))e.gone=true;
   }}
-  if(e.x>-1000){e.x=clamp(e.x,camX+2-(e.st==='run'&&e.life<200?40:0),camX+W-e.w-2+(e.st==='run'&&e.life<200?40:0));e.y=GROUND-e.h;}
+  if(e.x>-1000){e.x=clamp(e.x,camX+2-(e.st==='run'&&e.life<200?40:0),camX+VW-e.w-2+(e.st==='run'&&e.life<200?40:0));e.y=GROUND-e.h;}
 }
 function M10_killVib(e){
   if(e.x<-1000)return;
@@ -214,7 +214,7 @@ ENEMY_MAKERS.m10Vibora=M10_mkVib;
 function M10_dart(x,y,dir){
   eproj.push({kind:'m10Dardo',x,y,vx:dir*2.4,vy:0,r:1,t:0,
     upd(o){o.t++;o.x+=o.vx;
-      if(o.x<camX-20||o.x>camX+W+20||o.t>260){o.gone=true;return;}
+      if(o.x<camX-20||o.x>camX+VW+20||o.t>260){o.gone=true;return;}
       if(coverBlocks({x:o.x,y:o.y,vx:o.vx,vy:0,r:1,kind:'bullet'})){o.gone=true;spark(o.x,o.y,'#d9c8a0');return;}
       const R=M10.roca;if(R&&(R.st==='run'||R.st==='drop')&&Math.hypot(o.x-R.x,o.y-R.y)<M10_R){o.gone=true;spark(o.x,o.y,'#d9c8a0');return;}
       for(const p of players)if(!p.dead&&overlapPt(hurtbox(p),o.x,o.y,1)){withP(p,()=>hurtPlayer(1));o.gone=true;return;}},
@@ -231,9 +231,9 @@ function M10_trapOn(d){
 function M10_spikeState(d){const ph=(M10.clk+(d.ph||0))%(d.per||130);return ph<50?'down':ph<80?'warn':ph<114?'up':'back';}
 function M10_trapsUpd(){
   for(const d of M10_LVL.decor){
-    if(d.x<camX-40||d.x>camX+W+40)continue;
+    if(d.x<camX-40||d.x>camX+VW+40)continue;
     if(d.k==='cabeza'){const s=M10.heads.get(d);if(!s)continue;
-      if(!M10_trapOn(d)||d.x>camX+W-4){s.glow=0;continue;}
+      if(!M10_trapOn(d)||d.x>camX+VW-4){s.glow=0;continue;}
       s.t++;const ph=s.t%d.per;s.glow=ph>d.per-34?(ph-(d.per-34))/34:0;
       if(ph===d.per-34)M10_sfx('m10Click');
       if(ph===0){M10_dart(d.x+(d.dir<0?-1:13),d.hy,d.dir);M10_sfx('m10Dardo');}}
@@ -257,7 +257,7 @@ function M10_trapsUpd(){
 function M10_pitsUpd(){
   for(const p of players){
     if(p.dead||p.ride)continue;
-    if(p.m10b&&p.m10b.t>0){p.m10b.t--;p.x=clamp(p.x+p.m10b.dir*1.7,camX+2,camX+W-10);}
+    if(p.m10b&&p.m10b.t>0){p.m10b.t--;p.x=clamp(p.x+p.m10b.dir*1.7,camX+2,camX+VW-10);}
     if(!p.onGround||p.plat)continue;
     const cx=p.x+4;
     for(const pit of M10.pits){if(!pit.open||cx<pit.x+2||cx>pit.x+pit.w-2)continue;
@@ -329,7 +329,7 @@ function M10_crush(p){
   let nx=R.x+M10_R+22;
   if(twoP()){const o=players.find(q=>q!==p&&!q.dead);if(o)nx=Math.max(nx,(o.ride?o.ride.x:o.x)-16);}
   for(const pit of M10.pits)if(pit.open&&nx+4>pit.x-2&&nx+4<pit.x+pit.w+2)nx=pit.x+pit.w+4;   // nunca adentro de un pozo
-  p.x=clamp(nx,camX+2,camX+W-12);p.y=GROUND-70;p.vy=0;p.onGround=false;p.plat=null;p.m10b=null;
+  p.x=clamp(nx,camX+2,camX+VW-12);p.y=GROUND-70;p.vy=0;p.onGround=false;p.plat=null;p.m10b=null;
   if(p.inv<60)p.inv=60;
   shake=Math.max(shake,5);M10_sfx('m10Aplasta');dust(p.x+4,GROUND,6);
   setBanner(twoP()?'¡LA ROCA ALCANZÓ AL JUGADOR '+(p.slot+1)+'!':'¡TE ALCANZÓ LA ROCA!',60);
@@ -381,8 +381,8 @@ function M10_chaseUpd(){
     M10.blocks=M10.blocks.filter(b=>!b.gone);
     // aplasta enemigos, amigos y gatito (estos dos salen despedidos para adelante)
     for(const e of enemies)if(!e.gone&&!isBoss(e)&&e.x>-1000&&M10_hitsRock(e,2)){const hk=hitFrom;hitFrom={dir:1,pow:2,fl:2,up:true};dmg(e,99);hitFrom=hk;}
-    for(const a of allies)if(!a.gone&&M10_hitsRock(a,2)){a.x=Math.min(R.x+M10_R+18,camX+W-12);a.y=GROUND-50;a.vy=-1;a.onGround=false;}
-    if(typeof gato!=='undefined'&&gato&&gato.x!==undefined&&M10_hitsRock({x:gato.x,y:gato.y,w:gato.w||10,h:gato.h||8},2)){gato.x=Math.min(R.x+M10_R+16,camX+W-14);gato.y=GROUND-46;gato.vy=-1;gato.onGround=false;}
+    for(const a of allies)if(!a.gone&&M10_hitsRock(a,2)){a.x=Math.min(R.x+M10_R+18,camX+VW-12);a.y=GROUND-50;a.vy=-1;a.onGround=false;}
+    if(typeof gato!=='undefined'&&gato&&gato.x!==undefined&&M10_hitsRock({x:gato.x,y:gato.y,w:gato.w||10,h:gato.h||8},2)){gato.x=Math.min(R.x+M10_R+16,camX+VW-14);gato.y=GROUND-46;gato.vy=-1;gato.onGround=false;}
     for(const p of players)if(!p.dead&&!p.ride&&M10_hitsRock(hurtbox(p),3))M10_crush(p);
     // el abismo: la roca se cae adentro y se estrella
     const ab=M10.pits.find(p=>p.k==='abismo');
@@ -411,7 +411,7 @@ M10_LVL.upd=function(){
   for(const [,s] of M10.bush)if(s.shk>0)s.shk--;
   M10_trapsUpd();M10_chaseUpd();M10_pitsUpd();M10_blocksUpd();
   // antorchas y braseros: alguna chispa que sube
-  if(T%5===0)for(const d of M10_LVL.decor){if((d.k!=='antorcha'&&d.k!=='brasero')||d.x<camX-10||d.x>camX+W+10)continue;
+  if(T%5===0)for(const d of M10_LVL.decor){if((d.k!=='antorcha'&&d.k!=='brasero')||d.x<camX-10||d.x>camX+VW+10)continue;
     if(Math.random()<0.4){const y=d.k==='antorcha'?GROUND-58:GROUND-30;parts.push({k:'p',x:d.x+5+rand(-1.5,1.5),y,vx:rand(-0.2,0.2),vy:rand(-0.7,-0.3),g:-0.005,life:rand(20,34),maxl:34,size:1,col:Math.random()<0.5?'#ffd27a':'#ff8a2a'});}}
   M10_festUpd();
 };
@@ -507,7 +507,7 @@ function M10_wallTile(gold){
 }
 M10_LVL.drawBG=function(){
   M10_jungleTiles();if(!M10_WSTONE){M10_WSTONE=M10_wallTile(false);M10_WGOLD=M10_wallTile(true);}
-  const k=M10_ease((camX-360)/280),gk=M10_gold(camX+W/2);
+  const k=M10_ease((camX-360)/280),gk=M10_gold(camX+VW/2);
   if(k<1){
     ctx.globalAlpha=1;const fo=((camX*0.25)%384+384)%384;
     for(let i=0;i<2;i++)ctx.drawImage(M10_JFAR,q(-fo+i*384),0);
@@ -536,11 +536,11 @@ M10_LVL.drawBG=function(){
 
 // ================== techo, piso, pozos y rayos de luz (en el mundo) ==================
 function M10_drawCeil(){
-  const x0=Math.max(M10_GATE,Math.floor(camX)-10),x1=camX+W+10;if(x1<=x0)return;
+  const x0=Math.max(M10_GATE,Math.floor(camX)-10),x1=camX+VW+10;if(x1<=x0)return;
   const [h0,h1]=M10_CHASE.hole,R=M10.roca;
   // la roca asoma por el hueco (atrás de la losa)
   if(R&&R.st==='peek')M10_drawRockPeek();
-  const gk=M10_gold(camX+W/2);
+  const gk=M10_gold(camX+VW/2);
   for(let t=Math.floor(x0/24);t*24<x1;t++){const x=t*24;if(x+24<=x0)continue;
     if(x+24>h0&&x<h1)continue;   // hueco de la roca
     const h=hash(t+400);ctx.fillStyle=h<0.5?'#3e3a30':'#46412f';ctx.fillRect(x,0,24,M10_CEIL);
@@ -570,8 +570,8 @@ function M10_drawPit(p){
   if(p.k==='abismo'){ctx.fillStyle='rgba(255,200,120,0.5)';for(let i=0;i<3;i++)ctx.fillRect(x-6-i*5,g-1,2,1);}
 }
 M10_LVL.drawGround=function(){
-  const x0=Math.floor(camX)-10,gk=M10_gold(camX+W/2);
-  for(let t=Math.floor(camX/24)-1;t<(camX+W)/24+1;t++){const x=t*24,h=hash(t+900);
+  const x0=Math.floor(camX)-10,gk=M10_gold(camX+VW/2);
+  for(let t=Math.floor(camX/24)-1;t<(camX+VW)/24+1;t++){const x=t*24,h=hash(t+900);
     if(x+24<=M10_GATE){ // selva: tierra y pasto
       ctx.fillStyle='#4a3524';ctx.fillRect(x,GROUND,24,H-GROUND);ctx.fillStyle='#5a8a3a';ctx.fillRect(x,GROUND,24,1.6);ctx.fillStyle='#7aaa4a';ctx.fillRect(x,GROUND,24,0.6);
       ctx.fillStyle='#3a2a1c';for(let k=0;k<4;k++)ctx.fillRect(x+hash(t*7+k)*22,GROUND+4+hash(t*3+k)*16,2,1.2);
@@ -584,7 +584,7 @@ M10_LVL.drawGround=function(){
       if(g>0.2&&h<g){ctx.fillStyle='#e8b84a';ctx.fillRect(x+4,GROUND+4,4,1);ctx.fillRect(x+16,GROUND+14,4,1);}
       if(h<0.12){ctx.fillStyle='rgba(70,110,50,0.6)';ctx.fillRect(x+3,GROUND,6,1);}}
   }
-  for(const p of M10.pits)if(p.x+p.w>camX-4&&p.x<camX+W+4)M10_drawPit(p);
+  for(const p of M10.pits)if(p.x+p.w>camX-4&&p.x<camX+VW+4)M10_drawPit(p);
   // aviso de la roca: sombra que crece en el piso debajo del hueco
   if(M10.chase&&M10.chase.st==='warn'){const k=clamp(M10.chase.t/118,0,1),x=M10_CHASE.drop;
     ctx.fillStyle=`rgba(0,0,0,${0.15+0.3*k})`;ctx.beginPath();ctx.ellipse(x,GROUND,8+k*20,1.5+k*1.5,0,0,7);ctx.fill();
@@ -592,13 +592,13 @@ M10_LVL.drawGround=function(){
     ctx.fillStyle=`rgba(190,170,130,${0.12+0.1*k})`;ctx.fillRect(M10_CHASE.hole[0]+6,M10_CEIL,M10_CHASE.hole[1]-M10_CHASE.hole[0]-12,GROUND-M10_CEIL);}
   // dosel de la selva arriba
   if(camX<M10_GATE){
-    for(let t=Math.floor(camX/20)-1;t*20<Math.min(M10_GATE+30,camX+W+20);t++){const x=t*20,h=hash(t+50);
+    for(let t=Math.floor(camX/20)-1;t*20<Math.min(M10_GATE+30,camX+VW+20);t++){const x=t*20,h=hash(t+50);
       ctx.fillStyle=h<0.5?'#2e4a2a':'#355430';ctx.beginPath();ctx.ellipse(x+10,2,14,8+h*5,0,0,7);ctx.fill();
       if(h>0.55){ctx.strokeStyle='#3a5a2a';ctx.lineWidth=1;ctx.beginPath();const sw=Math.sin(T/45+t)*3,ln=24+h*40;ctx.moveTo(x+10,6);ctx.quadraticCurveTo(x+10+sw*0.5,6+ln*0.6,x+10+sw,6+ln);ctx.stroke();
         ctx.fillStyle='#4a7a3a';ctx.fillRect(x+9+sw,5+ln,3,2);}}}
   M10_drawCeil();
   // rayos de sol que entran por las juntas del techo, con polvito
-  for(let t=Math.max(Math.floor(M10_GATE/160),Math.floor(camX/160)-1);t*160<camX+W+60;t++){if(hash(t+600)<0.35)continue;
+  for(let t=Math.max(Math.floor(M10_GATE/160),Math.floor(camX/160)-1);t*160<camX+VW+60;t++){if(hash(t+600)<0.35)continue;
     const sx=t*160+40+hash(t+610)*60,a=0.06+0.025*Math.sin(T/70+t)+0.04*gk;
     ctx.fillStyle=`rgba(255,226,150,${a})`;ctx.beginPath();ctx.moveTo(sx,M10_CEIL);ctx.lineTo(sx+7,M10_CEIL);ctx.lineTo(sx+40,GROUND);ctx.lineTo(sx+22,GROUND);ctx.fill();
     ctx.fillStyle=`rgba(255,226,150,${a*0.9})`;ctx.beginPath();ctx.ellipse(sx+31,GROUND,11,1.6,0,0,7);ctx.fill();}
@@ -606,7 +606,7 @@ M10_LVL.drawGround=function(){
 
 // ================== capa de arriba: polvo que flota, luz de oro y festejo ==================
 M10_LVL.drawFx=function(){
-  const gk=M10_gold(camX+W/2);
+  const gk=M10_gold(camX+VW/2);
   for(const m of M10.motes){const x=((m.x-camX*m.s*0.6+Math.sin(T/90+m.ph)*6)%W+W)%W,y=(m.y+Math.sin(T/70+m.ph*3)*4+GROUND)%GROUND;
     ctx.fillStyle=`rgba(255,${230-gk*30},${170-gk*60},${0.25+0.2*Math.sin(T/30+m.ph)})`;ctx.fillRect(x,y,1,1);}
   if(gk>0.3&&T%2===0){ctx.fillStyle=`rgba(255,200,90,${0.04*gk})`;ctx.fillRect(0,0,W,H);}

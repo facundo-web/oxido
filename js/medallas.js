@@ -13,7 +13,7 @@ const MEDALS=[
 const AIR_EVERY=30; // cada 30 bajas, un apoyo aéreo gratis
 // e: la baja que la ganó (de ahí sale volando la medalla, como todo lo que suma: recolectar.js)
 function checkMedals(e){
-  const aca=e?{x:e.x+e.w/2-camX,y:e.y+4}:null;
+  const aca=e?{x:HX(e.x+e.w/2),y:HY(e.y+4)}:null;
   while(medals<MEDALS.length&&kills>=MEDALS[medals].at){
     const m=MEDALS[medals],antes=RC_fotos();medals++;emit('medal',{name:m.name});if(m.apply)m.apply();if(m.each)eachPlayer(m.each); // each: a cada jugador
     // una sola insignia que sube de nivel: el aviso dice a qué nivel llegaste y qué ganaste

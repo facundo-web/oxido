@@ -23,7 +23,7 @@ function J6_updCap(o,hb){
   o.t++;o.vy=Math.min(o.vy+0.12,3);o.y+=o.vy;
   if(hb&&overlapPt(hb,o.x,o.y,o.r)){hurtPlayer(1);}
   const s=J6_surf(o.x,o.y-o.vy);
-  if(o.y>=s-3){o.gone=true;const v=M6_mkVigia(clamp(o.x-4,camX+8,camX+W-16),s-18);v.matT=18;v.matS=1;enemies.push(v);
+  if(o.y>=s-3){o.gone=true;const v=M6_mkVigia(clamp(o.x-4,camX+8,camX+VW-16),s-18);v.matT=18;v.matS=1;enemies.push(v);
     J6_sfx('m6arma');for(let i=0;i<8;i++)parts.push({k:'p',x:o.x,y:s-2,vx:rand(-1.4,1.4),vy:rand(-1.8,-0.4),g:0.1,life:18,maxl:18,size:1,col:i%2?M6_C.cian:M6_C.amb});}
 }
 function J6_drawCap(o){

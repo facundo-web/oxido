@@ -108,7 +108,7 @@ function RC_foto(){const p=P;return{w:{...p.weapons},b:p.bombs,sh:p.shield,hp:p.
 // collect() terminó: cada cosa vuela a su lugar del HUD del jugador que la agarró (en el Grillo, a su cabina)
 function RC_junto(kind,x,y,a){
   if(state!=='play')return;
-  const p=P,s=p.slot,sx=x+5-camX,sy=y+5,cab=p.ride?'gri'+s:null,w=DROPMAP[kind],ps=()=>players[s];
+  const p=P,s=p.slot,sx=HX(x+5),sy=HY(y+5),cab=p.ride?'gri'+s:null,w=DROPMAP[kind],ps=()=>players[s];
   // munición de un arma que no tenés en la mano: vuela a su iconito (el número no se ve, así que no hace tic)
   const chico=w&&!cab&&p.weapon!==w&&RC_anc['am'+s+w],ak=chico?'am'+s+w:cab||'am'+s;
   if(w)RC_premio(w,sx,sy,ak,'am'+s+w,()=>ps()?ps().weapons[w]||0:null,a.w[w]||0,p.weapons[w]||0,s,{mudo:p.weapon!==w});
@@ -122,9 +122,9 @@ function RC_junto(kind,x,y,a){
 // premio por jefe (jefes.js): la vida vuela a las vidas y la salud de cada uno a sus corazones
 function RC_jefe(lv,hps,o){
   if(state!=='play')return;
-  RC_premio('vida',o.x+o.w/2-camX,o.y-2,'lv','lv',()=>lives,lv,lives,0);
+  RC_premio('vida',HX(o.x+o.w/2),HY(o.y-2),'lv','lv',()=>lives,lv,lives,0);
   players.forEach((p,s)=>{if(p.dead||!(p.hp>hps[s]))return;const c=pCenter(p);
-    RC_premio('heart',c.x-camX,c.y-8,'hp'+s,'hp'+s,()=>players[s]?players[s].hp:null,hps[s],p.hp,s);});
+    RC_premio('heart',HX(c.x),HY(c.y-8),'hp'+s,'hp'+s,()=>players[s]?players[s].hp:null,hps[s],p.hp,s);});
 }
 
 // lo que tenía cada jugador (para las medallas, que le dan algo a todos)
@@ -133,13 +133,13 @@ function RC_fotos(){return players.map(p=>({hp:p.hp,sh:p.shield,b:p.bombs}));}
 // sale de su cabeza y vuela a su lugar del HUD. que: 'hp' | 'sh' | 'gr'. pop: para escalonar varios.
 function RC_sumaJug(p,que,antes,pop){
   if(state!=='play'||!p||p.dead)return;
-  const s=p.slot,c=pCenter(p),sx=c.x-camX,sy=c.y-10,ps=()=>players[s];
+  const s=p.slot,c=pCenter(p),sx=HX(c.x),sy=HY(c.y-10),ps=()=>players[s];
   if(que==='hp'&&p.hp>antes)RC_premio('heart',sx,sy,'hp'+s,'hp'+s,()=>ps()?ps().hp:null,antes,p.hp,s,{pop});
   else if(que==='sh'&&p.shield>antes)RC_premio('shield',sx,sy,'sh'+s,'sh'+s,()=>ps()?ps().shield:null,antes,p.shield,s,{pop});
   else if(que==='gr'&&p.bombs>antes)RC_premio('grenade',sx,sy,p.ride?'gri'+s:'gr'+s,'gr'+s,()=>ps()?ps().bombs:null,antes,p.bombs,s,{pop});
 }
 // dónde pasó (en pantalla): la baja que la ganó o, si no hay, el jugador que va adelante
-function RC_aca(o){if(o)return o;const p=leadP(),c=pCenter(p);return{x:c.x-camX,y:c.y-12};}
+function RC_aca(o){if(o)return o;const p=leadP(),c=pCenter(p);return{x:HX(c.x),y:HY(c.y-12)};}
 // medalla nueva (medallas.js): la insignia sale donde cayó la baja y vuela a la insignia del HUD;
 // lo que da a cada jugador sale de su cabeza un poquito después, de a uno
 function RC_medalla(lvl,o,antes){
@@ -206,7 +206,7 @@ function RC_toca(k){
   RC_aMarcador(k);
 }
 function RC_aMarcador(k){
-  const sx=k.x-camX,sy=k.y,a=RC_donde('sc');
+  const sx=HX(k.x),sy=HY(k.y),a=RC_donde('sc');
   RC_vuela('chapa',sx,sy,'sc','sc',k.v,{pop:0,dur:Math.round(clamp(Math.hypot(a.x-sx,a.y-sy)/9,14,26)),chapa:true,big:k.big,ph:k.ph});
 }
 
@@ -233,7 +233,7 @@ function RC_dibChapa(cx,cy,big,giro){
 // chapitas en el mundo (ON_DRAW, con la cámara puesta)
 function RC_dibChapas(){
   for(const k of RC_chapas){
-    if(k.x<camX-10||k.x>camX+W+10)continue;
+    if(k.x<camX-10||k.x>camX+VW+10)continue;
     const bob=k.fase===1?Math.sin(k.t*0.22+k.ph)*0.9:0;
     if(k.fase===2&&k.ac>0.6){ctx.fillStyle=k.big?'rgba(255,240,176,0.45)':'rgba(242,192,112,0.45)';ctx.fillRect(Math.round(k.x-k.vx*1.6),Math.round(k.y-k.vy*1.6),1,1);}
     RC_dibChapa(k.x,k.y+bob,k.big,k.t*(k.fase===2?0.45:0.22)+k.ph);

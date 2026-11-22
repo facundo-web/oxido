@@ -8,7 +8,7 @@ function mkMech(x){return{x,y:GROUND-28,w:22,h:28,vx:0,vy:0,face:1,onGround:true
 function enterMech(m){P.ride=m;m.ride=true;m.by=P;m.face=P.face;m.aim=0;m.inv=30;setBanner('¡A BORDO DEL GRILLO!',70);SFX.pick();}
 function ejectMech(m,broken){
   m.ride=false;m.by=null;m.cool=45;m.jet=false;P.ride=null;
-  P.x=clamp(m.x+7,camX+2,camX+W-10);P.y=m.y-6;P.vy=-4.5;P.onGround=false;P.plat=null;P.crouch=false;
+  P.x=clamp(m.x+7,camX+2,camX+VW-10);P.y=m.y-6;P.vy=-4.5;P.onGround=false;P.plat=null;P.crouch=false;
   P.inv=Math.max(P.inv,broken?100:40);SFX.jump();
 }
 function mechBreak(m){m.dying=75;ejectMech(m,true);setBanner('¡EL GRILLO NO DA MÁS!',80);SFX.alarm();}
@@ -49,7 +49,7 @@ function mechCannon(m){kick(-m.face*2,0);
 }
 function grilloShellUpd(g){
   g.t++;const py=g.y;g.vy+=g.g;g.x+=g.vx;g.y+=g.vy;g.rot=Math.atan2(g.vy,g.vx);
-  if(g.x<camX-40||g.x>camX+W+40){g.gone=true;return;}
+  if(g.x<camX-40||g.x>camX+VW+40){g.gone=true;return;}
   if(g.t%2===0)parts.push({k:'smoke',x:g.x-g.vx*0.8,y:g.y-g.vy*0.8,vx:0,vy:-0.1,life:16,maxl:16,size:1.2});
   if(g.mort&&!g.whistle&&g.vy>0.5){g.whistle=true;tone('sine',1500,420,0.9,0.025);}
   let hit=g.t>260;
@@ -113,7 +113,7 @@ function updMech(m){
   if(tapped('jump')&&m.onGround){m.vy=-6.6;m.onGround=false;m.plat=null;SFX.jump();dust(m.x+11,m.y+m.h,8);}
   // un toque de X es un salto normal; si se mantiene, el jetpack prende cerca de la cima del salto
   mechJet(m,held('jump')&&!D&&!m.onGround&&(m.jet||m.vy>-2.2));
-  m.x=clamp(m.x+m.vx,camX+2,camX+W-24);
+  m.x=clamp(m.x+m.vx,camX+2,camX+VW-24);
   const pb=m.y+m.h,wasAir=!m.onGround,fall=m.vy;
   m.vy=Math.min(m.vy+0.28,6.5);m.y+=m.vy;
   if(m.y<8){m.y=8;if(m.vy<0)m.vy=0;} // techo de vuelo

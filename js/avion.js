@@ -14,10 +14,10 @@ function callAir(){
 function updAir(){
   if(air){
     air.t++;air.x+=3.4;
-    if(air.t>25&&air.t%5===0&&air.x>camX+6&&air.x<camX+W-6&&air.drops<14){air.drops++;airBombs.push({x:air.x,y:air.y+6,vx:1.4,vy:0.6});}
+    if(air.t>25&&air.t%5===0&&air.x>camX+6&&air.x<camX+VW-6&&air.drops<14){air.drops++;airBombs.push({x:air.x,y:air.y+6,vx:1.4,vy:0.6});}
     if(air.t%8===0){const d=enemies.find(e=>hittable(e)&&(e.type==='drone'||e.air)&&onScreen(e,0));
       if(d){killSrc='air';dmg(d,isBoss(d)?0.5:3);killSrc=null;parts.push({k:'tracer',x:air.x+6,y:air.y+5,x2:d.x+d.w/2,y2:d.y+d.h/2,life:5,maxl:5});SFX.heavy();}}
-    if(air.x>camX+W+100)air=null;
+    if(air.x>camX+VW+100)air=null;
   }
   for(const b of airBombs){b.vy+=0.22;b.x+=b.vx;b.y+=b.vy;if(b.y>=GROUND-3){b.gone=true;killSrc='air';blast(b.x,GROUND-4,26,8*dmgMul,0.2);killSrc=null;}}
   airBombs=airBombs.filter(b=>!b.gone);

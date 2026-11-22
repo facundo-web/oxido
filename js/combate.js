@@ -88,7 +88,7 @@ function collect(kind,x,y,k){
 // enemigos nuevos por tipo: ENEMY_MAKERS[t]=(x,y)=>enemigo (las misiones nuevas le agregan entradas)
 const ENEMY_MAKERS={};
 function spawn(it){
-  const x=it.x==='R'?camX+W+12:it.x==='L'?camX-20:it.x;
+  const x=it.x==='R'?camX+VW+12:it.x==='L'?camX-20:it.x;
   const e=ENEMY_MAKERS[it.t]?ENEMY_MAKERS[it.t](x,it.y):it.t==='drone'?mkDrone(x,it.y??rand(28,60)):mkSoldier(x,it.y??GROUND-18,it.t);
   if(it.x==='L')e.face=1;
   const d=DIFF();e.hp=Math.max(1,Math.round(e.hp*d.ehp));e.cd*=d.fire;PC_escalar(e);ARM_armar(e);enemies.push(e);
@@ -107,7 +107,7 @@ function updProjectiles(){
     }
     if(b.k==='flame'){b.vx*=0.95;b.vy=b.vy*0.95-0.03;b.r+=0.22;}
     b.x+=b.vx;b.y+=b.vy;
-    if(--b.life<=0||b.x<camX-10||b.x>camX+W+10||b.y<-10){if(b.k==='rocket'&&b.life<=0)rocketBoom(b);b.gone=true;continue;}
+    if(--b.life<=0||b.x<camX-10||b.x>camX+VW+10||b.y<-10){if(b.k==='rocket'&&b.life<=0)rocketBoom(b);b.gone=true;continue;}
     if(b.y>=GROUND){
       if(b.k==='rocket'){rocketBoom(b);continue;}
       if(b.k==='flame'){b.y=GROUND-1;b.vy=0;}
@@ -141,7 +141,7 @@ function updProjectiles(){
     if(g.upd){g.upd(g);continue;} // granadas especiales (p. ej. del Grillo)
     g.t++;g.vy+=g.can?0.08:0.18;g.x+=g.vx;g.y+=g.vy;g.rot+=g.vx*0.3;
     let boom=g.t>150;
-    if(g.x<camX-20||g.x>camX+W+20){g.gone=true;continue;}
+    if(g.x<camX-20||g.x>camX+VW+20){g.gone=true;continue;}
     if(g.y>=GROUND-2){g.y=GROUND-2;if(g.b<1){g.vy=-Math.abs(g.vy)*0.45;g.vx*=0.6;g.b++;}else boom=true;}
     for(const e of enemies)if(hittable(e)&&overlapPt(e,g.x,g.y,2)){boom=true;break;}
     for(const c of crates)if(!c.gone&&overlapPt(c,g.x,g.y,2)){boom=true;break;}
@@ -160,7 +160,7 @@ function updProjectiles(){
     let hitP=!!who;
     if(b.kind==='bullet'){
       if(hitP){withP(who.p,()=>hurtPlayer(1));b.gone=true;}
-      else if(b.y>GROUND||b.x<camX-20||b.x>camX+W+20||b.y<-20)b.gone=true;
+      else if(b.y>GROUND||b.x<camX-20||b.x>camX+VW+20||b.y<-20)b.gone=true;
       else for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){killAlly(a);b.gone=true;break;}
     }else{
       if(!hitP)for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){hitP=true;break;}

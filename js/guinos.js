@@ -136,11 +136,11 @@ function GU_land(e){
 function GU_leapTo(e,p){
   const pc=pCenter(p),ops=[];
   for(const pl of platforms){if(pl.roof||pl.w<24)continue;const x=pl.x+pl.w/2;
-    if(x<camX+20||x>camX+W-20||Math.abs(x-(e.x+4))<30)continue;
+    if(x<camX+20||x>camX+VW-20||Math.abs(x-(e.x+4))<30)continue;
     const d=Math.abs(x-pc.x);if(d<40||d>170)continue;ops.push({x:x-4,y:pl.y-e.h,s:d*0.5+pl.y});}
   let t;
   if(ops.length){ops.sort((a,b)=>a.s-b.s);t=pick(ops.slice(0,3));}
-  else{const side=Math.random()<0.5?-1:1,x=clamp(pc.x+side*rand(70,120),camX+16,camX+W-24);t={x,y:GROUND-e.h};}
+  else{const side=Math.random()<0.5?-1:1,x=clamp(pc.x+side*rand(70,120),camX+16,camX+VW-24);t={x,y:GROUND-e.h};}
   const N=42,g=0.25;
   e.vx=(t.x-e.x)/N;e.vy=(t.y-e.y-0.5*g*N*N)/N;e.st='leap';e.t=0;e.face=e.vx<0?-1:1;GU_sfx('emerge');
 }
@@ -179,7 +179,7 @@ function GU_boltUpd(b,hb){
   if(hb&&b.x+b.r>hb.x&&b.x-b.r<hb.x+hb.w&&b.y+b.r>hb.y&&b.y-b.r<hb.y+hb.h){hurtPlayer(1);spark(b.x,b.y,'#7ff0ff');b.gone=true;return;}
   for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){killAlly(a);b.gone=true;return;}
   if(b.y>=GROUND-1){spark(b.x,GROUND-2,'#7ff0ff');b.gone=true;return;}
-  if(b.x<camX-20||b.x>camX+W+20||b.y<-20||b.t>260)b.gone=true;
+  if(b.x<camX-20||b.x>camX+VW+20||b.y<-20||b.t>260)b.gone=true;
 }
 function GU_boltDraw(b){
   ctx.fillStyle='rgba(120,240,255,0.35)';circle(b.x,b.y,b.r+1.4);

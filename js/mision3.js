@@ -88,12 +88,12 @@ function M3_reset(){M3.ev=levelEvents;M3.feet=new Map();M3.own=[];}
 const M3_HIDE=GROUND+70;
 function M3_mkMudling(x){
   // si viene de un borde de la pantalla (x:'R' o 'L'), brota adentro de la vista; si trae x fija, espera en ese lugar
-  const edge=Math.abs(x-(camX+W+12))<0.5||Math.abs(x-(camX-20))<0.5;
-  const x0=edge?clamp(x,camX+40,camX+W-40):x;
+  const edge=Math.abs(x-(camX+VW+12))<0.5||Math.abs(x-(camX-20))<0.5;
+  const x0=edge?clamp(x,camX+40,camX+VW-40):x;
   const pool=M3_nearPool(x0,140);
   let home;
   if(pool)home={x:pool.x+5,w:pool.w-18};
-  else{home={x:clamp(x0,camX+20,camX+W-40)-10,w:22,own:true};M3.own.push(home);}
+  else{home={x:clamp(x0,camX+20,camX+VW-40)-10,w:22,own:true};M3.own.push(home);}
   const sx=clamp(x0,home.x,home.x+home.w)+rand(-6,6);
   const hx=clamp(sx,home.x,home.x+home.w);
   return{type:'mudling',x:-9999,hx,y:M3_HIDE,w:13,h:12,hp:4,face:-1,flash:0,score:150,cd:0,
@@ -105,7 +105,7 @@ function M3_updMudling(e){
   const h=e.home,pc=P.dead?null:pCenter(P);
   // el charco quedó atrás: se va sin dar puntos
   if(h.x+h.w<camX-50){e.gone=true;M3_freeOwn(e);return;}
-  const vis=h.x+h.w>camX&&h.x<camX+W;
+  const vis=h.x+h.w>camX&&h.x<camX+VW;
   switch(e.st){
   case 'under':
     e.y=M3_HIDE;
@@ -132,7 +132,7 @@ function M3_updMudling(e){
     const rear=e.rearT>0;
     if(!rear&&Math.abs(dx)>14)e.x=clamp(e.x+Math.sign(dx)*0.38,h.x-10,h.x+h.w+10);
     // escupe: se para 18 cuadros antes (la boca se ilumina) y tira un pegote en arco
-    if(rear){if(--e.rearT===0&&pc&&e.x+e.w>camX+2&&e.x<camX+W-2){M3_spit(e.x+6+e.face*5,GROUND-9,e.face,Math.abs(pc.x-(e.x+6)));e.spits++;}}
+    if(rear){if(--e.rearT===0&&pc&&e.x+e.w>camX+2&&e.x<camX+VW-2){M3_spit(e.x+6+e.face*5,GROUND-9,e.face,Math.abs(pc.x-(e.x+6)));e.spits++;}}
     else if(pc&&e.cd<=0&&(e.t===100||e.t===40)&&Math.abs(dx)<190&&Math.abs(dx)>18){e.rearT=18;}
     if(e.cd>0)e.cd--;
     // tocarla lastima
@@ -207,7 +207,7 @@ function M3_spitUpd(b,hb){
   for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){killAlly(a);M3_splat(b.x,b.y,5);b.gone=true;return;}
   if(b.y>=GROUND-1){M3_splat(b.x,GROUND-1,6);M3_sfx('splash');b.gone=true;return;}
   for(const pl of platforms)if(b.vy>0&&b.x>pl.x&&b.x<pl.x+pl.w&&b.y>=pl.y&&b.y-b.vy<pl.y){M3_splat(b.x,pl.y,5);b.gone=true;return;}
-  if(b.x<camX-20||b.x>camX+W+20||b.t>300)b.gone=true;
+  if(b.x<camX-20||b.x>camX+VW+20||b.t>300)b.gone=true;
 }
 function M3_spitDraw(b){
   ctx.fillStyle='#3a2c12';circle(b.x,b.y,b.r+0.6);
@@ -237,7 +237,7 @@ M3_LVL.upd=function(){
   }
   if(M3.feet.size>80)M3.feet=new Map();
   // vapor que sale de los charcos
-  if(Math.random()<0.05){const p=pick(M3_LVL.pools);if(p.x<camX+W&&p.x+p.w>camX)
+  if(Math.random()<0.05){const p=pick(M3_LVL.pools);if(p.x<camX+VW&&p.x+p.w>camX)
     parts.push({k:'smoke',col:'140,180,80',x:p.x+rand(6,p.w-6),y:GROUND-2,vx:rand(-0.1,0.1),vy:rand(-0.35,-0.15),life:50,maxl:50,size:rand(1.5,3)});}
 };
 
@@ -316,14 +316,14 @@ M3_LVL.drawGround=function(){
   ctx.fillStyle='#1c1f12';ctx.fillRect(x0,GROUND,W+20,H-GROUND);
   ctx.fillStyle='#33391c';ctx.fillRect(x0,GROUND,W+20,2.2);
   ctx.fillStyle='#55622a';ctx.fillRect(x0,GROUND,W+20,0.8);
-  for(let t=Math.floor(camX/10)-1;t<(camX+W)/10+1;t++){
+  for(let t=Math.floor(camX/10)-1;t<(camX+VW)/10+1;t++){
     const h=hash(t+300);
     if(h<0.5){ctx.fillStyle=h<0.15?'#3a3a1c':h<0.3?'#14160c':'#2c2a16';const s=1+Math.floor(h*10)%3;ctx.fillRect(t*10+h*7,GROUND+4+Math.floor(h*977)%17,s,s*0.7);}
     if(h>0.55){ctx.fillStyle=h>0.8?'#6f8a34':'#4a6224';const bx=t*10+h*6;   // matas de pasto
       ctx.fillRect(bx,GROUND-2,0.8,2);ctx.fillRect(bx+1.5,GROUND-3,0.8,3);if(h>0.7)ctx.fillRect(bx+3,GROUND-1.5,0.8,1.5);}
   }
-  for(const p of M3_LVL.pools)if(p.x<camX+W+4&&p.x+p.w>camX-4)M3_drawPool(p.x,p.w,true);
-  for(const o of M3.own)if(o.x<camX+W&&o.x+o.w>camX)M3_drawPool(o.x-6,o.w+24,false);
+  for(const p of M3_LVL.pools)if(p.x<camX+VW+4&&p.x+p.w>camX-4)M3_drawPool(p.x,p.w,true);
+  for(const o of M3.own)if(o.x<camX+VW&&o.x+o.w>camX)M3_drawPool(o.x-6,o.w+24,false);
 };
 function M3_drawPool(x,w,big){
   // hoyo de barro marrón brillante con espuma tóxica en el borde
@@ -344,7 +344,7 @@ function M3_drawPool(x,w,big){
 M3_LVL.drawFx=function(){
   ctx.save();ctx.translate(q(-camX),0);
   const pools=[...M3_LVL.pools,...M3.own.map(o=>({x:o.x-6,w:o.w+24}))];
-  for(const p of pools){if(p.x>camX+W||p.x+p.w<camX)continue;
+  for(const p of pools){if(p.x>camX+VW||p.x+p.w<camX)continue;
     ctx.fillStyle='rgba(79,60,26,0.93)';ctx.fillRect(p.x,GROUND-2.4,p.w,2.6);
     ctx.fillStyle='rgba(140,112,56,0.85)';ctx.fillRect(p.x,GROUND-2.4,p.w,0.6);
     ctx.fillStyle='rgba(143,194,58,0.7)';for(let i=3;i<p.w;i+=13){const hh=hash(i+p.x*5);if(hh<0.45)ctx.fillRect(p.x+i,GROUND-2.4,2+hh*4,0.6);}

@@ -125,8 +125,8 @@ function M4_newBug(x,st,t){
     st,t,back:0,bite:0,life:0,anim:rand(0,99),upd:M4_updBug,draw:M4_drawBug,onKill:M4_killBug};
 }
 function M4_mkBug(x){
-  const fromR=Math.abs(x-(camX+W+12))<0.5,fromL=Math.abs(x-(camX-20))<0.5,edge=fromR||fromL;
-  const x0=edge?(fromR?camX+W-44-rand(0,30):camX+34+rand(0,30)):x;
+  const fromR=Math.abs(x-(camX+VW+12))<0.5,fromL=Math.abs(x-(camX-20))<0.5,edge=fromR||fromL;
+  const x0=edge?(fromR?camX+VW-44-rand(0,30):camX+34+rand(0,30)):x;
   return M4_newBug(x0,edge?'warn':'wait',edge?38:0)||{type:'escarabajo',gone:true,x:-9999,y:M4_HIDE,w:1,h:1,hp:1,cd:0,score:0};
 }
 // escarabajo que cae del cielo (lo tira el rey) o sale de un sarcófago: ya está a la vista
@@ -138,7 +138,7 @@ function M4_updBug(e){
   switch(e.st){
   case 'wait':
     e.x=-9999;e.y=M4_HIDE;
-    if(c.x>camX+10&&c.x<camX+W-10&&players.some(p=>!p.dead&&Math.abs(M4_pc(p).x-c.x)<200)){e.st='warn';e.t=38;}
+    if(c.x>camX+10&&c.x<camX+VW-10&&players.some(p=>!p.dead&&Math.abs(M4_pc(p).x-c.x)<200)){e.st='warn';e.t=38;}
     return;
   case 'warn':
     e.x=-9999;e.y=M4_HIDE;c.warn=Math.max(c.warn,e.t);
@@ -158,7 +158,7 @@ function M4_updBug(e){
   const cx=e.x+4;
   if(e.back>0){e.back--;e.x+=-e.face*1.5;}
   else if(pc){const dx=pc.x-cx;if(Math.abs(dx)>3)e.face=dx<0?-1:1;e.x+=Math.abs(dx)>3?e.face*e.spd:Math.sin(e.anim/4)*0.6;}
-  e.x=clamp(e.x,camX+2,camX+W-10);e.y=GROUND-e.h;e.hx=e.x;
+  e.x=clamp(e.x,camX+2,camX+VW-10);e.y=GROUND-e.h;e.hx=e.x;
   if(e.bite<=0)for(const p of players)if(!p.dead&&overlap(hurtbox(p),{x:e.x,y:GROUND-4,w:8,h:4})){withP(p,()=>hurtPlayer(1));e.back=26;e.bite=60;M4_sfx('m4Bicho');break;}
   if(e.life>720){e.st='dig';e.t=20;}   // si no te alcanza en 12 s, se entierra (sin puntos)
 }
@@ -192,7 +192,7 @@ ENEMY_MAKERS.escarabajo=M4_mkBug;
 // Al pegarle se le sueltan vendas.
 function M4_mkMomia(x,y){
   const yy=(y===undefined||y<GROUND-80)?GROUND-20:y-2;
-  return{type:'momia',x,y:yy,w:10,h:20,vx:0,vy:0,hp:6,face:x>camX+W/2?-1:1,flash:0,score:300,cd:rand(100,170),gcd:0,st:'walk',t:0,
+  return{type:'momia',x,y:yy,w:10,h:20,vx:0,vy:0,hp:6,face:x>camX+VW/2?-1:1,flash:0,score:300,cd:rand(100,170),gcd:0,st:'walk',t:0,
     anim:rand(0,99),onGround:false,plat:null,spd:0.32,lhp:null,loose:0,raise:0,tilt:0,hitG:false,upd:M4_updMomia,draw:M4_drawMomia,onKill:M4_killMomia};
 }
 function M4_vendas(e,n){
@@ -201,8 +201,8 @@ function M4_vendas(e,n){
   parts.push({k:'smoke',col:'200,180,140',x:e.x+5,y:e.y+8,vx:0,vy:-0.2,life:18,maxl:18,size:2});
 }
 function M4_push(p,dir){
-  if(p.ride){const m=p.ride;m.x=clamp(m.x+dir*10,camX+2,camX+W-24);return;}
-  p.x=clamp(p.x+dir*14,camX+2,camX+W-10);if(p.onGround){p.vy=-1.6;p.onGround=false;p.plat=null;}
+  if(p.ride){const m=p.ride;m.x=clamp(m.x+dir*10,camX+2,camX+VW-24);return;}
+  p.x=clamp(p.x+dir*14,camX+2,camX+VW-10);if(p.onGround){p.vy=-1.6;p.onGround=false;p.plat=null;}
 }
 function M4_updMomia(e){
   if(e.flash>0)e.flash--;e.anim++;
@@ -215,7 +215,7 @@ function M4_updMomia(e){
   case 'walk':{
     if(pc&&ad>2)e.face=dx<0?-1:1;
     e.vx=pc&&ad>14?e.face*e.spd:0;
-    if(e.x<camX+6)e.vx=e.spd*1.6;else if(e.x>camX+W-16)e.vx=-e.spd*1.6;
+    if(e.x<camX+6)e.vx=e.spd*1.6;else if(e.x>camX+VW-16)e.vx=-e.spd*1.6;
     e.raise*=0.8;e.tilt*=0.8;
     if(pc&&onScreen(e,-6)){
       const dy=Math.abs(pc.y-(e.y+10));
@@ -294,7 +294,7 @@ function M4_polvoUpd(b,hb){
   if(coverBlocks(b)){M4_sand(b.x,b.y+2,5);b.gone=true;return;}
   if(hb&&overlapPt(hb,b.x,b.y,b.r)){hurtPlayer(1);M4_sand(b.x,b.y+2,6);b.gone=true;return;}
   for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){killAlly(a);b.gone=true;return;}
-  if(b.x<camX-20||b.x>camX+W+20||b.t>360)b.gone=true;
+  if(b.x<camX-20||b.x>camX+VW+20||b.t>360)b.gone=true;
 }
 function M4_polvoDraw(b){
   const bob=Math.sin(b.t/6)*0.5,x=b.x,y=b.y+bob;
@@ -311,7 +311,7 @@ ENEMY_MAKERS.momia=M4_mkMomia;
 function M4_sarUpd(){
   for(const [d,s] of M4.sar){
     if(s.st==='closed'){
-      if(d.x<camX+24||d.x>camX+W-24)continue;
+      if(d.x<camX+24||d.x>camX+VW-24)continue;
       if(players.some(p=>{if(p.dead)return false;const x=M4_pc(p).x;return x>d.x-150&&x<d.x+30;})){s.st='shake';s.t=70;M4_sfx('m4Tapa');}
     }else if(s.st==='shake'){
       if(s.t%5===0)parts.push({k:'p',x:d.x+rand(0,14),y:GROUND-26,vx:rand(-0.3,0.3),vy:rand(0,0.4),g:0.08,life:24,maxl:24,size:1,col:'#d8b070'});
@@ -388,12 +388,12 @@ function M4_stormUpd(){
   if(tf.wind>0.05)for(const p of players){if(p.dead)continue;
     if(p.ride){const m=p.ride;m.x=Math.max(camX+2,m.x-0.4*tf.wind);}else p.x=Math.max(camX+2,p.x-0.6*tf.wind);}
   // arenilla que vuela (pocas partículas)
-  if(tf.wind>0.2&&T%3===0)parts.push({k:'p',x:camX+W+4,y:rand(40,GROUND-2),vx:-rand(2.4,3.6),vy:rand(-0.2,0.3),g:0,life:110,maxl:110,size:1,col:Math.random()<0.5?'#e8c07a':'#c89858'});
+  if(tf.wind>0.2&&T%3===0)parts.push({k:'p',x:camX+VW+4,y:rand(40,GROUND-2),vx:-rand(2.4,3.6),vy:rand(-0.2,0.3),g:0,life:110,maxl:110,size:1,col:Math.random()<0.5?'#e8c07a':'#c89858'});
 }
 // ráfaga: fila baja (GROUND-4) o alta (GROUND-17). No tiene "r": las balas no la deshacen, hay que esquivarla.
 function M4_gust(row){
   const y=row===0?GROUND-4:GROUND-17;
-  eproj.push({kind:'m4Rafaga',x:camX+W+16,y,vx:-2.6,row,hr:row===0?2.5:2,t:0,upd:M4_gustUpd,draw:M4_gustDraw});
+  eproj.push({kind:'m4Rafaga',x:camX+VW+16,y,vx:-2.6,row,hr:row===0?2.5:2,t:0,upd:M4_gustUpd,draw:M4_gustDraw});
   M4_sfx('m4Rafaga');
 }
 function M4_gustUpd(b,hb){
@@ -416,13 +416,13 @@ function M4_drawWarns(){
   const tf=M4.tf;if(!tf.warns.length)return;
   for(const w of tf.warns){const y=w.row===0?GROUND-4:GROUND-17,hr=w.row===0?2.5:2,k=1-w.t/w.max,on=(T>>2)%2,col=w.row?'255,190,70':'255,120,60';
     // franja de la fila que se va llenando desde la derecha
-    ctx.fillStyle=`rgba(${col},${0.10+0.14*k+(on?0.06:0)})`;ctx.fillRect(W-k*W,y-hr-1,k*W,2*hr+2);
-    ctx.fillStyle=`rgba(${col},${0.5+0.3*k})`;for(let x=W-6;x>W-6-k*W;x-=9)ctx.fillRect(x-4,y-0.5,5,1);
+    ctx.fillStyle=`rgba(${col},${0.10+0.14*k+(on?0.06:0)})`;ctx.fillRect(VW-k*VW,y-hr-1,k*VW,2*hr+2);
+    ctx.fillStyle=`rgba(${col},${0.5+0.3*k})`;for(let x=VW-6;x>VW-6-k*VW;x-=9)ctx.fillRect(x-4,y-0.5,5,1);
     // flecha grande en el borde (de dónde viene)
-    ctx.fillStyle='#120c18';ctx.beginPath();ctx.moveTo(W-12,y);ctx.lineTo(W-3,y-6);ctx.lineTo(W-3,y+6);ctx.closePath();ctx.fill();
-    ctx.fillStyle=on?'#fff3c0':`rgb(${col})`;ctx.beginPath();ctx.moveTo(W-10.5,y);ctx.lineTo(W-4,y-4.5);ctx.lineTo(W-4,y+4.5);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#120c18';ctx.beginPath();ctx.moveTo(VW-12,y);ctx.lineTo(VW-3,y-6);ctx.lineTo(VW-3,y+6);ctx.closePath();ctx.fill();
+    ctx.fillStyle=on?'#fff3c0':`rgb(${col})`;ctx.beginPath();ctx.moveTo(VW-10.5,y);ctx.lineTo(VW-4,y-4.5);ctx.lineTo(VW-4,y+4.5);ctx.closePath();ctx.fill();
     // qué hacer: fila baja = flecha arriba (saltá) · fila alta = flecha abajo (agachate)
-    const ix=W-22,up=w.row===0,iy=up?y-16:y+5;
+    const ix=VW-22,up=w.row===0,iy=up?y-16:y+5;
     ctx.fillStyle='#120c18';ctx.fillRect(ix-3.5,iy-0.5,8,9);
     ctx.fillStyle=on?'#fff3c0':`rgb(${col})`;
     if(up){ctx.fillRect(ix,iy,1,1);ctx.fillRect(ix-1,iy+1,3,1);ctx.fillRect(ix-2,iy+2,5,1);ctx.fillRect(ix-3,iy+3,7,1);ctx.fillRect(ix-0.5,iy+4,2,4);}
@@ -488,7 +488,7 @@ M4_LVL.upd=function(){
   if(M4.piles.length&&M4.piles[0].t>420)M4.piles.shift();
 };
 // montoncito de vendas donde cayó una momia
-ON_DRAW.push(()=>{if(L!==M4_LVL)return;for(const p of M4.piles){if(p.x<camX-20||p.x>camX+W+20)continue;const a=p.t>360?1-(p.t-360)/60:1;
+ON_DRAW.push(()=>{if(L!==M4_LVL)return;for(const p of M4.piles){if(p.x<camX-20||p.x>camX+VW+20)continue;const a=p.t>360?1-(p.t-360)/60:1;
   ctx.globalAlpha=Math.max(0,a);ctx.fillStyle='#8a7a58';ctx.beginPath();ctx.ellipse(p.x,p.y,6,2.4,0,Math.PI,0);ctx.fill();
   ctx.fillStyle='#cdbb90';ctx.fillRect(p.x-5,p.y-1.6,4,1);ctx.fillRect(p.x+1,p.y-2.4,3,1);ctx.fillStyle='#e2d4a8';ctx.fillRect(p.x-2,p.y-2,3,0.8);
   ctx.fillStyle='#1a120c';ctx.fillRect(p.x+p.f*3,p.y-1.4,1,0.8);ctx.globalAlpha=1;}});
@@ -547,14 +547,14 @@ M4_LVL.drawGround=function(){
   ctx.fillStyle='#b87a40';ctx.fillRect(x0,GROUND,W+20,H-GROUND);
   ctx.fillStyle='#d69a58';ctx.fillRect(x0,GROUND,W+20,3);
   ctx.fillStyle='#f0c27a';ctx.fillRect(x0,GROUND,W+20,0.8);
-  for(let t=Math.floor(camX/14)-1;t<(camX+W)/14+1;t++){
+  for(let t=Math.floor(camX/14)-1;t<(camX+VW)/14+1;t++){
     const h=hash(t+500),bx=t*14+h*8,by=GROUND+5+Math.floor(h*977)%15;
     ctx.fillStyle='#a06a36';ctx.fillRect(bx,by,4+h*5,0.7);ctx.fillStyle='#d8a462';ctx.fillRect(bx+1,by-0.7,3+h*3,0.6);   // ondas del viento
     if(h<0.12){ctx.fillStyle='#8a6a4a';ctx.fillRect(t*14+3,GROUND+1.5,2,1);}
     if(h>0.93){ctx.fillStyle='#9a8a6a';ctx.fillRect(t*14,GROUND+0.5,9,2.5);ctx.fillStyle='#bfae88';ctx.fillRect(t*14,GROUND+0.5,9,0.6);}   // laja enterrada
   }
-  for(const p of M4_LVL.quick)if(p.x<camX+W+4&&p.x+p.w>camX-4)M4_drawQuick(p);
-  for(const c of M4.cracks)if(c.x>camX-20&&c.x<camX+W+20)M4_drawCrack(c);
+  for(const p of M4_LVL.quick)if(p.x<camX+VW+4&&p.x+p.w>camX-4)M4_drawQuick(p);
+  for(const c of M4.cracks)if(c.x>camX-20&&c.x<camX+VW+20)M4_drawCrack(c);
 };
 function M4_drawQuick(p){
   const x=p.x,w=p.w,cx=x+w/2;
@@ -583,7 +583,7 @@ function M4_drawCrack(c){
 // ================== capa de arriba: arena que tapa los pies, viento y avisos de la tormenta ==================
 M4_LVL.drawFx=function(){
   ctx.save();ctx.translate(q(-camX),0);
-  for(const p of M4_LVL.quick){if(p.x>camX+W||p.x+p.w<camX)continue;
+  for(const p of M4_LVL.quick){if(p.x>camX+VW||p.x+p.w<camX)continue;
     ctx.fillStyle='rgba(138,90,44,0.96)';ctx.fillRect(p.x,GROUND-3.6,p.w,3.8);
     ctx.fillStyle='rgba(196,146,86,0.9)';ctx.fillRect(p.x,GROUND-3.6,p.w,0.7);
     ctx.fillStyle='rgba(80,46,20,0.8)';for(let i=4;i<p.w-4;i+=9){const hh=hash(i+p.x*5);ctx.fillRect(p.x+i+Math.sin(T/25+i)*1.5,GROUND-2.2,2+hh*3,0.6);}}

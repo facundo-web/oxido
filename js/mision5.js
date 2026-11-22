@@ -87,7 +87,7 @@ const M5_sfx=n=>{if(typeof SFX!=='undefined'&&SFX[n])SFX[n]();};
 //   a = intensidad del haz del cielo/jefe, k = cuánto bajó a la calle, gx = x del haz en la calle, tx/ty = blanco en el jefe
 const M5={ev:null,fall:[],dive:null,diveCd:0,flash:0,bolt:null,nextBolt:200,train:-1,sl:{mode:'sky',t:0,a:1,k:0,gx:0}};
 function M5_reset(){M5.ev=levelEvents;M5.fall=[];M5.dive=null;M5.diveCd=60;M5.flash=0;M5.bolt=null;M5.nextBolt=220;M5.train=-1;
-  M5.sl={mode:'sky',t:0,a:1,k:0,gx:camX+W/2,ann:false};}
+  M5.sl={mode:'sky',t:0,a:1,k:0,gx:camX+VW/2,ann:false};}
 ON_START.push(()=>{if(L===M5_LVL)M5_reset();});
 function M5_pc(){const r=P.ride;return r?{x:r.x+r.w/2,y:r.y+r.h/2}:{x:P.x+4,y:P.y+9};}
 
@@ -121,12 +121,12 @@ const M5_WARN=40;
 function M5_bat1(x){
   const y=24+Math.random()*34;
   return{type:'bat',air:true,x,y,baseY:y,w:12,h:8,hp:1,score:120,cd:80+Math.random()*60,t:0,st:'fly',vx:0,vy:0,seg:0,
-    dx:x>camX+W/2?-1:1,dy:1,flap:Math.random()*6,side:Math.random()<0.5?-1:1,flash:0,seen:false,lock:null,m5lit:0,
+    dx:x>camX+VW/2?-1:1,dy:1,flap:Math.random()*6,side:Math.random()<0.5?-1:1,flash:0,seen:false,lock:null,m5lit:0,
     upd:M5_updBat,draw:M5_drawBat,onKill:M5_killBat};
 }
 // el del evento trae compañeros (bandada chica); los compañeros son 'm5bat1' para que no entren al sorteo de tipos
 function M5_mkBat(x){
-  const e=M5_bat1(x),side=x>=camX+W?'R':x<=camX-10?'L':x;
+  const e=M5_bat1(x),side=x>=camX+VW?'R':x<=camX-10?'L':x;
   const n=Math.random()<0.55?1:2;
   for(let k=1;k<=n;k++)spawnQ.push({t:'m5bat1',x:side,d:k*(10+(Math.random()*8|0))});
   return e;
@@ -146,7 +146,7 @@ function M5_updBat(e){
   case 'fly':{
     e.flap+=lit?0.25:0.5;
     if(--e.seg<=0){e.seg=(16+Math.random()*14)|0;
-      const ax=(pc?pc.x:camX+W/2)+e.side*(30+Math.random()*50);
+      const ax=(pc?pc.x:camX+VW/2)+e.side*(30+Math.random()*50);
       e.dx=Math.sign(ax-(e.x+6))||1;if(Math.random()<0.2)e.dx=-e.dx;
       e.dy=-e.dy;if(Math.random()<0.12)e.side=-e.side;
       if(Math.random()<0.25&&onScreen(e,0))M5_sfx('aleteo');}
@@ -155,8 +155,8 @@ function M5_updBat(e){
     e.x+=e.vx;e.y+=e.vy;
     if(e.y<e.baseY-12){e.y=e.baseY-12;e.dy=1;}else if(e.y>e.baseY+14){e.y=e.baseY+14;e.dy=-1;}
     // una vez que entra en pantalla no se escapa (siempre se le puede disparar)
-    if(e.x>camX+4&&e.x<camX+W-16)e.seen=true;
-    if(e.seen){if(e.x<camX+4){e.x=camX+4;e.dx=1;}else if(e.x>camX+W-16){e.x=camX+W-16;e.dx=-1;}}
+    if(e.x>camX+4&&e.x<camX+VW-16)e.seen=true;
+    if(e.seen){if(e.x<camX+4){e.x=camX+4;e.dx=1;}else if(e.x>camX+VW-16){e.x=camX+VW-16;e.dx=-1;}}
     if(e.cd>0&&!lit)e.cd--;
     if(e.cd<=0&&pc&&e.seen&&!lit&&M5_canDive()){e.st='warn';e.t=0;e.vx=e.vy=0;e.lock=null;M5.dive=e;M5_sfx('chillido');}
     break;}
@@ -179,7 +179,7 @@ function M5_updBat(e){
   case 'rise':
     e.flap+=0.6;e.vy=Math.min(-0.7,e.vy+0.04);e.x+=e.vx;e.vx*=0.98;e.y+=e.vy;
     if(e.t<8)M5_batHit(e);
-    e.x=clamp(e.x,camX+4,camX+W-16);
+    e.x=clamp(e.x,camX+4,camX+VW-16);
     if(e.y<=e.baseY){e.st='fly';e.seg=0;e.cd=(110+Math.random()*60)*DIFF().fire;M5.diveCd=26;e.lock=null;}
     break;
   }
@@ -266,7 +266,7 @@ M5_LVL.upd=function(){
   // tren lejano que cruza de vez en cuando
   if(M5.train<0){if(Math.random()<0.0025)M5.train=0;}else if(++M5.train>470)M5.train=-1;
   // vapor de las alcantarillas
-  for(const g of M5_LVL.grates)if(g>camX-10&&g<camX+W+10&&Math.random()<0.07)
+  for(const g of M5_LVL.grates)if(g>camX-10&&g<camX+VW+10&&Math.random()<0.07)
     parts.push({k:'smoke',col:'170,180,205',rise:1,x:g+rand(-5,5),y:GROUND,vx:rand(-0.12,0.12),vy:rand(-0.55,-0.3),life:rand(40,60),maxl:60,size:rand(1.6,3)});
   // chapoteo al caminar por los charcos
   for(const o of [...players.filter(p=>!p.dead&&!p.ride),...enemies.filter(e=>e.type==='soldier'||e.type==='grenadier'||e.type==='shield')]){
@@ -283,7 +283,7 @@ M5_LVL.upd=function(){
   if(sl.mode==='street'){
     sl.k=Math.min(1,sl.k+0.025);
     if(sl.t===70){setBanner('¡EL REFLECTOR BARRE LA CALLE!',90);M5_sfx('reflector');}
-    sl.gx=camX+W/2+Math.sin(sl.t/85)*118;
+    sl.gx=camX+VW/2+Math.sin(sl.t/85)*118;
     if(sl.k>0.6)for(const e of enemies){if(e.gone||!(e.type==='bat'||e.type==='soldier'||e.type==='grenadier'||e.type==='shield'))continue;
       if(Math.abs(e.x+e.w/2-sl.gx)<20){e.m5lit=4;if(e.state==='walk'&&e.cd!==undefined)e.cd+=1;}}   // encandilados: no tiran
   }else sl.k=Math.max(0,sl.k-0.03);
@@ -429,16 +429,16 @@ M5_LVL.drawGround=function(){
   const x0=Math.floor(camX)-10;
   ctx.fillStyle='#101119';ctx.fillRect(x0,GROUND,W+20,H-GROUND);
   ctx.fillStyle='#2c2e3a';ctx.fillRect(x0,GROUND,W+20,2);ctx.fillStyle='#4a4e62';ctx.fillRect(x0,GROUND,W+20,0.7);
-  ctx.fillStyle='rgba(200,170,80,0.25)';for(let x=Math.floor(camX/24)*24-24;x<camX+W+24;x+=24)ctx.fillRect(x,GROUND+14,10,1);
-  for(let t=Math.floor(camX/10)-1;t<(camX+W)/10+1;t++){const h=M5_h(t+500);if(h<0.4){ctx.fillStyle=h<0.12?'#1c1e2a':'#0a0b12';ctx.fillRect(t*10+h*7,GROUND+4+Math.floor(h*977)%17,1+h*3,0.8);}}
+  ctx.fillStyle='rgba(200,170,80,0.25)';for(let x=Math.floor(camX/24)*24-24;x<camX+VW+24;x+=24)ctx.fillRect(x,GROUND+14,10,1);
+  for(let t=Math.floor(camX/10)-1;t<(camX+VW)/10+1;t++){const h=M5_h(t+500);if(h<0.4){ctx.fillStyle=h<0.12?'#1c1e2a':'#0a0b12';ctx.fillRect(t*10+h*7,GROUND+4+Math.floor(h*977)%17,1+h*3,0.8);}}
   // reflejos de faroles y neones sobre el asfalto mojado
-  for(const d of M5_LVL.decor){if(d.x<camX-30||d.x>camX+W+30)continue;
+  for(const d of M5_LVL.decor){if(d.x<camX-30||d.x>camX+VW+30)continue;
     const c=d.k==='farol'?'255,214,140':d.k==='neon'?M5_NEON[d.v].rgb:null;if(!c)continue;const lx=d.k==='farol'?d.x+8:d.x+5;
     for(let i=0;i<6;i++){const w=7-i,wob=Math.sin(T/9+i*1.3+d.x)*1.2;ctx.fillStyle=`rgba(${c},${0.2-i*0.03})`;ctx.fillRect(lx+wob-w/2,GROUND+2.5+i*3.2,w,1.3);}}
-  for(const p of M5_LVL.puddles)if(p.x<camX+W+4&&p.x+p.w>camX-4)M5_puddle(p.x,p.w);
-  for(const g of M5_LVL.grates)if(g>camX-12&&g<camX+W+12)M5_grate(g);
+  for(const p of M5_LVL.puddles)if(p.x<camX+VW+4&&p.x+p.w>camX-4)M5_puddle(p.x,p.w);
+  for(const g of M5_LVL.grates)if(g>camX-12&&g<camX+VW+12)M5_grate(g);
   // pilares de las cornisas (detrás de todas las plataformas)
-  for(const pl of platforms)if(pl.hi==='cornisa'&&pl.x<camX+W+10&&pl.x+pl.w>camX-10)M5_pier(pl);
+  for(const pl of platforms)if(pl.hi==='cornisa'&&pl.x<camX+VW+10&&pl.x+pl.w>camX-10)M5_pier(pl);
   // salpicaduras de la lluvia
   ctx.fillStyle='rgba(170,190,225,0.7)';
   for(let i=0;i<18;i++){const s=T+i*5,slot=s>>3,ph=s&7;if(ph>4)continue;const sx=camX+M5_h(slot*37+i*11)*W;

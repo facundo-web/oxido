@@ -21,7 +21,7 @@ function updEnemy(e){
       if(e.onGround)e.air=false;
       chaseStep(e,px,ex);
       // nunca se queda fuera de pantalla: primero entra, después pelea
-      if(e.x<camX+6)e.vx=0.65;else if(e.x>camX+W-14)e.vx=-0.65;
+      if(e.x<camX+6)e.vx=0.65;else if(e.x>camX+VW-14)e.vx=-0.65;
       if(!P.dead&&onScreen(e,-6))e.cd--;
       // armados (armados.js): la escopeta y el lanzallamas solo tiran de cerca; cada arma apunta su tiempo y avisa
       if(e.cd<=0&&e.onGround&&!e.air&&(!e.arma||ARM_puede(e,d))){e.state='aim';e.t=e.type==='grenadier'?30:e.arma?ARM_W[e.arma].aim:26;if(e.arma)ARM_apunta(e);}
@@ -55,10 +55,12 @@ function updEnemy(e){
     e.x+=clamp(tx-ex,-1,1)*0.8;
     if(e.kbx){e.x+=e.kbx;e.kby=(e.kby||0)+Math.abs(e.kbx)*0.4;e.kbx*=0.5;if(Math.abs(e.kbx)<0.15)e.kbx=0;}
     if(e.kby){e.kby*=0.7;if(e.kby<0.1)e.kby=0;}
-    e.y=e.baseY+Math.sin(e.t/18)*4-(e.kby||0);
+    // con zoom (camara.js) vuela un poco más bajo: así no queda escondido detrás del HUD de arriba
+    const by=ZOOM>1.01?Math.max(e.baseY,camPisoMin()+24):e.baseY;
+    e.y=by+Math.sin(e.t/18)*4-(e.kby||0);
     // una vez que entra en pantalla, no se escapa (siempre se le puede disparar)
-    if(e.x>camX+4&&e.x<camX+W-20)e.seen=true;
-    if(e.seen)e.x=clamp(e.x,camX+4,camX+W-20);
+    if(e.x>camX+4&&e.x<camX+VW-20)e.seen=true;
+    if(e.seen)e.x=clamp(e.x,camX+4,camX+VW-20);
     if(e.cd>0)e.cd--;
     if(Math.abs(px-ex)<16&&e.cd<=0&&onScreen(e,-4)&&!P.dead){eproj.push({kind:'bomb',x:ex,y:e.y+e.h,vx:0,vy:0.6,g:0.09,r:2.5,blast:14,t:0});e.cd=85;SFX.toss();}
     break;}
@@ -87,7 +89,7 @@ function chaseStep(e,px,ex){
     let best=null,bs=1e9;
     for(const pl of platforms){
       const h=efy-pl.y;if(h<6||h>48||pl.y<pfy-4)continue;
-      if(pl.x+pl.w<camX+4||pl.x>camX+W-4)continue;
+      if(pl.x+pl.w<camX+4||pl.x>camX+VW-4)continue;
       const lo=pl.x+2,hi=pl.x+pl.w-e.w-2;if(hi<lo)continue;
       const tx=clamp(e.x,lo,hi),gap=Math.abs(tx-e.x);
       if(gap>130||(gap>2&&Math.sign(tx-e.x)!==Math.sign(px-ex)))continue;

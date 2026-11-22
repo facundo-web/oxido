@@ -178,11 +178,26 @@ function ctlRows(){const b=a=>btn(a);
     [[b('swap'),'cambiar arma'],[b('air')+' mantener','avión (gratis o −1 ♥)'],['↓ + '+b('jump'),'bajar del Grillo'],[b('opt')+' · '+b('back'),'pausa · volver'],[b('quit')+' dos veces','salir (en pausa)'],['teclado M · N','sonido · música'],['teclado F','pantalla completa']]];}
 const CONTROLS_L_TOUCH=[['palanca','mover · apuntar'],['palanca ↓','agacharse'],['□','disparar (mantener)'],['✕','saltar'],['✕ en el aire','volar con el Grillo'],['○','granada / cañón']];
 const CONTROLS_R_TOUCH=[['△ tocar','cambiar arma'],['△ mantener','avión'],['↓ + ✕','bajar del Grillo'],['II','pausa'],['△ dos veces','salir (en pausa)']];
+// franja libre de los controles en pantalla (publicar/web/tactil.js): {x0,x1,y0} en coordenadas del juego.
+// Debajo de y0 la palanca ocupa x<x0 y el rombo x>x1; arriba de y0 está todo libre. null si no hay controles.
+const tactilLibre=()=>onTouch()&&window.OXIDO_TACTIL_LIBRE||null;
 function drawControls(y){
-  ctx.fillStyle='rgba(18,12,24,0.75)';ctx.fillRect(30,y,260,60);
   const [colL,colR]=onTouch()?[CONTROLS_L_TOUCH,CONTROLS_R_TOUCH]:onPad()?ctlRows():[CONTROLS_L_KB,CONTROLS_R_KB];
-  colL.forEach(([k,v],i)=>{txt(k,74,y+4+i*7.8,5,'#ffe08a','right',false);txt(v,79,y+4+i*7.8,5,'#ddd','left',false);});
-  colR.forEach(([k,v],i)=>{txt(k,196,y+4+i*7.8,5,'#ffe08a','right',false);txt(v,201,y+4+i*7.8,5,'#ddd','left',false);});
+  const lb=tactilLibre();
+  if(!lb||y+60<=lb.y0){
+    ctx.fillStyle='rgba(18,12,24,0.75)';ctx.fillRect(30,y,260,60);
+    colL.forEach(([k,v],i)=>{txt(k,74,y+4+i*7.8,5,'#ffe08a','right',false);txt(v,79,y+4+i*7.8,5,'#ddd','left',false);});
+    colR.forEach(([k,v],i)=>{txt(k,196,y+4+i*7.8,5,'#ffe08a','right',false);txt(v,201,y+4+i*7.8,5,'#ddd','left',false);});
+    return;}
+  // con controles en pantalla que tapan los costados: las dos columnas se juntan (y achican si hace falta) entre x0+4 y x1-4
+  const x0=Math.max(30,lb.x0+4),x1=Math.min(290,lb.x1-4);
+  const mk=c=>Math.max(...c.map(r=>hudTW(r[0],5))),mv=c=>Math.max(...c.map(r=>hudTW(r[1],5)));
+  const wL=mk(colL)+4+mv(colL),wR=mk(colR)+4+mv(colR),gap=10,f=Math.min(1,(x1-x0-8)/(wL+gap+wR)),sz=5*f,dy=7.8*Math.max(0.85,f);
+  const rows=Math.max(colL.length,colR.length),h=rows*dy+6;
+  ctx.fillStyle='rgba(18,12,24,0.75)';ctx.fillRect(x0,y,x1-x0,h);
+  const pad=(x1-x0-(wL+gap+wR)*f)/2,kL=x0+pad+mk(colL)*f,kR=x0+pad+(wL+gap)*f+mk(colR)*f;
+  colL.forEach(([k,v],i)=>{txt(k,kL,y+4+i*dy,sz,'#ffe08a','right',false);txt(v,kL+4*f,y+4+i*dy,sz,'#ddd','left',false);});
+  colR.forEach(([k,v],i)=>{txt(k,kR,y+4+i*dy,sz,'#ffe08a','right',false);txt(v,kR+4*f,y+4+i*dy,sz,'#ddd','left',false);});
 }
 function drawTitle(){
   dim(0.45);
@@ -194,15 +209,18 @@ function drawTitle(){
   const ops=tituloOps();
   const pad=onPad(),ok=btn('ok');
   if(ops.length===1){if((T>>5)%2===0)txt('PULSÁ '+ok+' PARA EMPEZAR',W/2,76,8,'#fff','center');}
-  else ops.forEach((o,i)=>{const y=66+i*9.5,on=i===tituloSel;
-    if(on){const w=hudTW(o,7)+26;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(W/2-w/2,y-1,w,9.5);
+  else{const st=ops.length>3?8:9.5,y0=ops.length>3?65:66;ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;
+    if(on){const w=hudTW(o,7)+26;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(W/2-w/2,y-1,w,st);
       txt('▶',W/2-w/2+4+((T>>4)%2),y,7,'#ffe08a','left',false);}
-    txt(o,W/2,y,7,on?'#ffe08a':'#aaa','center');});
+    txt(o,W/2,y,7,on?'#ffe08a':'#aaa','center');});}
   drawControls(98);
   // de a 2: el jugador 2 entra con el botón de saltar de un joystick libre (o hay que conectar uno;
   // si el único joystick es el del jugador 1, hace falta otro)
   const two=padFree()?'de a 2: '+btn('jump','free')+' al elegir personaje':'de a 2: conectá '+(padsOn?'otro':'un')+' joystick';
-  txt(ops.length>1?'↑ ↓ ELEGIR · '+ok+': ENTRAR · '+two:(pad?'':'También con joystick · ')+two,W/2,H-12,5,'#aaa','center');
+  const pie=ops.length>1?(onTouch()?'palanca ↑ ↓: ELEGIR · ':'↑ ↓ ELEGIR · ')+ok+': ENTRAR · '+two:(pad?'':'También con joystick · ')+two;
+  // en táctil, la línea de abajo entra entre la palanca y el rombo
+  const lb=tactilLibre(),pw=lb&&H-12>=lb.y0?Math.min(290,lb.x1-4)-Math.max(30,lb.x0+4):999;
+  txt(pie,lb&&pw<999?(Math.max(30,lb.x0+4)+Math.min(290,lb.x1-4))/2:W/2,H-12,Math.min(5,5*pw/hudTW(pie,5)),'#aaa','center');
   const rec=tituloRecord();if(rec)txt('RÉCORD '+String(rec).padStart(7,'0'),W-6,4,5,'#f3c969','right');
 }
 // ================== elegir personaje, misión y dificultad ==================
