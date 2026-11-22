@@ -43,7 +43,7 @@ function startLevel(i,carry){
   usePlayer(players[0]);
   levelEvents=L.events;variarPartida();
   for(const v of (L.vaults||[]))crates.push({x:v.x,y:GROUND-16,w:16,h:16,hp:24,max:24,armored:true,drop:'V',flash:0});
-  setBanner(L.name,150);state='play';playMusic(L.music);
+  banner=null;state='play';playMusic(L.music); // el nombre de la misión va en el cartel de objetivo (ayuda.js)
   for(const f of ON_START)f(carry);
 }
 function giveStart(){const s=CH().start;if(s){P.weapons[s[0]]=s[1];P.weapon=s[0];}}
@@ -132,7 +132,7 @@ const lastLevel=()=>levelIdx>=LEVELS.length-1;
 // cámara lenta genérica: si la misión trae L.timeScale() (0–1, se llama una vez por cuadro real), step() corre solo
 // cuando el acumulador llega a 1. En los cuadros salteados update() devuelve 'hold' y no se borran los botones tocados.
 let tsAcc=0;
-function slowTick(){const k=clamp(L.timeScale(),0.05,1);if(k>=1){tsAcc=0;return true;}tsAcc+=k;if(tsAcc>=1){tsAcc-=1;return true;}return false;}
+function slowTick(k0){const k=clamp(k0,0.05,1);if(k>=1){tsAcc=0;return true;}tsAcc+=k;if(tsAcc>=1){tsAcc-=1;return true;}return false;}
 function update(){
   if(pressed.mute)muted=!muted;
   if(pressed.music){mus.on=!mus.on;store.set('oxido-musica',mus.on?'1':'0');setBanner(mus.on?'MÚSICA: SÍ':'MÚSICA: NO',50);}
@@ -141,8 +141,13 @@ function update(){
   switch(state){
   case 'title':T++;camX=(T*0.5)%2400;playMusic('title');updTitulo();break;
   case 'select':T++;selT++;camX=(T*0.5)%2400;playMusic('title');updSelect();break;
-  case 'play':if(pressed.pause||pressed.back){state='pause';break;}if(hitStop>0){hitStop--;break;}if(L.timeScale&&!slowTick())return 'hold';step();break;
-  case 'pause':if(quitArm>0)quitArm--;
+  case 'ayuda':playMusic('title');updAyuda();break; // tarjeta de controles antes de la primera partida (ayuda.js)
+  case 'play':if(pressed.pause||pressed.back){state='pause';ruCerrar();break;}
+    ruedaFrame(); // rueda de armas: cada cuadro real, aunque el juego vaya lento
+    if(hitStop>0){hitStop--;break;}
+    {const k=(L.timeScale?L.timeScale():1)*(ruAbierta()?RU_LENTO:1);if(!slowTick(k))return 'hold';}
+    step();break;
+  case 'pause':ruCerrar();if(quitArm>0)quitArm--; // la rueda se cierra sin elegir (una pausa por foco suelta las teclas)
     if(pressed.quit||((pressed.swap||pressed2.swap)&&quitArm>0)){quitArm=0;terminarPartida('gameQuit');}
     else if(pressed.swap||pressed2.swap){quitArm=120;SFX.swap();}
     else if(pressed.pause||pressed.back||pressed.start){state='play';quitArm=0;padLost=0;}break;
@@ -214,7 +219,7 @@ function renderMain(){
   ctx.setTransform(S,0,0,S,0,0);ctx.imageSmoothingEnabled=false;
   if(document.body.dataset.s!==state)document.body.dataset.s=state;
   const sx=(shake?rand(-shake,shake):0)+kickX,sy=(shake?rand(-shake,shake):0)+kickY;
-  const hs=histOk()&&histIsScreen(),menu=state==='title'||state==='select'||hs;
+  const hs=histOk()&&histIsScreen(),menu=state==='title'||state==='select'||state==='ayuda'||hs;
   if(menu&&L!==LEVELS[0]){L=LEVELS[0];platforms=L.platforms;LEVEL_END=L.end;}
   if(menu&&(ZOOM!==1||camY)){setZoom(1);camY=0;} // los menús se ven como siempre
   // fondo, mundo y efectos van con zoom (camara.js); el HUD, sin zoom
@@ -235,6 +240,7 @@ function renderMain(){
   if(hs){marco();histDraw();return;}
   if(state==='title'){marco();drawTitle();return;}
   if(state==='select'){marco();drawSelect();return;}
+  if(state==='ayuda'){marco();drawAyuda();return;}
   drawHUD();
   if(state==='pause'){marco();drawPause();}
   if(state==='over'||state==='win'){marco();drawEnd();}
@@ -242,14 +248,14 @@ function renderMain(){
 // pausa: los botones salen del último control que se tocó (btn en input.js)
 function drawPause(){
   const pad=onPad();
-  dim(0.6);txt('PAUSA',W/2,30,16,'#fff','center');
-  txt(onTouch()?'II o ✕: seguir  ·  △ dos veces: salir al menú':pad?btn('opt')+': seguir  ·  '+btn('quit')+': salir al menú':'ESC o P: seguir  ·  Q: salir al menú',W/2,52,6,'#ddd','center');
+  dim(0.6);txt('PAUSA',W/2,30,16,'#fff','center');txt('CONTROLES',34,61,4,'#f3c969','left',false);
+  txt(onTouch()?'SEGUIR o ✕: seguir  ·  SALIR AL MENÚ: salir':pad?btn('opt')+': seguir  ·  '+btn('quit')+': salir al menú':'ESC/⌫ o P: seguir  ·  Q: salir al menú',W/2,52,6,'#ddd','center');
   drawControls(66);drawWho(132);
   if(padLost){const p2=Math.abs(padLost)===2,back=padLost<0;ctx.fillStyle='rgba(18,12,24,0.92)';ctx.fillRect(30,150,260,22);ctx.fillStyle=back?'#7dff9a':'#ff6b5b';ctx.fillRect(30,150,260,1);
     txt(back?'JOYSTICK CONECTADO OTRA VEZ':(p2?'JOYSTICK DEL JUGADOR 2 DESCONECTADO':'JOYSTICK DESCONECTADO'),W/2,153,6,back?'#7dff9a':'#ff8a7a','center');
     txt(back?'Apretá '+btn('opt',{i:padLostIdx})+' o P para seguir':(p2?'Reconectalo para que siga jugando':'Reconectalo o seguí con el teclado'),W/2,162,5,'#ddd','center',false);}
   // △ (o Y, o X) dos veces sale al menú: el aviso nombra el botón del joystick que lo apretó
-  if(quitArm>0&&(T>>3)%2===0)txt('¿SALIR AL MENÚ? '+btn('quit',pad||onTouch()?undefined:'pad')+' OTRA VEZ',W/2,padLost?141:150,7,'#ff8a7a','center');
+  if(quitArm>0&&!onTouch()&&(T>>3)%2===0)txt('¿SALIR AL MENÚ? '+btn('quit',pad||onTouch()?undefined:'pad')+' OTRA VEZ',W/2,padLost?141:150,7,'#ff8a7a','center');
 }
 
 // ================== loop ==================

@@ -6,21 +6,30 @@
 // es lo mismo que dice la ayuda del juego). Si la pantalla tiene barras negras (más ancha que 16:9, o una
 // tablet), los controles se ubican en las barras; si no entran, se pegan al borde para tapar lo menos posible.
 //   Jugando:  ✕ saltar · □ disparar (mantener = ráfaga) · ○ granada · △ arma (tocar = cambiar,
-//             mantener = avión, con anillo de carga) · II pausa. Palanca flotante con diagonales.
+//             mantener = rueda de armas en cámara lenta: la palanca elige el gajo, soltar △ confirma; el avión
+//             es un gajo) · II pausa. Palanca flotante con diagonales.
+//             Sin rueda (versiones viejas del juego): mantener △ = avión, con anillo de carga.
 //   Menús:    ✕ aceptar · ○ volver · palanca para elegir (un movimiento = un paso, sin diagonales).
 //   Fin del juego y misión cumplida: ✕ seguir · mantener ○ terminar (con anillo, para no perder la partida sin querer).
-//   Pausa:    ✕ u ○ seguir · △ dos veces salir · II seguir.
+//   Pausa:    ✕ u ○ seguir.
 //   Nombre:   ✕ listo · ○ borrar · palanca para las letras · ESCRIBIR abre el teclado del celular.
+// Salidas con texto (prueba con gente en iPad: "no hay forma de volver atrás"): toda pantalla menos el título
+// tiene un botón que dice qué hace, donde está II (en la barra de abajo de la tablet, o a la izquierda):
+//   VOLVER (elección, logros, récords) · pausa: SEGUIR y SALIR AL MENÚ · fin: CONTINUAR y TERMINAR ·
+//   misión cumplida: SEGUIR y SALIR AL MENÚ · nombre: LISTO. Salir y terminar piden un segundo toque
+//   ("¿SALIR? TOCÁ OTRA VEZ", 3 s) para no perder la partida sin querer.
+// En una tablet parada se juega igual (el juego arriba, los controles abajo); "Girá la pantalla" es solo para celulares.
 // Extras:    la pantalla no se apaga mientras jugás · pantalla completa en Android · en iPhone, cómo
 //            agregarlo a inicio · "Girá la pantalla" con pausa · sin zoom ni gestos del navegador ·
 //            el gesto de "atrás" pausa en vez de salir del juego.
-// Se muestran al tocar la pantalla y se esconden al usar el teclado o un joystick. En escritorio no aparece nada.
+// Se muestran al tocar la pantalla y se esconden al usar el teclado o un joystick (iPad con teclado: vuelven con el
+// primer toque, y ese toque ya aprieta el botón que tocaste). En escritorio no aparece nada.
 // window.OXIDO_TOQUE dice si el último control fue la pantalla: el juego lo lee con onTouch() para
 // nombrar los botones (✕ ○ □ △) en sus textos. window.OXIDO_TACTIL_LIBRE dice, en coordenadas del juego,
 // la franja que los controles dejan libre abajo ({x0, x1, y0}: de x0 a x1 no hay controles por debajo de y0),
 // para que la ayuda de controles del menú se acomode ahí. Es null si los controles no se ven.
 //
-// Usa del juego: keys, pressed, state, audioInit y, si existe, AIR_HOLD.
+// Usa del juego: keys, pressed, state, audioInit y, si existen, AIR_HOLD y OXIDO_RUEDA (rueda.js).
 window.OXIDO_TACTIL = true; // apaga el aviso "se juega con teclado o joystick" (aviso-tactil.js)
 window.OXIDO_TOQUE = false;
 (() => {
@@ -34,6 +43,7 @@ window.OXIDO_TOQUE = false;
   const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
   const estado = () => (typeof state === 'string' ? state : '');
   const durAvion = (typeof AIR_HOLD === 'number' ? AIR_HOLD : 36) / 60;
+  const rueda = () => window.OXIDO_RUEDA || null; // rueda de armas (rueda.js): con ella △ mantenido no carga el avión
   const DUR_TERMINAR = 0.6; // segundos manteniendo ○ para terminar la partida
 
   // qué hace cada botón del rombo en cada pantalla (como el joystick de PlayStation en el juego)
@@ -42,7 +52,7 @@ window.OXIDO_TOQUE = false;
     play: { x: 'jump', o: 'bomb', c: 'shoot', t: 'air' },
     menu: { x: 'start', o: 'back' },
     fin: { x: 'start', o: 'mantener:back' },
-    pausa: { x: 'start', o: 'back', t: 'swap' },
+    pausa: { x: 'start', o: 'back' },
     nombre: { x: 'jump', o: 'bomb' },
   };
 
@@ -94,7 +104,20 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
 /* pausa (II) arriba a la izquierda, jugando y en pausa */
 #tactil .pausa{width:max(46px,calc(var(--u)*.7));height:max(46px,calc(var(--u)*.7));border-radius:14px;font-size:18px;
   left:var(--px);top:var(--py)}
-#tactil[data-modo=play] .pausa,#tactil[data-modo=pausa] .pausa{display:flex}
+#tactil[data-modo=play] .pausa{display:flex}
+#tactil .b{z-index:2} /* por encima de la zona de la palanca, que también ocupa la izquierda */
+/* salidas con texto: en fila en la barra de abajo (tablet) o en columna a la izquierda, donde está II */
+#tactil .salidas{position:absolute;z-index:3;display:flex;gap:14px;left:var(--sx,10px);top:var(--sy,10px);pointer-events:none}
+#tactil .salidas[data-fila=abajo]{transform:translateX(-50%)}
+/* celular: VOLVER chico arriba a la izquierda; pausa, fin y nombre en fila abajo, entre la palanca y el rombo */
+#tactil .salidas[data-fila=lado] .chip{font-size:13px;padding:0 14px}
+#tactil:is([data-modo=pausa],[data-modo=fin],[data-modo=nombre]) .salidas[data-fila=lado]{left:var(--sx2);top:var(--sy2);transform:translateX(-50%)}
+#tactil .chip{position:relative;display:none;border-radius:999px;height:max(46px,calc(var(--u)*.7));padding:0 20px;gap:8px;
+  font-size:15px;letter-spacing:.04em;white-space:nowrap;background:rgba(10,8,14,.72)}
+#tactil .chip.ver{display:flex}
+#tactil .chip.rojo{--c:255,122,122}
+#tactil .chip.confirma{background:rgb(var(--c));color:#1a0f14;border-color:#fff}
+#tactil .chip.espera{opacity:.4}
 /* ESCRIBIR (nombre del récord) arriba a la derecha */
 #tactil .escribir{border-radius:999px;height:max(46px,calc(var(--u)*.7));padding:0 18px;gap:8px;font-size:14px;
   right:calc(12px + var(--sr));top:calc(10px + var(--st))}
@@ -144,6 +167,8 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
   rombo.o.style.setProperty('--dur', DUR_TERMINAR + 's');
   const pausa = el('b pausa', 'pause', 'II');
   const escribir = el('b escribir', 'escribir', ICO.teclado + 'ESCRIBIR');
+  const salidas = el('salidas');
+  const chips = [0, 1].map(() => { const d = document.createElement('div'); d.className = 'b chip'; salidas.appendChild(d); return d; });
   const zona = el('zona');
   const base = document.createElement('div'); base.className = 'base';
   base.innerHTML = '<i class="u">' + ICO.flecha + '</i><i class="d">' + ICO.flecha + '</i><i class="l">' + ICO.flecha + '</i><i class="r">' + ICO.flecha + '</i><div class="perilla"></div>';
@@ -163,7 +188,7 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
   const dedos = {};   // pointerId → acción que sostiene ese dedo
   const dedosEn = {}; // pointerId → botón que toca ese dedo (para iluminarlo)
   const relojes = {}; // pointerId → temporizador de "mantener"
-  let palancaDedo = null, centro = null, dir = {};
+  let palancaDedo = null, centro = null, dir = {}, angPalanca = null;
   const vibrar = () => { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} };
   const esMantener = a => typeof a === 'string' && a.startsWith('mantener:');
   function bajar(a) {
@@ -186,6 +211,7 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
 
   // qué acción hace un botón en la pantalla actual (null = nada)
   function accion(b) {
+    if (b.classList.contains('espera')) return null; // fin del juego recién aparecido: el juego todavía no escucha
     if (b.dataset.a !== 'ps') return b.dataset.a;
     return (MAPA[raiz.dataset.modo] || {})[b.dataset.k] || null;
   }
@@ -197,8 +223,8 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
   function marcar() {
     const tocados = new Set(Object.values(dedosEn));
     raiz.querySelectorAll('.b').forEach(b => b.classList.toggle('a', tocados.has(b)));
-    // anillo: △ mantenido jugando (avión) y ○ mantenido para terminar
-    const cargando = new Set(Object.keys(dedos).filter(id => dedos[id] === 'air' || esMantener(dedos[id])).map(id => dedosEn[id]));
+    // anillo: ○ mantenido para terminar y, sin rueda de armas, △ mantenido jugando (avión)
+    const cargando = new Set(Object.keys(dedos).filter(id => (dedos[id] === 'air' && !rueda()) || esMantener(dedos[id])).map(id => dedosEn[id]));
     for (const k in rombo) rombo[k].classList.toggle('carga', cargando.has(rombo[k]));
   }
 
@@ -207,7 +233,12 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
     if (!a) return false; // botón sin uso en esta pantalla
     if (a === 'start' && estado() === 'select') pantallaCompleta();
     dedos[id] = a; dedosEn[id] = b;
-    if (esMantener(a)) {
+    if (a.startsWith('tecla:')) { dedos[id] = null; tecla(a.slice(6)); }
+    else if (a.startsWith('confirmar:')) { // primer toque: pregunta; segundo toque (en 3 s): lo hace
+      dedos[id] = null;
+      if (b.classList.contains('confirma')) { desarmar(); pressed[a.slice(10)] = true; }
+      else { desarmar(); b.classList.add('confirma'); b.textContent = b.dataset.pregunta; armado = setTimeout(desarmar, 3000); }
+    } else if (esMantener(a)) {
       relojes[id] = setTimeout(() => {
         delete relojes[id];
         if (dedos[id] !== a) return;
@@ -272,9 +303,10 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
           if (Math.abs(ux) > Math.abs(uy)) { delete nueva.up; delete nueva.down; } else { delete nueva.left; delete nueva.right; }
         }
       }
+      angPalanca = d > R * 0.22 ? Math.atan2(dy, dx) : null; // para la rueda de armas (en cuadro())
       const k = Math.min(d, R * 0.8) / (d || 1);
       perilla.style.transform = `translate(${dx * k}px,${dy * k}px)`;
-    } else perilla.style.transform = '';
+    } else { perilla.style.transform = ''; angPalanca = null; }
     for (const a of ['up', 'down', 'left', 'right']) {
       if (nueva[a] && !dir[a]) bajar(a);
       if (!nueva[a] && dir[a]) subir(a);
@@ -343,7 +375,14 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
     if (bl >= pw + 16) { ppx = (bl - pw) / 2; ppy = st + 16; }
     else if (bb - sb >= pw + 16) { ppx = (vw - pw) / 2; ppy = r.bottom + (bb - sb - pw) / 2; }
     else { ppx = 10; ppy = Math.max(st + 10, r.top + 38 * k0); }
-    const v = { '--u': u, '--rx': rx, '--ry': ry, '--px': ppx, '--py': ppy,
+    // salidas con texto: en el medio de la barra de abajo si entran (tablet). Si no (celular): VOLVER arriba a la
+    // izquierda, y las de pausa, fin y nombre en fila abajo, centradas entre la palanca y el rombo
+    const abajo = bb - sb >= pw + 16;
+    salidas.dataset.fila = abajo ? 'abajo' : 'lado';
+    // (VOLVER bien arriba: más abajo tapaba la tarjeta del personaje en la elección)
+    const ssx = abajo ? vw / 2 : sl + 10, ssy = abajo ? r.bottom + (bb - sb - pw) / 2 : st + 6;
+    const v = { '--u': u, '--rx': rx, '--ry': ry, '--px': ppx, '--py': ppy, '--sx': ssx, '--sy': ssy,
+      '--sx2': (vw - rx - lado) / 2 + (cx + R) / 2, '--sy2': vh - sb - pw - 10,
       '--bx': cx - (sl + 24), '--by': cy - (st + 0.95 * u) }; // la zona de la palanca empieza en (sl + 24, st + 0,95u)
     for (const k in v) raiz.style.setProperty(k, v[k].toFixed(1) + 'px');
     // franja libre para la ayuda del menú, en coordenadas del juego
@@ -434,7 +473,18 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
     if (raiz.classList.contains('on')) { raiz.classList.remove('on'); soltarTodo(); }
     acomodar();
   }
-  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { mostrar(); despertar(); } }, true);
+  addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch') return;
+    const estaban = raiz.classList.contains('on');
+    mostrar(); despertar();
+    if (estaban) return;
+    // estaban escondidos (iPad con teclado): el toque cayó en el juego, no en un botón. Si donde tocaste ahora
+    // hay un botón o la palanca, ese mismo toque ya lo aprieta (no hay que tocar dos veces).
+    const b = botonEn(e.clientX, e.clientY);
+    if (b && b !== escribir) { e.preventDefault(); apretar(e.pointerId, b); return; }
+    const r = zona.getBoundingClientRect();
+    if (palancaDedo === null && getComputedStyle(zona).display !== 'none' && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { e.preventDefault(); tomarPalanca(e); }
+  }, true);
   // teclado de verdad: se esconden (las teclas que manda ESCRIBIR no cuentan). keyup también: en la
   // pantalla del nombre, historial.js frena el keydown.
   const deTeclado = e => e.isTrusted && e.target !== campo && document.activeElement !== campo;
@@ -446,6 +496,36 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
   for (const ev of ['gesturestart', 'gesturechange', 'contextmenu']) document.addEventListener(ev, e => e.preventDefault());
   raiz.addEventListener('touchstart', e => { if (!e.target.closest('.escribir,.inicio') && e.target !== campo) e.preventDefault(); }, { passive: false });
   raiz.addEventListener('touchmove', e => { if (e.target !== campo) e.preventDefault(); }, { passive: false });
+
+  // ---------- salidas con texto ----------
+  // [texto, acción, pregunta (si pide un segundo toque), rojo]
+  let armado = null, salidasViejas = '';
+  function desarmar() {
+    clearTimeout(armado); armado = null;
+    for (const c of chips) if (c.classList.contains('confirma')) { c.classList.remove('confirma'); c.textContent = c.dataset.texto; }
+  }
+  function salidasDe(s) {
+    const salir = (t, p) => [t, 'confirmar:quit', p, true];
+    if (s === 'pause') return [['▶ SEGUIR', 'pause'], salir('SALIR AL MENÚ', '¿SALIR? TOCÁ OTRA VEZ')];
+    if (s === 'win') return [['SEGUIR ▶', 'start'], salir('SALIR AL MENÚ', '¿SALIR? TOCÁ OTRA VEZ')];
+    if (s === 'over') return typeof contQuedan !== 'function' || contQuedan() > 0
+      ? [['CONTINUAR ▶', 'start'], salir('TERMINAR', '¿TERMINAR? TOCÁ OTRA VEZ')]
+      : [['TERMINAR', 'start', '', true]]; // sin continuaciones, ✕ ya termina
+    if (s === 'nombre') return [['LISTO ✓', 'tecla:Escape']]; // Escape: guarda lo escrito (o el último nombre)
+    if (!s || s === 'title' || s === 'play') return [];
+    return [['‹ VOLVER', 'back']]; // elección, logros, récords y cualquier pantalla de menú nueva
+  }
+  function ponerSalidas(s) {
+    const l = salidasDe(s), clave = JSON.stringify(l);
+    if (clave === salidasViejas) return;
+    salidasViejas = clave; desarmar();
+    chips.forEach((c, i) => {
+      const d = l[i];
+      c.classList.toggle('ver', !!d);
+      if (!d) { delete c.dataset.a; return; }
+      c.dataset.texto = c.textContent = d[0]; c.dataset.a = d[1]; c.dataset.pregunta = d[2] || ''; c.classList.toggle('rojo', !!d[3]);
+    });
+  }
 
   // cada cuadro: modo según la pantalla del juego y avisos
   let modoViejo = '', pantallaVieja = '';
@@ -461,11 +541,19 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
       // al salir de la pantalla del nombre se cierra el teclado del celular (el Enter lo toma historial.js)
       if (modo !== 'nombre' && document.activeElement === campo) campo.blur();
     }
-    if (s !== pantallaVieja) { raiz.dataset.pantalla = s; pantallaVieja = s; pausa.textContent = s === 'pause' ? '▶' : 'II'; }
+    if (s !== pantallaVieja) { raiz.dataset.pantalla = s; pantallaVieja = s; }
+    // rueda de armas abierta: la palanca apunta con su ángulo exacto (no solo 8 direcciones), también si el
+    // pulgar ya estaba inclinado cuando se abrió
+    const ru = rueda();
+    if (ru && s === 'play' && ru.abierta()) ru.apuntar(angPalanca);
+    ponerSalidas(s);
+    const espera = (s === 'over' || s === 'win') && typeof overT === 'number' && overT <= 45;
+    for (const c of chips) c.classList.toggle('espera', espera);
     // jugando y sin tocar un rato: los controles se aclaran para ver mejor el juego
     if (modo === 'play' && palancaDedo === null && !Object.keys(dedos).length && performance.now() - ultimoToque > 2500) raiz.classList.add('quieto');
-    // aparato parado: "Girá la pantalla" y, si estaba jugando, pausa
-    const p = raiz.classList.contains('on') && parado();
+    // celular parado: "Girá la pantalla" y, si estaba jugando, pausa. Una tablet parada (700 px o más de ancho)
+    // se juega igual: el juego entra arriba y los controles en la barra de abajo.
+    const p = raiz.classList.contains('on') && parado() && innerWidth < 700;
     raiz.classList.toggle('parado', p);
     if (p && s === 'play') state = 'pause';
     pantallaEncendida(s === 'play');

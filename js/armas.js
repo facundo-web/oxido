@@ -16,13 +16,15 @@ const PICKCOL={H:'#3c7a3a',S:'#7a4a2a',F:'#b8401e',R:'#3a5a8a',G:'#8a6a2a',E:'#2
 // puntería: cada proyectil del jugador suma un disparo; si pega en un enemigo (combate.js: tiroPega) suma un acierto
 let tirosDisp=0,tirosPeg=0;
 function fire(){
-  const p=P,w=p.weapon,cx=p.x+4;let sx,sy,dx,dy;
-  if(p.aim==='up'){sx=cx+p.face*2;sy=p.y-4;dx=0;dy=-1;}
+  const p=P,w=p.weapon,cx=p.x+4,bd=playerSet(p).dy||0;let sx,sy,dx,dy; // bd: el dibujo baja si las piernas son más cortas
+  if(p.aim==='up'){sx=cx+p.face*2;sy=p.y-4+bd;dx=0;dy=-1;}
   else if(p.aim==='down'){sx=cx+p.face;sy=p.y+20;dx=0;dy=1;}
-  else{sx=cx+p.face*11;sy=p.crouch?p.y+12:p.y+9;dx=p.face;dy=0;}
+  else{sx=cx+p.face*11;sy=p.crouch?p.y+13:p.y+9+bd;dx=p.face;dy=0;}
   const ang=Math.atan2(dy,dx);
   const bx=dy===0?cx+p.face*3:sx; // a quemarropa también pega
-  const shot=(a,sp,o)=>{tirosDisp++;pbul.push({x:bx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,...o,w,sh:1,own:p.slot});};
+  // agachado: tiro bajo, con un poco más de alto para pegarle a lo que anda pegado al piso (combate.js)
+  const bajo=p.crouch&&dy===0;
+  const shot=(a,sp,o)=>{tirosDisp++;pbul.push({x:bx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,...o,w,sh:1,own:p.slot,bajo});};
   if(typeof partida!=='undefined'&&partida&&!partida.armas[w]){partida.armas[w]=1;emit('weaponUse',{w});}
   switch(w){
   case 'pistol':shot(ang,6,{k:'b',dmg:1,life:70});SFX.shoot();break;

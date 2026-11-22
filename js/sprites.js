@@ -67,9 +67,14 @@ function makeSprite(rows,pal){
 }
 function flip(c){const f=document.createElement('canvas');f.width=c.width;f.height=c.height;const x=f.getContext('2d');x.translate(c.width,0);x.scale(-1,1);x.drawImage(c,0,0);return f;}
 function both(rows,pal){const r=makeSprite(rows,pal);return[r,flip(r)];}
-function build(pal,head=HEAD,torso=TORSO){
+// corte: piernas más cortas (los jugadores; ver LEG_CORTE en personajes.js). 1 = sin la fila de la cadera,
+// 2 = además una fila menos de pantalón. La caja de golpe sigue de 18: el dibujo baja (o.dy) para que los pies
+// queden en el piso, y drawRig lo acomoda solo. o.loH = alto de cadera + piernas.
+function build(pal,head=HEAD,torso=TORSO,corte=0){
+  const hip=corte>=1?[]:HIP,legs=r=>corte>=2?r.filter((_,j)=>j!==1):r;
   const o={lo:{},up:both([...head,...torso],pal)};
-  for(const k in LEGS){o[k]=both([...head,...torso,...HIP,...LEGS[k]],pal);o.lo[k]=both([...HIP,...LEGS[k]],pal);}
+  for(const k in LEGS){o[k]=both([...head,...torso,...hip,...legs(LEGS[k])],pal);o.lo[k]=both([...hip,...legs(LEGS[k])],pal);}
+  o.loH=hip.length+legs(LEGS.idle).length;o.dy=18-(head.length+torso.length+o.loH);
   o.crouch=both([...head,...torso,...CROUCH],pal);return o;
 }
 // ================== animación compartida (jugador, soldados, amigos) ==================
@@ -99,6 +104,6 @@ function rigPose(o,ph=0){
 }
 // dibuja piernas y torso por separado; lf = hacia dónde miran las piernas (cuadro de transición al girar)
 function drawRig(set,pose,f,x,y){
-  ctx.drawImage(set.lo[pose.leg][pose.lf??f],q(x),q(y+12+(pose.hop||0)));
-  ctx.drawImage(set.up[f],q(x+pose.ux),q(y+pose.uy));
+  ctx.drawImage(set.lo[pose.leg][pose.lf??f],q(x),q(y+18-(set.loH||6)+(pose.hop||0)));
+  ctx.drawImage(set.up[f],q(x+pose.ux),q(y+(set.dy||0)+pose.uy));
 }

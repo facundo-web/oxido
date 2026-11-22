@@ -26,6 +26,22 @@ function noise(dur,vol,freq){
   s.connect(f).connect(g).connect(actx.destination);s.start(t);s.stop(t+dur);
 }
 const later=(ms,f)=>setTimeout(f,ms);
+// ---------- desbloqueo del sonido en iPhone y iPad ----------
+// Safari solo deja sonar el audio si se crea o reanuda dentro de un gesto que "cuenta": levantar el dedo (touchend,
+// pointerup, click) o una tecla. pointerdown solo no alcanza en iOS. Además:
+// · un sonido mudo de 1 muestra en ese gesto termina de destrabarlo;
+// · audioSession 'playback' (iOS 17+) hace que suene aunque el iPad o el iPhone estén en silencio;
+// · al volver de segundo plano (o de una llamada) el contexto queda 'suspended' o 'interrupted' y se reanuda.
+let audioOk=false;
+function audioUnlock(){
+  audioInit();if(!actx)return;
+  if(actx.state!=='running'){try{const r=actx.resume();if(r&&r.catch)r.catch(()=>{});}catch(e){}}
+  if(!audioOk){try{const b=actx.createBuffer(1,1,22050),s=actx.createBufferSource();s.buffer=b;s.connect(actx.destination);s.start(0);audioOk=true;}catch(e){}}
+}
+try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+for(const ev of ['touchend','pointerup','click','keydown'])addEventListener(ev,audioUnlock,{capture:true,passive:true});
+function audioVolver(){if(!document.hidden&&actx&&actx.state!=='running'){try{const r=actx.resume();if(r&&r.catch)r.catch(()=>{});}catch(e){}}}
+document.addEventListener('visibilitychange',audioVolver);addEventListener('pageshow',audioVolver);addEventListener('focus',audioVolver);
 // clic mecánico corto y filtrado (recarga de la escopeta), programado en tiempo de audio
 function clack(at,freq,vol){
   const s=actx.createBufferSource();s.buffer=noiseBuf;

@@ -3,7 +3,9 @@
 // ci = personaje, mhp = corazones máximos, slot = 0 (jugador 1) o 1 (jugador 2), ah = cuadros que lleva mantenida la tecla del avión
 function mkPlayer(x,y){const c=CH();return{x,y,w:8,h:18,vx:0,vy:0,face:1,onGround:false,plat:null,crouch:false,aim:'f',
   weapon:'pistol',weapons:{},bombs:c.bombs,hp:maxHp,shield:shieldRegen?3:(c.armor||0),airJ:0,inv:120,fireCd:0,anim:0,dist:0,lean:0,rec:0,landT:0,dead:false,deadT:0,drop:0,ride:null,
-  ci:charIdx,mhp:maxHp,slot:inSlot,ah:0,out:false,back:false};}
+  ci:charIdx,col:colDe(charIdx,inSlot),mhp:maxHp,slot:inSlot,ah:0,out:false,back:false};}
+// color del jugador (personajes.js): el que eligió para ese personaje; de a 2, nunca igual al del otro
+function colDe(ci,slot){if(slot===0)return p1Col[ci];const o=players[0];let c=p2Col[ci];if(o&&o.ci===ci&&o.col===c)c=(c+1)%N_COL;return c;}
 // ================== 2 jugadores ==================
 // Casi todo el juego lee el global P (y CH(), maxHp, held/tapped). usePlayer(p) los apunta a ese jugador.
 // Fuera de step() y render(), P es siempre el jugador 1.
@@ -24,10 +26,9 @@ function leadP(){let best=null;for(const p of players)if(!p.dead&&(!best||p.x>be
 const touchAny=box=>players.some(p=>!p.dead&&overlap(hurtbox(p),box));
 // algún jugador vivo está a menos de d en x
 const nearAny=(x,d)=>players.some(p=>!p.dead&&Math.abs(p.x+4-x)<d);
-// el jugador 2 con el mismo personaje que el 1 se ve con otro color de casco
-const altLook=p=>p.slot===1&&players[0]&&players[0].ci===p.ci;
-const playerSet=p=>altLook(p)?SPR.chars2[p.ci]:SPR.chars[p.ci];
-const playerHelmet=p=>altLook(p)?ALT2[p.ci].helmet:CHARS[p.ci].helmet;
+// cada jugador con el color que eligió (personajes.js)
+const playerSet=p=>charSet(p.ci,p.col);
+const playerHelmet=p=>p.col?colMuestra(p.ci,p.col):CHARS[p.ci].helmet;
 const P_COL=['#ffe08a','#7ad8ff']; // color de cada jugador (cartelito sobre la cabeza y HUD)
 function respawnPlayer(p){
   const i=players.indexOf(p);let x=camX+xLibre(40);
@@ -76,7 +77,7 @@ function updPlayer(){
   animStep(p,wasAir,vyAntes);
   if(wasAir&&p.onGround)dust(p.x+4,p.y+18);
   p.aim=U?'up':(D&&!p.onGround?'down':'f');
-  if(tapped('swap')){nextWeapon();SFX.swap();}
+  // cambiar arma (tocar) y la rueda (mantener): rueda.js, en cada cuadro real
   if(p.fireCd>0)p.fireCd--;
   if(tapped('shoot')&&p.weapon==='pistol'&&p.fireCd<=6)p.fireCd=0;
   if(held('shoot')&&p.fireCd<=0){const w=p.weapon;fire();p.fireCd=Math.max(2,Math.round(WEAPONS[w].cd*fireMul*c.cd));}
@@ -102,7 +103,7 @@ function drawPlayer(){
       if(p.aim==='up'){pose.ux=p.lean;pose.uy+=Math.min(1,Math.round((p.rec||0)*0.4));}
       drawRig(set,pose,f,p.x-3,p.y);gx=pose.ux;gy=pose.uy;
     }
-    ctx.save();ctx.translate(q(p.x+4+p.face*2+gx),q(sy+9.5+gy));if(p.face<0)ctx.scale(-1,1);
+    ctx.save();ctx.translate(q(p.x+4+p.face*2+gx),q(sy+9.5+gy+(p.crouch?0:set.dy||0)));if(p.face<0)ctx.scale(-1,1);
     ctx.rotate(p.aim==='up'?-Math.PI/2:p.aim==='down'?Math.PI/2:0);
     ctx.translate(-q(p.rec||0),0);
     drawGunShape(p.weapon,p.fireCd<4);ctx.restore();

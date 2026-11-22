@@ -27,7 +27,7 @@ function keycap(ch,x,y,col='#ddd'){const w=keycapW(ch);ctx.fillStyle='#120c18';c
   ctx.fillStyle='#5a4a60';ctx.fillRect(x+0.5,y+6,w-1,0.5);txt(ch,x+w/2,y+1,5,col,'center',false);return w;}
 function heart(x,y,on){hudPix(HUD_ICONS.heart,x,y,1,on?{r:'#ff4d4d',R:'#ffb0a0'}:{r:'#4a2730',R:'#5a3340'});}
 // cabecita del personaje elegido (sale del mismo sprite del juego)
-function hudHead(x,y){const img=(P?playerSet(P):SPR.chars[charIdx]).idle[0];ctx.drawImage(img,0,0,14,8,x,y,14,8);}
+function hudHead(x,y){const img=(P?playerSet(P):charSet(charIdx,p1Col[charIdx])).idle[0];ctx.drawImage(img,0,0,14,8,x,y,14,8);}
 // ================== insignia de medalla (una sola, sube de nivel) ==================
 function hudStar(cx,cy,ro,ri,col){ctx.fillStyle=col;ctx.beginPath();
   for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?ri:ro;ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}ctx.fill();}
@@ -170,14 +170,14 @@ function drawAirChip(right,y){
   return px;
 }
 function dim(a){ctx.fillStyle=`rgba(12,8,18,${a})`;cubrir();}
-const CONTROLS_L_KB=[['← →','mover'],['↑','apuntar arriba · subir'],['↓','agacharse'],['Z','disparar'],['X','saltar'],['X en el aire','volar con el Grillo'],['C','granada / cañón']];
-const CONTROLS_R_KB=[['S tocar','cambiar arma'],['S mantener','avión (gratis o −1 ♥)'],['↓ + X','bajar del Grillo'],['ESC · P','pausa · volver'],['Q','salir (en pausa)'],['M · N','sonido · música'],['F','pantalla completa']];
+const CONTROLS_L_KB=[['← →','mover'],['↑','apuntar arriba sin frenar'],['↓','agacharse · aire: abajo'],['Z','disparar'],['X · ESPACIO','saltar · Grillo: volar'],['C','granada / cañón'],['↓ + X','bajar del Grillo']];
+const CONTROLS_R_KB=[['S · TAB','cambiar arma'],['mantenelo','rueda de armas y avión'],['1 … 6','arma directa · 6 avión'],['ESC/⌫ · P','pausa · volver'],['Q','salir (en pausa)'],['M · N','sonido · música'],['F','pantalla completa']];
 // la misma tabla con los botones del joystick que se tocó último (btn en input.js)
 function ctlRows(){const b=a=>btn(a);
-  return[[['← →','mover'],['↑','apuntar arriba · subir'],['↓','agacharse'],[b('shoot')+' '+b('r1')+' '+b('r2'),'disparar'],[b('jump'),'saltar'],[b('jump')+' en el aire','volar con el Grillo'],[b('bomb')+' '+b('l2'),'granada / cañón']],
-    [[b('swap'),'cambiar arma'],[b('air')+' mantener','avión (gratis o −1 ♥)'],['↓ + '+b('jump'),'bajar del Grillo'],[b('opt')+' · '+b('back'),'pausa · volver'],[b('quit')+' dos veces','salir (en pausa)'],['teclado M · N','sonido · música'],['teclado F','pantalla completa']]];}
-const CONTROLS_L_TOUCH=[['palanca','mover · apuntar'],['palanca ↓','agacharse'],['□','disparar (mantener)'],['✕','saltar'],['✕ en el aire','volar con el Grillo'],['○','granada / cañón']];
-const CONTROLS_R_TOUCH=[['△ tocar','cambiar arma'],['△ mantener','avión'],['↓ + ✕','bajar del Grillo'],['II','pausa'],['△ dos veces','salir (en pausa)']];
+  return[[['← →','mover'],['↑','apuntar arriba sin frenar'],['↓','agacharse · aire: abajo'],[b('shoot')+' '+b('r1')+' '+b('r2'),'disparar'],[b('jump'),'saltar · Grillo: volar'],[b('bomb')+' '+b('l2'),'granada / cañón'],['↓ + '+b('jump'),'bajar del Grillo']],
+    [[b('swap')+' tocar','cambiar arma'],[b('swap')+' mantener','rueda de armas y avión'],[b('air'),'igual que '+b('swap')],[b('opt')+' · '+b('back'),'pausa · volver'],[b('quit')+' dos veces','salir (en pausa)'],['teclado M · N','sonido · música'],['teclado F','pantalla completa']]];}
+const CONTROLS_L_TOUCH=[['palanca','mover · apuntar'],['palanca ↑','apuntar arriba sin frenar'],['palanca ↓','agacharse · aire: abajo'],['□','disparar (mantener)'],['✕','saltar · Grillo: volar'],['○','granada / cañón']];
+const CONTROLS_R_TOUCH=[['△ tocar','cambiar arma'],['△ mantener','rueda de armas y avión'],['↓ + ✕','bajar del Grillo'],['II','pausa']];
 // franja libre de los controles en pantalla (publicar/web/tactil.js): {x0,x1,y0} en coordenadas del juego.
 // Debajo de y0 la palanca ocupa x<x0 y el rombo x>x1; arriba de y0 está todo libre. null si no hay controles.
 const tactilLibre=()=>onTouch()&&window.OXIDO_TACTIL_LIBRE||null;
@@ -225,8 +225,8 @@ function drawTitle(){
 }
 // ================== elegir personaje, misión y dificultad ==================
 const DIFF_COL=['#7dff9a','#ffe08a','#ff6b5b'];
-let selRow=0; // 0 = personaje · 1 = misión (si hay más de una) · 2 = dificultad
-const selRows=()=>[0,1,2];
+let selRow=0; // 0 = personaje · 3 = color · 1 = misión · 2 = dificultad (en pantalla van en ese orden)
+const selRows=()=>[0,3,1,2];
 const selLocked=i=>i>unlocked;
 // candadito al lado del nombre de una misión bloqueada
 function drawLock(x,y,col){ctx.fillStyle=col;ctx.fillRect(x,y+3,6,5);ctx.fillRect(x+1,y,1,3);ctx.fillRect(x+4,y,1,3);ctx.fillRect(x+2,y,2,1);ctx.fillStyle='#120c18';ctx.fillRect(x+2.5,y+4.5,1,2);}
@@ -245,26 +245,34 @@ function drawSelect(){
   dim(0.55);
   const two=p2Pad>=0;
   txt(two?'ELIJAN SUS PERSONAJES':'ELEGÍ TU PERSONAJE',W/2,4,9,'#ffe08a','center');
-  const cw=92,gap=8,x0=(W-(cw*3+gap*2))/2,y=17,ch=101,rowOn=selRow===0;
+  const cw=92,gap=8,x0=(W-(cw*3+gap*2))/2,y=17,ch=96,rowOn=selRow===0;
   CHARS.forEach((c,i)=>{
     const x=x0+i*(cw+gap),sel=i===charIdx;
     ctx.fillStyle=sel?'rgba(243,201,105,0.18)':'rgba(18,12,24,0.75)';ctx.fillRect(x,y,cw,ch);
     ctx.strokeStyle=sel?(rowOn?'#f3c969':'#a08850'):'#3a2a40';ctx.lineWidth=sel?1.5:1;ctx.strokeRect(x+0.5,y+0.5,cw-1,ch-1);
     const k=sel&&((T>>3)&1)?'run1':sel?'run2':'idle';
-    if(!(typeof ES_tarjeta==='function'&&ES_tarjeta(i,x+cw/2-21,y+2)))ctx.drawImage(SPR.chars[i][k][0],q(x+cw/2-21),q(y+2),42,54); // espera.js: animación de espera
+    if(!(typeof ES_tarjeta==='function'&&ES_tarjeta(i,x+cw/2-21,y+2))){const im=charSet(i,p1Col[i])[k][0];ctx.drawImage(im,q(x+cw/2-21),q(y+2+(18-im.height)*3),42,im.height*3);} // espera.js: animación de espera
     txt(c.name,x+cw/2,y+55,8,sel?'#ffe08a':'#fff','center');
     txt(c.desc,x+cw/2,y+64,5,'#ddd','center',false);
     const st=[['VIDA',c.hp/4],['VELOC.',c.speed/1.75],['SALTO',c.jump/6.6]];
-    st.forEach(([n,v],j)=>{const yy=y+71+j*5.5;txt(n,x+6,yy,4,'#aaa','left',false);ctx.fillStyle='#2a1f30';ctx.fillRect(x+34,yy+1,cw-42,3);ctx.fillStyle=sel?'#f3c969':'#998';ctx.fillRect(x+34,yy+1,(cw-42)*v,3);});
-    wrapTxt(c.perk,4,cw-8).slice(0,2).forEach((l,j)=>txt(l,x+cw/2,y+88+j*5.5,4,sel?'#ffe08a':'#998','center',false));
+    st.forEach(([n,v],j)=>{const yy=y+71+j*5;txt(n,x+6,yy,4,'#aaa','left',false);ctx.fillStyle='#2a1f30';ctx.fillRect(x+34,yy+1,cw-42,3);ctx.fillStyle=sel?'#f3c969':'#998';ctx.fillRect(x+34,yy+1,(cw-42)*v,3);});
+    wrapTxt(c.perk,4,cw-8).slice(0,2).forEach((l,j)=>txt(l,x+cw/2,y+86+j*5,4,sel?'#ffe08a':'#998','center',false));
     // 2 jugadores: el elegido por el jugador 2 tiene marco celeste; cada tarjeta elegida lleva su número
     if(two&&i===p2Ci){ctx.strokeStyle=P_COL[1];ctx.lineWidth=1.5;ctx.strokeRect(x+2,y+2,cw-4,ch-4);
-      if(i===charIdx)ctx.drawImage(SPR.chars2[i].idle[0],q(x+cw-20),q(y+30),14,24);}
+      if(i===charIdx){const im=charSet(i,p2Col[i]).idle[0];ctx.drawImage(im,q(x+cw-20),q(y+30+(18-im.height)*4/3),14,im.height*4/3);}}
     if(two){if(sel)selTag(x+3,y+3,1);if(i===p2Ci)selTag(x+cw-11,y+3,2);}
   });
   if(rowOn){const b=(T>>4)%2?1:0;txt('◀',x0-3-b,y+ch/2-5,8,'#ffe08a','right');txt('▶',x0+cw*3+gap*2+3+b,y+ch/2-5,8,'#ffe08a','left');}
+  // color del personaje del jugador 1 (el del jugador 2, si repite personaje, va marcado con una rayita celeste)
+  let ry=y+ch+3;
+  {const on=selRow===3,cx=W/2+16,hw=(N_COL*10-4)/2,xc=cx-hw;selRowBox(ry,9,on);
+    txt('COLOR',46,ry+2,5,on?'#ffe08a':'#aaa','left',false);
+    for(let k=0;k<N_COL;k++){const x=xc+k*10;ctx.fillStyle='#120c18';ctx.fillRect(x-1,ry+1.5,8,6.5);ctx.fillStyle=colMuestra(charIdx,k);ctx.fillRect(x,ry+2,6,5.5);
+      if(k===p1Col[charIdx]){ctx.strokeStyle=on?'#fff':'#c8b8a0';ctx.lineWidth=1;ctx.strokeRect(x-1.5,ry+1,9,7.5);}
+      if(two&&p2Ci===charIdx&&p2Col[p2Ci]===k){ctx.fillStyle=P_COL[1];ctx.fillRect(x,ry+8,6,1);}}
+    selArrows(cx,ry+1.5,hw+4,6,true,true,on);
+    ry+=11;}
   // misión
-  let ry=y+ch+4;
   {const on=selRow===1,lk=selLocked(selLevel),sh=selNo>0?((selNo>>1)%2?2:-2):0;selRowBox(ry,10,on);
     txt('MISIÓN',46,ry+2.5,5,on?'#ffe08a':'#aaa','left',false);
     const s=LEVELS[selLevel].short,cx=W/2+16+sh,hw=hudTW(s,6)/2;
@@ -286,7 +294,7 @@ function drawSelect(){
   else txt('↑ ↓ ELEGIR FILA · ← → CAMBIAR · '+btn(onPad(0)?'jump':'start',0)+': JUGAR',W/2,ry+1,5,'#fff','center');
   txt(btn('back',0)+': volver',W/2,ry+9,4,'#aaa','center',false);
   // jugador 2: se suma con saltar (✕, A o B) en un joystick libre; sus botones salen de su joystick
-  if(two)txt('JUGADOR 2: ← → ELEGIR · '+btn('bomb',1)+' SALIR',W/2,ry+16,5,P_COL[1],'center');
+  if(two)txt('JUGADOR 2: ← → ELEGIR · ↑ ↓ COLOR · '+btn('bomb',1)+' SALIR',W/2,ry+16,5,P_COL[1],'center');
   else if(padFree()&&(T>>5)%2===0)txt('JUGADOR 2: APRETÁ '+btn('jump','free')+' PARA SUMARTE',W/2,ry+16,5,P_COL[1],'center');
 }
 // número de jugador sobre la tarjeta elegida
@@ -298,7 +306,10 @@ function updSelect(){
   if(p2Join>=0){if(p2Pad<0){p2Pad=p2Join;p2Ci=charIdx===2?0:2;SFX.pick();}p2Join=-1;}
   else if(p2Pad>=0){
     const d2=pressed2.left?-1:pressed2.right?1:0;
-    if(d2){p2Ci=(p2Ci+CHARS.length+d2)%CHARS.length;SFX.swap();}
+    if(d2){p2Ci=(p2Ci+CHARS.length+d2)%CHARS.length;colFix(charIdx,p2Ci);SFX.swap();}
+    // ↑ ↓: su color (salteando el del jugador 1 si repiten personaje)
+    const c2=pressed2.up?-1:pressed2.down?1:0;
+    if(c2){let c=p2Col[p2Ci];do{c=(c+N_COL+c2)%N_COL;}while(p2Ci===charIdx&&p1Col[charIdx]===c);p2Col[p2Ci]=c;colGuardar();SFX.swap();}
     if(pressed2.bomb||pressed2.back){p2Pad=-1;SFX.hit();}
   }
   const rows=selRows();let ri=rows.indexOf(selRow);if(ri<0){ri=0;selRow=rows[0];}
@@ -306,14 +317,15 @@ function updSelect(){
   else if(pressed.down&&ri<rows.length-1){selRow=rows[ri+1];SFX.swap();}
   const dx=pressed.left?-1:pressed.right?1:0;
   if(dx){
-    if(selRow===0){charIdx=(charIdx+CHARS.length+dx)%CHARS.length;SFX.swap();}
+    if(selRow===0){charIdx=(charIdx+CHARS.length+dx)%CHARS.length;if(p2Pad>=0)colFix(charIdx,p2Ci);SFX.swap();}
+    else if(selRow===3){let c=p1Col[charIdx];do{c=(c+N_COL+dx)%N_COL;}while(p2Pad>=0&&p2Ci===charIdx&&p2Col[p2Ci]===c);p1Col[charIdx]=c;colGuardar();SFX.swap();}
     else if(selRow===1){const n=clamp(selLevel+dx,0,LEVELS.length-1);if(n!==selLevel){selLevel=n;selNo=0;SFX.swap();}}
     else{const n=clamp(difficulty+dx,0,DIFFS.length-1);if(n!==difficulty){difficulty=n;store.set('oxido-dificultad',difficulty);SFX.swap();}}
   }
   if(selNo>0)selNo--;
   if(selT>8&&(pressed.start||pressed.shoot||pressed.jump)){
     if(selLocked(selLevel)){selNo=16;selRow=1;SFX.hit();}
-    else{SFX.pick();startLevel(selLevel,false);}}
+    else{SFX.pick();if(!ayudaVista())ayudaAbrir(selLevel);else startLevel(selLevel,false);}}
   else if(pressed.back){state='title';}
 }
 // ================== fin de juego y misión cumplida ==================

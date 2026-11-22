@@ -159,7 +159,7 @@ function M6_ghostsUpd(){
   if(M6.fx<0.3||T%3)return;
   for(const p of players){if(p.dead||p.ride)continue;const set=playerSet(p),f=p.face>0?0:1;
     const img=p.crouch?set.crouch[f]:!p.onGround?set.jump[f]:set.idle[f];
-    M6.ghosts.push({x:p.x-3,y:p.crouch?p.y+3:p.y,img,life:15});}
+    M6.ghosts.push({x:p.x-3,y:p.crouch?p.y+3:p.y+18-img.height,img,life:15});}
   if(M6.ghosts.length>14)M6.ghosts.splice(0,M6.ghosts.length-14);
 }
 ON_DRAW.push(()=>{

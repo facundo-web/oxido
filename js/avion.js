@@ -34,23 +34,13 @@ function drawPlane(a){
   ctx.fillStyle='#1d2416';ctx.fillRect(x-4,y+4,3,4);ctx.fillRect(x+4,y+4,3,4);
   const pw=(T>>1)%2?5:2;ctx.fillStyle='rgba(230,230,230,0.7)';ctx.fillRect(x+20,y+2-pw,1,pw*2);
 }
-// S (o L1 en el joystick): tocar = cambiar arma · mantener 0,6 s = pedir el avión (así no se gasta sin querer)
-// Cada jugador lleva su propia cuenta en P.ah. Lo paga el que lo pide (o un avión gratis compartido).
+// El avión se pide desde la rueda de armas (rueda.js: mantener S, △ o L1, o la tecla 6).
+// Lo paga el que lo pide (o un avión gratis compartido). P.ah ya no se usa (queda en 0: la barrita no aparece).
 const AIR_HOLD=36,AIR_TAP=12;
 // tecla del avión para los carteles: la del control que usa ese jugador (S, L1, LB o L; btn en input.js)
 const airKey=()=>btn('air',P?P.slot:undefined);
 function airReady(){return !air&&!winT&&!P.dead&&(flares>0||P.hp>=2);}
-function updAirCharge(){
-  const p=P;
-  if(held('air')){
-    p.ah++;
-    if(p.ah===AIR_TAP+1&&!air&&!p.dead)tone('triangle',420,520,0.08,0.025);
-    if(p.ah===AIR_HOLD)callAir();
-  }else{
-    if(p.ah>0&&p.ah<=AIR_TAP&&!p.ride){nextWeapon();SFX.swap();}
-    p.ah=0;
-  }
-}
+function updAirCharge(){P.ah=0;}
 // barrita de carga sobre la cabeza mientras se mantiene S
 function drawAirCharge(){
   const airHold=P.ah;

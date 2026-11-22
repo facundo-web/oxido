@@ -135,7 +135,7 @@ function ES_tarjeta(i,sx,sy){
   if(state!=='select'||ES_selT<ES_ESPERA)return false;
   const p=ES_tar[i],a=ES_selT-ES_ESPERA+i*23;          // cada uno arranca un poquito corrido
   p.esT=ES_ESPERA+a;p.x=i===0?-6:0;                   // FACU un poco a la izquierda para que entre la mesita
-  const set=SPR.chars[i],keep=P;
+  const set=charSet(i,p1Col[i]),keep=P;
   // a 2,5× (no 3×) para que el monitor y la pelota alta entren en la tarjeta sin tapar el nombre
   ctx.save();ctx.translate(q(sx)+21-4*2.5,q(sy)+8);ctx.scale(2.5,2.5);
   try{P=p;if(i===0)ES_facu(p,a,set,0,1);else if(i===1)ES_jose(p,a,set,0,1);else ES_lauti(p,a,set,0,1);}

@@ -2,14 +2,18 @@
 // Óxido · Teclado y joystick
 // ================== input: teclado + joystick ==================
 const keys={},pressed={};let padState={},padPrev={};
-// Acciones: Z disparar · X saltar · C granada · S (tocar) cambiar arma · S (mantener) avión. Flechas para moverse.
-// ESC vuelve o sale de menús · P pausa · Q sale al menú desde la pausa.
+// Acciones: Z disparar · X o ESPACIO saltar · C granada · S o TAB (tocar) cambiar arma · S o TAB (mantener) rueda de armas (rueda.js). Flechas para moverse.
+// ESC (o ⌫, o ⌘+. en los teclados de iPad, que no tienen ESC) vuelve o sale de menús · P pausa · Q sale al menú desde la pausa.
+// 1–6 eligen arma directo (rueda.js). En la pantalla del nombre, ⌫ borra letras (historial.js se queda con la tecla antes).
 const KEYMAP={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',
-  KeyZ:'shoot',KeyX:'jump',Space:'jump',KeyC:'bomb',KeyS:'air',
-  KeyN:'music',KeyM:'mute',KeyP:'pause',Escape:'back',KeyQ:'quit',Enter:'start'};
+  KeyZ:'shoot',KeyX:'jump',Space:'jump',KeyC:'bomb',KeyS:'air',Tab:'air',
+  KeyN:'music',KeyM:'mute',KeyP:'pause',Escape:'back',Backspace:'back',KeyQ:'quit',Enter:'start'};
 addEventListener('keydown',e=>{
   audioInit();
   if(e.code==='KeyF'){toggleFull();return;}
+  // ⌘+. (el "escape" de los teclados de Mac y de iPad)
+  if(e.metaKey&&(e.key==='.'||e.code==='Period')){e.preventDefault();if(!keys.back)pressed.back=true;keys.back=true;later(120,()=>{keys.back=false;});return;}
+  if(e.metaKey||e.ctrlKey)return;
   const a=KEYMAP[e.code];if(!a)return;e.preventDefault();
   if(!keys[a])pressed[a]=true;keys[a]=true;
 });
@@ -39,7 +43,12 @@ addEventListener('gamepaddisconnected',e=>{padGone(e.gamepad.index);delete padOl
 let inSlot=0; // de quién es la entrada que leen held() y tapped(): 0 = jugador 1, 1 = jugador 2
 function readPad(gp){
   const b=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed),ax=gp.axes[0]||0,ay=gp.axes[1]||0,st={};
-  st.left=b(14)||ax<-0.4;st.right=b(15)||ax>0.4;st.up=b(12)||ay<-0.5;st.down=b(13)||ay>0.5;
+  // palanca por ángulo, con diagonales generosas: correr y apuntar arriba a la vez sale aunque el pulgar vaya casi
+  // derecho para arriba (← → hasta ~72° de la horizontal; ↑ desde 30°). En los menús, una dirección por vez.
+  const m=Math.hypot(ax,ay),ux=m>0.35?ax/m:0,uy=m>0.35?ay/m:0;
+  let sl=ux<-0.3,sr=ux>0.3,su=uy<-0.5,sd=uy>0.6;
+  if(typeof state!=='undefined'&&state!=='play'&&(sl||sr)&&(su||sd)){if(Math.abs(ux)>Math.abs(uy))su=sd=false;else sl=sr=false;}
+  st.left=b(14)||sl;st.right=b(15)||sr;st.up=b(12)||su;st.down=b(13)||sd;
   st.jump=b(0);st.shoot=b(2)||b(5)||b(7);st.bomb=b(1)||b(6);st.swap=b(3);st.air=b(4);st.pause=b(9);st.back=b(8);st.start=b(9)||b(0);st.opt=b(9);
   return st;
 }
@@ -79,7 +88,10 @@ function pollPad(){
 // se llama una vez por cuadro, después del primer update()
 function clearPressed(){for(const k in pressed)pressed[k]=false;for(const k in pressed2)pressed2[k]=false;}
 // mantener / tocar, según de quién sea el turno (inSlot)
-const held=a=>inSlot?!!padSt2[a]:!!(keys[a]||padState[a]);
+const heldRaw=a=>inSlot?!!padSt2[a]:!!(keys[a]||padState[a]);
+// con la rueda de armas abierta (rueda.js), las flechas son de la rueda: el jugador no se mueve ni apunta
+const RU_DIRS={left:1,right:1,up:1,down:1};
+const held=a=>RU_DIRS[a]&&typeof ruAbiertaDe==='function'&&ruAbiertaDe(inSlot)?false:heldRaw(a);
 const tapped=a=>inSlot?!!pressed2[a]:!!pressed[a];
 // el joystick i, en la pantalla de personaje, suma al jugador 2 con ✕: no es el del jugador 1 (dev1)
 const padJoins=i=>state==='select'&&p2Pad<0&&i!==dev1;
@@ -98,7 +110,7 @@ const PAD_LBL={ps:['✕','○','□','△','L1','R1','L2','R2','CREATE','OPTIONS
   xb:['A','B','X','Y','LB','RB','LT','RT','VISTA','MENÚ'],
   ns:['B','A','Y','X','L','R','ZL','ZR','−','+']};
 const BTN_PAD={jump:0,ok:0,bomb:1,shoot:2,swap:3,quit:3,air:4,r1:5,l2:6,r2:7,back:8,opt:9,start:9};
-const BTN_KB={jump:'X',ok:'ENTER',bomb:'C',shoot:'Z',swap:'S',quit:'Q',air:'S',r1:'Z',l2:'C',r2:'Z',back:'ESC',opt:'P',start:'ENTER'};
+const BTN_KB={jump:'X',ok:'ENTER',bomb:'C',shoot:'Z',swap:'S',quit:'Q',air:'S',r1:'Z',l2:'C',r2:'Z',back:'ESC/⌫',opt:'P',start:'ENTER'};
 let dev1=-1,devAny=-1,lastPad=-1; // -1 = teclado; si no, el índice del joystick
 const padInfo={};
 function padBrand(gp){

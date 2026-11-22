@@ -300,7 +300,7 @@ function histUpdate(){
 const HIST_COLS=5,HIST_ROWS=5;let HIST_top=0;
 function HIST_tw(s,size){return txtW(s,size);} // mide también los íconos ✕ ○ □ △ (base.js)
 // volver: ESC con teclado; con joystick, el botón de granada (○, B o A), que acá también vuelve
-const HIST_back=()=>onTouch()?'○':onPad()?btn('bomb'):'ESC';
+const HIST_back=()=>onTouch()?'○':onPad()?btn('bomb'):'ESC/⌫';
 function HIST_wrap(s,size,maxW){const out=[];let line='';
   for(const w of s.split(' ')){const t=line?line+' '+w:w;if(line&&HIST_tw(t,size)>maxW){out.push(line);line=w;}else line=t;}
   if(line)out.push(line);return out;}
@@ -326,7 +326,10 @@ function HIST_icon(a,x,y,s,on){
 function histDrawPops(top=20,below=false){
   if(!HIST_pops.length)return;
   if(state==='play'&&toasts.length&&!HIST_pops[0].t0)return; // espera a que termine el aviso de medalla para no encimarse
-  const p=HIST_pops[0],now=performance.now();if(!p.t0)p.t0=now;
+  const p=HIST_pops[0],now=performance.now();
+  // en la pausa no se dibuja (se pisaba con el título) y el reloj del aviso queda quieto: sale al seguir
+  if(state==='pause'){if(p.t0)p.t0+=now-(p.lp||now);p.lp=now;return;}
+  p.lp=now;if(!p.t0)p.t0=now;
   const e=(now-p.t0)/1000,DUR=3.4;if(e>DUR){HIST_pops.shift();return;}
   const k=Math.min(1,e/0.2,(DUR-e)/0.3),a=p.a,w=136,x=Math.round(W/2-w/2),y=Math.round(top+(below?1:-1)*(1-k)*30);
   ctx.globalAlpha=Math.max(0,Math.min(1,k*1.5));

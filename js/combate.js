@@ -80,7 +80,7 @@ function collect(kind,x,y,k){
   else if(kind==='G'){P.bombs=Math.min(40,P.bombs+10);setBanner('GRANADAS +10',60);}
   else if(kind==='E'){P.shield=3;setBanner('ESCUDO · AGUANTA 3 GOLPES',70);}
   else if(kind==='V'){setBanner(gainLife()?'¡VIDA EXTRA!':'VIDAS AL MÁXIMO · +1000',80);SFX.medal();}
-  else if(kind==='A'){flares++;setBanner('APOYO AÉREO GRATIS · MANTENÉ '+airKey(),70);}
+  else if(kind==='A'){flares++;setBanner('AVIÓN GRATIS · MANTENÉ '+airKey()+': RUEDA',70);}
   else if(P.ride){P.ride.armor=P.ride.max;setBanner('BLINDAJE REPARADO',60);}
   else{P.hp=maxHp;setBanner('SALUD AL MÁXIMO',60);}
   RC_junto(kind,x,y,rcAntes);
@@ -122,7 +122,7 @@ function updProjectiles(){
     // un disparo a la soga también libera al prisionero
     for(const pr of prisoners)if(pr.state==='tied'&&!b.ally&&overlapPt(pr,b.x,b.y,1.5)){freePris(pr);if(b.k==='rocket')rocketBoom(b);else b.gone=true;break;}
     if(b.gone)continue;
-    for(const e of enemies){if(!hittable(e))continue;if(overlapPt(e,b.x,b.y,1.5)){
+    for(const e of enemies){if(!hittable(e))continue;if(overlapPt(e,b.x,b.y,b.bajo?3.5:1.5)){
       // el escudero frena las balas que le llegan de frente
       // ...pero el escudo aguanta 8 impactos y se rompe
       if(e.type==='shield'&&e.shp>0&&b.k==='b'&&Math.sign(b.vx)===-e.face&&Math.abs(b.vx)>Math.abs(b.vy)*0.7){
