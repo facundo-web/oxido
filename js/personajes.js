@@ -28,9 +28,9 @@ const COLORES=[
   [{},{h:'#2f6fc8',H:'#6aa6f0',u:'#1a3a80'},{h:'#3a8a3a',H:'#6ac06a',u:'#1e5a1e'},{h:'#d89a2a',H:'#f0c860',u:'#8a5a10'}]];
 const N_COL=4;
 const colMuestra=(ci,k)=>{const o=COLORES[ci][k];return o.h||o.c||CHARS[ci].helmet;};
-// piernas de los jugadores: 2 píxeles más cortas que las de los soldados (pedido de la prueba con gente: "muy largos
-// de piernas"). 0 = como antes. La caja de golpe no cambia.
-const LEG_CORTE=2;
+// piernas de los jugadores: 0 = como siempre (el pedido de acortarlas se canceló el 22 nov). build() admite 1 o 2
+// píxeles menos sin tocar la caja de golpe, por si alguna vez hace falta.
+const LEG_CORTE=0;
 const SPR={chars:CHARS.map(c=>build(c.pal,c.head,c.torso,LEG_CORTE)),e:build(PAL_E),g:build(PAL_G),sh:build(PAL_SH),a:build(PAL_A,HEAD_A),w:build(PAL_W)};
 const SPR_COL=CHARS.map(()=>[]);
 // sprites del personaje ci con el color k (se arman la primera vez que se piden)

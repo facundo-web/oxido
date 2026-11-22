@@ -4,7 +4,8 @@
 function land(o,prevBottom,allowPlat){
   if(o.vy<0){o.onGround=false;return;}
   const b=o.y+o.h;
-  if(b>=GROUND){o.y=GROUND-o.h;o.vy=0;o.onGround=true;o.plat=null;return;}
+  if(b>=GROUND){if(typeof MO_enPozo==='function'&&MO_enPozo(o)){o.onGround=false;o.plat=null;return;} // hueco del muelle (momentos.js)
+    o.y=GROUND-o.h;o.vy=0;o.onGround=true;o.plat=null;return;}
   if(allowPlat)for(const pl of platforms){
     if(o.x+o.w>pl.x&&o.x<pl.x+pl.w&&prevBottom<=pl.y+0.01&&b>=pl.y){o.y=pl.y-o.h;o.vy=0;o.onGround=true;o.plat=pl;return;}
   }

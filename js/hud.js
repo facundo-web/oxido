@@ -118,7 +118,8 @@ function drawHUD(){
     ctx.fillStyle='#ff3b30';ctx.fillRect(x+w-1,6,3,5);ctx.fillStyle='#fff';ctx.fillRect(x+w*pr-1,6.5,2,4);
     txt((vuelta>1?'V'+vuelta+' · M':'MISIÓN ')+(levelIdx+1),160,12,4,vuelta>1?'#ffe08a':'#aaa','center',false);
   }
-  if(banner&&banner.t>0&&state!=='pause'){ctx.globalAlpha=Math.min(1,banner.t/20,(banner.max-banner.t+1)/8);txt(banner.s,W/2,50,11,'#ffe08a','center');ctx.globalAlpha=1;}
+  // con el cartel de jefe a la vista (dibujito.js), el aviso grande va debajo para no pisarse
+  if(banner&&banner.t>0&&state!=='pause'){const by=typeof DIB_jefe!=='undefined'&&DIB_jefe&&DIB_jefe.t<170?82:50;ctx.globalAlpha=Math.min(1,banner.t/20,(banner.max-banner.t+1)/8);txt(banner.s,W/2,by,11,'#ffe08a','center');ctx.globalAlpha=1;}
   if(goT>0&&(T>>4)%2)txt('¡ADELANTE! ▶',W-8,PC_aviso?100:78,9,'#fff','right'); // con el aviso de tramo, más abajo
   if(toasts.length){const t=toasts[0],a=Math.min(1,t.t/15,(170-t.t+1)/10);ctx.globalAlpha=a;
     const y=27;ctx.fillStyle='rgba(18,12,24,0.78)';ctx.fillRect(W/2-80,y,160,22);ctx.fillStyle=t.col;ctx.fillRect(W/2-80,y,160,1);
@@ -161,11 +162,14 @@ function drawHUD2(){
   txt(gs,W-5,y2+gj,5,gv?(RC_luz(gk)?'#fff6c8':'#fff'):'#ff6b5b','right',false);
   if(!gv)ctx.globalAlpha=0.45;hudPix(HUD_ICONS.grenade,W-5-gw-9,y2+gj);ctx.globalAlpha=1;RC_ancla(gk,W-5-gw-5.5,y2+3.5);
 }
-// avión: ícono + tecla (S, L1, LB o L) + cuántos gratis (o lo que cuesta). Devuelve la x donde empieza, para poner algo a la izquierda.
+// avión: ícono + cómo se pide (tecla 6 en el teclado; con joystick o en la pantalla, un iconito de rueda: se elige ahí)
+// + cuántos gratis (o lo que cuesta). Devuelve la x donde empieza, para poner algo a la izquierda.
+function hudRuedita(x,y,col){ctx.strokeStyle=col;ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(x+3.5,y+3.5,2.8,0,7);ctx.stroke();
+  ctx.fillStyle=col;for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;ctx.fillRect(x+3.5+Math.cos(a)*2.8-0.5,y+3.5+Math.sin(a)*2.8-0.5,1,1);}ctx.fillRect(x+3,y+3,1,1);}
 function drawAirChip(right,y){
-  const fv=RC_ver('fl',flares),fj=RC_salto('fl'),free=fv>0,s=free?'×'+fv:'−1♥',sw=hudTW(s,5),ready=airReady(),k=btn('air',P.slot);
+  const fv=RC_ver('fl',flares),fj=RC_salto('fl'),free=fv>0,s=free?'×'+fv:'−1♥',sw=hudTW(s,5),ready=airReady(),k=airKey();
   txt(s,right,y+1+fj,5,free?(RC_luz('fl')?'#fff6c8':'#9ad0ff'):'#aaa','right',false);
-  const kx=right-sw-2-keycapW(k);keycap(k,kx,y,free?'#9ad0ff':'#aaa');
+  const kx=right-sw-2-(k?keycapW(k):7);if(k)keycap(k,kx,y,free?'#9ad0ff':'#aaa');else hudRuedita(kx,y,free?'#9ad0ff':'#aaa');
   const px=kx-14;ctx.globalAlpha=air?((T>>3)%2?1:0.4):ready?1:0.45;hudPix(HUD_ICONS.plane,px,y+fj);ctx.globalAlpha=1;RC_ancla('fl',px+6,y+3);
   return px;
 }
@@ -209,10 +213,10 @@ function drawTitle(){
   const ops=tituloOps();
   const pad=onPad(),ok=btn('ok');
   if(ops.length===1){if((T>>5)%2===0)txt('PULSÁ '+ok+' PARA EMPEZAR',W/2,76,8,'#fff','center');}
-  else{const st=ops.length>3?8:9.5,y0=ops.length>3?65:66;ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;
-    if(on){const w=hudTW(o,7)+26;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(W/2-w/2,y-1,w,st);
-      txt('▶',W/2-w/2+4+((T>>4)%2),y,7,'#ffe08a','left',false);}
-    txt(o,W/2,y,7,on?'#ffe08a':'#aaa','center');});}
+  else{const st=ops.length>4?6.4:ops.length>3?8:9.5,y0=ops.length>4?65.5:ops.length>3?65:66,fz=ops.length>4?6:7;ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;
+    if(on){const w=hudTW(o,fz)+26;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(W/2-w/2,y-1,w,st);
+      txt('▶',W/2-w/2+4+((T>>4)%2),y,fz,'#ffe08a','left',false);}
+    txt(o,W/2,y,fz,on?'#ffe08a':'#aaa','center');});}
   drawControls(98);
   // de a 2: el jugador 2 entra con el botón de saltar de un joystick libre (o hay que conectar uno;
   // si el único joystick es el del jugador 1, hace falta otro)

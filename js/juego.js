@@ -47,15 +47,17 @@ function startLevel(i,carry){
   for(const f of ON_START)f(carry);
 }
 function giveStart(){const s=CH().start;if(s){P.weapons[s[0]]=s[1];P.weapon=s[0];}}
-function setBanner(s,t){banner={s,t,max:t};}
-function toast(title,sub,col){toasts.push({title,sub,col,t:170});}
+// durante un MOMENTO de las misiones 1–3 (momentos.js) los carteles esperan y salen cuando termina
+function setBanner(s,t){if(typeof MO_guarda==='function'&&MO_guarda('b',s,t))return;banner={s,t,max:t};}
+// devuelve el aviso (aunque espere en la fila), así quien lo llama puede sumarle datos (medallas.js: lvl, ico)
+function toast(title,sub,col){const o={title,sub,col,t:170};if(typeof MO_guarda==='function'&&MO_guarda('t',o))return o;toasts.push(o);return o;}
 function saveRecord(){if(score>record){record=score;newRecord=true;store.set('oxido-record',record);}}
 function addScore(n,x,y){score+=n;parts.push({k:'txt',s:'+'+n,x,y,life:40,maxl:40});}
 function updCam(){
   if(lock)camX=lock.a.at;
   else{
     const target=Math.min(leadP().x-VW*0.34,LEVEL_END-VW);
-    if(target>camX)camX=target;
+    if(target>camX&&!(typeof MO_frena!=='undefined'&&MO_frena>0))camX=target; // momentos.js frena la cámara un instante
     const a=L.arenas[arenaIdx];
     if(a&&camX>=a.at){
       camX=a.at;lock={a,wave:0,t:0,spawned:false};
@@ -163,18 +165,22 @@ function update(){
   }
 }
 function drawWorld(){
+  GL_reset(); // globos: cada cuadro se acomodan de nuevo para no encimarse (globos.js)
   drawGround();
   for(const d of L.decor)if(d.x>camX-60&&d.x<camX+VW+10)drawDecor(d);
   drawPlatforms();drawCover();
   for(const c of crates)if(onScreen(c,10))drawCrate(c);
   for(const k of pickups)drawPickup(k);
   for(const e of enemies)if(e.type==='turret')drawTurret(e);
-  for(const e of enemies){if(e.draw)e.draw(e);else if(isBoss(e))drawBossAny(e);else if(e.type==='drone')drawDrone(e);else if(e.type!=='turret')drawSoldier(e);}
+  // estilo dibujito: tinta que tiembla detrás de jefes y soldados (dibujito.js)
+  const tin=typeof DIB_tinta==='function';
+  for(const e of enemies){if(tin&&e.type!=='turret')DIB_tinta(isBoss(e)?2:0);if(e.draw)e.draw(e);else if(isBoss(e))drawBossAny(e);else if(e.type==='drone')drawDrone(e);else if(e.type!=='turret')drawSoldier(e);}
+  if(tin)DIB_sinTinta();
   for(const pr of prisoners)drawPrisoner(pr);
   for(const a of allies)drawAlly(a);
   for(const f of ON_DRAW)f();
   for(const m of mechs)drawMech(m);
-  if(P){eachPlayer(drawPlayer);eachPlayer(drawPlayerTag);}
+  if(P){if(tin)DIB_tinta(1);eachPlayer(drawPlayer);if(tin)DIB_sinTinta();eachPlayer(drawPlayerTag);}
   drawForeground();
   for(const g of grens){
     if(g.draw){g.draw(g);continue;}
@@ -207,7 +213,8 @@ function drawWorld(){
     case 'flash':ctx.fillStyle='#fff3b0';circle(p.x,p.y,p.size*a);ctx.fillStyle='#fff';circle(p.x,p.y,p.size*a*0.5);break;
     case 'tracer':ctx.strokeStyle=`rgba(255,230,120,${a})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x2,p.y2);ctx.stroke();break;
     case 'spr':if(p.life<20&&(p.life>>1)%2)break;ctx.save();ctx.translate(q(p.x+7),q(p.y+9));ctx.rotate(p.rot);ctx.drawImage(p.img,-7,-9);ctx.restore();break;
-    case 'txt':ctx.globalAlpha=Math.min(1,a*2);txt(p.s,p.x,p.y,5,'#ffe08a','center');ctx.globalAlpha=1;break;
+    // globos de diálogo y textos que flotan, con la fuente pixel (globos.js)
+    case 'txt':if(p.g)globo(p.s,p.x,p.y,{grito:p.g==='grito',t:p.maxl-p.life,dur:p.maxl});else pfFlota(p.s,p.x,p.y,p.col,Math.min(1,a*2));break;
     }
   }
   if(air)drawPlane(air);
@@ -234,6 +241,7 @@ function renderMain(){
   ctx.restore();
   if(L.drawFx)L.drawFx();else if(L.theme==='port')drawRain();
   if(oy>0)ctx.restore();
+  if(typeof DIB_pelicula==='function')DIB_pelicula(); // estilo dibujito: grano, viñeta, rayas (dibujito.js); el HUD va limpio encima
   // el HUD del juego va pegado arriba y abajo del lienzo; los menús y pantallas, en un marco de 320×180 centrado
   SQ=S;ctx.setTransform(S,0,0,S,0,0);
   const marco=()=>ctx.setTransform(S,0,0,S,0,Math.round((HC-H)/2*S));

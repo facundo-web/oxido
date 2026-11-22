@@ -326,6 +326,8 @@ function HIST_icon(a,x,y,s,on){
 function histDrawPops(top=20,below=false){
   if(!HIST_pops.length)return;
   if(state==='play'&&toasts.length&&!HIST_pops[0].t0)return; // espera a que termine el aviso de medalla para no encimarse
+  if(state==='play'&&typeof DIB_jefe!=='undefined'&&DIB_jefe&&!HIST_pops[0].t0)return; // y al cartel de jefe (dibujito.js)
+  if(state==='play'&&typeof MO_activo==='function'&&MO_activo()&&!HIST_pops[0].t0)return; // y a los momentos (momentos.js)
   const p=HIST_pops[0],now=performance.now();
   // en la pausa no se dibuja (se pisaba con el título) y el reloj del aviso queda quieto: sale al seguir
   if(state==='pause'){if(p.t0)p.t0+=now-(p.lp||now);p.lp=now;return;}

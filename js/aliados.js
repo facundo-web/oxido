@@ -11,9 +11,9 @@ function freePris(pr){
   for(let i=0;i<6;i++)parts.push({k:'p',x:pr.x+5,y:pr.y+8,vx:rand(-1.5,1.5),vy:rand(-2,-0.5),g:0.15,life:rand(20,30),maxl:30,size:1,col:'#b08a4a'});
   pr.join=pr.kind==='ally'&&allies.length+prisoners.filter(o=>o.join&&o.state==='freed').length<MAX_ALLIES;
   emit('rescue',{kind:pr.join?'ally':'prisoner'});
-  if(pr.join){setBanner('¡UN AMIGO SE SUMA!',70);parts.push({k:'txt',s:'¡VAMOS!',x:pr.x+5,y:pr.y-10,life:50,maxl:50});}
+  if(pr.join){setBanner('¡UN AMIGO SE SUMA!',70);parts.push({k:'txt',g:'habla',s:'¡VAMOS!',x:pr.x+5,y:pr.y-2,life:50,maxl:50});}
   else{const k=pick(['H','S','F','R','G','E','+','A']);pickups.push({kind:k,x:pr.x,y:pr.y-4,w:10,h:10,vy:-3,life:900});
-    setBanner('¡PRISIONERO LIBERADO!',60);parts.push({k:'txt',s:'¡GRACIAS!',x:pr.x+5,y:pr.y-10,life:50,maxl:50});}
+    setBanner('¡PRISIONERO LIBERADO!',60);parts.push({k:'txt',g:'habla',s:'¡GRACIAS!',x:pr.x+5,y:pr.y-2,life:50,maxl:50});}
 }
 function updPrisoners(){
   for(const pr of prisoners){
@@ -29,7 +29,7 @@ function updPrisoners(){
 }
 function killAlly(a){
   if(a.gone)return;a.gone=true;corpse(SPR.a,a.x,a.y,a.face);tone('sawtooth',400,90,0.25,0.05);
-  parts.push({k:'txt',s:'¡AY!',x:a.x+4,y:a.y-6,life:40,maxl:40});setBanner('¡PERDISTE UN AMIGO!',60);
+  parts.push({k:'txt',g:'grito',s:'¡AY!',x:a.x+4,y:a.y-1,life:40,maxl:40});setBanner('¡PERDISTE UN AMIGO!',60);
 }
 function updAllies(){
   allies.forEach((a,i)=>{
@@ -62,10 +62,8 @@ function drawPrisoner(pr){
     const dx=strug?(((tt>>2)&1)?1:-1)*0.75:0,dy=strug?((tt>>3)&1):bob;
     ctx.drawImage(SPR.a.crouch[1],q(x-2+dx),q(y-1+dy));
     ctx.fillStyle='#b08a4a';ctx.fillRect(x,y+7,10,1);ctx.fillRect(x+1,y+10,9,1);
-    if(nearAny(x+5,110)&&(T>>4)%3){
-      ctx.fillStyle='rgba(255,255,255,0.92)';ctx.fillRect(x-6,y-15,22,7);ctx.fillRect(x+3,y-8,2,2);
-      txt('¡AYUDA!',x+5,y-14.2,4.2,'#120c18','center',false);
-    }
+    // globo de grito (globos.js): aparece 32 de cada 48 cuadros, con el pop del estilo dibujito
+    if(nearAny(x+5,110)&&(T>>4)%3)globo('¡AYUDA!',x+5,y-3,{grito:true,t:(T%48)-16,dur:32});
   }else if(pr.state==='freed'){
     if(pr.t<20){const up=-Math.sin(pr.t/20*Math.PI)*8;ctx.drawImage(SPR.a.jump[0],q(x-2),q(y-4+up));}
     else{

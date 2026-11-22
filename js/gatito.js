@@ -109,7 +109,7 @@ function CAT_hurt(g,amt){
   if(g.inv>0||!CAT_vivo()||g.st==='free')return;
   amt=amt||CAT_DMG.criatura;
   g.hp=Math.max(0,g.hp-amt);g.inv=amt>=40?70:45;g.heartT=200;g.barB=8;gatoStats.golpes++;
-  parts.push({k:'txt',s:'¡MIAU!',x:g.x+6,y:g.y-8,life:40,maxl:40});
+  parts.push({k:'txt',g:'habla',s:'¡MIAU!',x:g.x+6,y:g.y-2,life:40,maxl:40});
   for(let i=0;i<5;i++)parts.push({k:'p',x:g.x+6,y:g.y+3,vx:rand(-1.2,1.2),vy:rand(-1.8,-0.4),g:0.12,life:rand(16,26),maxl:26,size:1,col:'#c9ccd6'});
   if(g.hp<=0){CAT_alAngel(g);return;}
   CAT_meow('hurt');
@@ -278,7 +278,7 @@ function CAT_free(){
   const c=gatoJaula;if(!c||c.st!=='shut')return;
   c.st='open';c.t=0;addScore(300,c.x+8,c.y-6);emit('rescue',{kind:'cat'});SFX.pick();CAT_meow();
   for(let i=0;i<8;i++)parts.push({k:'p',x:c.x+rand(0,16),y:c.y+rand(0,10),vx:rand(-1.8,1.8),vy:rand(-2.6,-0.6),g:0.16,life:rand(24,36),maxl:36,size:1.5,col:i%2?'#9aa0a8':'#6e4824'});
-  parts.push({k:'txt',s:'¡MIAU!',x:c.x+8,y:c.y-10,life:50,maxl:50});
+  parts.push({k:'txt',g:'habla',s:'¡MIAU!',x:c.x+8,y:c.y-3,life:50,maxl:50});
   const g=CAT_mk(c.x+2,c.y+3);g.st='free';g.vy=-4.2;g.vx=0.6;g.onGround=false;g.heartT=240;gato=g;
   let bd=1e9;players.forEach((p,i)=>{if(p.dead)return;const d=Math.abs(p.x-c.x);if(d<bd){bd=d;g.owner=i;}});
 }
@@ -456,10 +456,7 @@ function CAT_drawCage(c){
     ctx.fillStyle='#5a3a22';ctx.fillRect(x-1,y,18,2);ctx.fillRect(x-1,y+12,18,2);
     ctx.fillStyle='#7a5232';ctx.fillRect(x-1,y,18,0.8);ctx.fillRect(x-1,y+12,18,0.6);
     ctx.fillStyle='#2a2a30';ctx.fillRect(x+6,y-2,4,1);ctx.fillRect(x+6,y-2,1,2);ctx.fillRect(x+9,y-2,1,2);
-    if(nearAny(x+8,120)&&(T>>4)%3){
-      ctx.fillStyle='rgba(255,255,255,0.92)';ctx.fillRect(x-3,y-11,22,7);ctx.fillRect(x+7,y-4,2,2);
-      txt('¡MIAU!',x+8,y-10.2,4.2,'#120c18','center',false);
-    }
+    if(nearAny(x+8,120)&&(T>>4)%3)globo('¡MIAU!',x+8,y-3,{t:(T%48)-16,dur:32}); // globo de habla (globos.js)
   }else{ // jaula abierta: queda la base y se desvanece
     ctx.globalAlpha=clamp(1-c.t/90,0,1);
     ctx.fillStyle='#5a3a22';ctx.fillRect(x-1,y+12,18,2);

@@ -227,7 +227,7 @@ function EN_updBalls(){
         EN_stats.pelotaGolpes++;spark(b.x,b.y,'#ffffff',dir);
         if(b.n===0){
           EN_snd(EN_tribuna);
-          parts.push({k:'txt',s:'¡GOL!',x:b.x,y:b.y-17,life:50,maxl:50});kick(dir*1.5,-0.5);
+          parts.push({k:'txt',g:'grito',s:'¡GOL!',x:b.x,y:b.y-9,life:50,maxl:50});kick(dir*1.5,-0.5);
         }
         b.n++;
         // atraviesa y rebota; contra un jefe rebota para atrás

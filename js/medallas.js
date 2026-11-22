@@ -17,8 +17,8 @@ function checkMedals(e){
   while(medals<MEDALS.length&&kills>=MEDALS[medals].at){
     const m=MEDALS[medals],antes=RC_fotos();medals++;emit('medal',{name:m.name});if(m.apply)m.apply();if(m.each)eachPlayer(m.each); // each: a cada jugador
     // una sola insignia que sube de nivel: el aviso dice a qué nivel llegaste y qué ganaste
-    toast(m.name==='LEYENDA'?'¡AHORA SOS UNA LEYENDA!':'¡AHORA SOS DE '+m.name+'!',m.desc,m.col);toasts[toasts.length-1].lvl=medals;SFX.medal();
+    toast(m.name==='LEYENDA'?'¡AHORA SOS UNA LEYENDA!':'¡AHORA SOS DE '+m.name+'!',m.desc,m.col).lvl=medals;SFX.medal();
     RC_medalla(medals,aca,antes);
   }
-  if(kills%AIR_EVERY===0){const f0=flares;flares++;toast('¡AVIÓN GRATIS!',AIR_EVERY+' bajas · mantené '+airKey()+' para llamarlo','#9ad0ff');toasts[toasts.length-1].ico='air';RC_avion(aca,f0);}
+  if(kills%AIR_EVERY===0){const f0=flares;flares++;toast('¡AVIÓN GRATIS!',AIR_EVERY+' bajas · '+airPide().toLowerCase(),'#9ad0ff').ico='air';RC_avion(aca,f0);}
 }

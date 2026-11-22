@@ -269,7 +269,8 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
     soltarDedo(e.pointerId); apretar(e.pointerId, b);
   });
   function fin(e) {
-    try { audioInit(); } catch (err) {} // iPhone: el sonido se habilita al levantar el dedo
+    // iPhone: el sonido se habilita al levantar el dedo (audioUnlock, de audio.js, además toca un sonido mudo)
+    try { if (typeof audioUnlock === 'function') audioUnlock(); else audioInit(); } catch (err) {}
     if (e.pointerId === palancaDedo) { soltarPalanca(); return; }
     if (!(e.pointerId in dedos)) return;
     soltarDedo(e.pointerId); marcar();
@@ -295,7 +296,9 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
       ubicarBase();
       if (d > R * 0.22) {
         const ux = dx / d, uy = dy / d, h = k => (dir[k] ? 0.06 : 0); // un poco de margen para que no titile
-        if (ux > 0.42 - h('right')) nueva.right = 1; else if (ux < -0.42 + h('left')) nueva.left = 1;
+        // ← → hasta ~72° de la horizontal: ↗ casi vertical también corre (prueba con gente: no podían correr
+        // disparando arriba). Igual que el joystick físico (input.js).
+        if (ux > 0.3 - h('right')) nueva.right = 1; else if (ux < -0.3 + h('left')) nueva.left = 1;
         // agacharse pide más inclinación, para no frenar sin querer mientras corrés
         if (uy < -0.5 + h('up')) nueva.up = 1; else if (uy > 0.64 - h('down')) nueva.down = 1;
         // en los menús, una sola dirección por vez: la que más se movió (si no, ↗ cambia de fila y de opción a la vez)

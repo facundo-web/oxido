@@ -37,8 +37,11 @@ function drawPlane(a){
 // El avión se pide desde la rueda de armas (rueda.js: mantener S, △ o L1, o la tecla 6).
 // Lo paga el que lo pide (o un avión gratis compartido). P.ah ya no se usa (queda en 0: la barrita no aparece).
 const AIR_HOLD=36,AIR_TAP=12;
-// tecla del avión para los carteles: la del control que usa ese jugador (S, L1, LB o L; btn en input.js)
-const airKey=()=>btn('air',P?P.slot:undefined);
+// cómo se pide el avión, según el control de ese jugador: en el teclado la tecla 6 (directa); con joystick o en la
+// pantalla, desde la rueda (mantener el botón de arma). airKey() es lo que va en la teclita del HUD (null = ícono de rueda).
+const airTeclado=()=>{const s=P?P.slot:0;return !(onTouch()&&s===0)&&!onPad(s);};
+const airKey=()=>airTeclado()?'6':null;
+const airPide=()=>airTeclado()?'TECLA 6 (O LA RUEDA)':'MANTENÉ '+btn('swap',P?P.slot:undefined)+' Y ELEGILO EN LA RUEDA';
 function airReady(){return !air&&!winT&&!P.dead&&(flares>0||P.hp>=2);}
 function updAirCharge(){P.ah=0;}
 // barrita de carga sobre la cabeza mientras se mantiene S
