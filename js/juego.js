@@ -16,7 +16,7 @@ let difficulty=clamp(+(store.get('oxido-dificultad')??1)||0,0,2);
 // desde la vuelta 2 (partida.js) la misma dificultad con más vida y cadencia enemiga
 const DIFF=()=>vuelta>1?difVuelta():DIFFS[difficulty];
 // suma una vida respetando el tope de la dificultad; si ya está al tope, da puntos. Devuelve true si sumó.
-function gainLife(){if(lives<DIFF().maxLives){lives++;return true;}score+=1000;return false;}
+function gainLife(){if(lives<DIFF().maxLives){lives++;if(typeof ECO!=='undefined')ECO.vidas++;return true;}score+=1000;return false;}
 function startLevel(i,carry){
   // con carry, cada jugador sigue con sus armas, granadas, escudo y corazones (el que quedó afuera vuelve nuevo)
   if(P&&P.mhp!==undefined)P.mhp=maxHp;

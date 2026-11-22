@@ -98,7 +98,7 @@ const HIST_LOGROS=[
   {id:'sinavion',n:'A PULMÓN',d:'Ganá una misión sin pedir el avión',g:'∅',col:'#c8b8a0'},
   {id:'oro',n:'MEDALLA DE ORO',d:'Llegá al ORO en una partida',g:'★',col:'#ffd23a'},
   {id:'leyenda',n:'LEYENDA',d:'Llegá a LEYENDA en una partida',g:'★',col:'#ff8ad8'},
-  {id:'grillo',n:'GRILLO FURIOSO',d:'30 bajas a bordo del Grillo en una partida',g:'G',col:'#9fb07a'},
+  {id:'grillo',n:'CHATARRA FURIOSA',d:'30 bajas a bordo de la Chatarra en una partida',g:'C',col:'#9fb07a'},
   {id:'rescatista',n:'RESCATISTA',d:'50 rescates sumando todas las partidas',ico:'heart',col:'#9fe8a0',prog:t=>[t.rescued,50]},
   {id:'tres',n:'LOS TRES',d:'Jugá con FACU, JOSÉ y LAUTI',g:'3P',col:'#f3c969',prog:t=>[t.chars.filter(c=>HIST_CHARN().includes(c)).length,HIST_CHARN().length]},
   {id:'veterano',n:'10 PARTIDAS',d:'Jugá 10 partidas',g:'10',col:'#ddd',prog:t=>[t.games,10]}

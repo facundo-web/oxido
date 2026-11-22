@@ -39,6 +39,8 @@ function camZoomStep(){
   if(n>1)meta=Math.min(meta,Math.max(1,HC/(bot-top+34)));
   // abrir es más rápido que cerrar: que nadie quede afuera mientras se abre
   if(Math.abs(meta-ZOOM)>0.002)setZoom(ZOOM+(meta-ZOOM)*(meta<ZOOM?0.1:0.06));else if(ZOOM!==meta)setZoom(meta);
+  // de a 2, si ya no entran los dos (uno arriba de todo y otro en el piso), el zoom se abre de golpe: nadie queda cortado
+  if(n>1&&bot-top+6>VH&&meta<ZOOM)setZoom(meta);
   // al acercar (salida de una arena) la cámara corre lo justo para que nadie quede afuera por la derecha
   if(!lock){let right=-1e9;for(const p of players)if(!p.dead){const o=p.ride||p;right=Math.max(right,o.x+(o.w||10));}
     if(right>-1e9){const need=Math.min(right+18-VW,LEVEL_END-VW);if(need>camX)camX=need;}}

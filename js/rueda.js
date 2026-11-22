@@ -2,8 +2,9 @@
 // Óxido · Rueda de armas
 // La tecla de arma (S en el teclado · △ o L1 en el joystick · △ en la pantalla):
 //   tocar = la siguiente arma (como siempre) · mantener ~0,25 s = abre la rueda.
-// Con la rueda abierta el juego va en cámara lenta (no se pausa). Se apunta con las flechas o la palanca
-// (el jugador no se mueve mientras tanto) y se confirma al soltar. El avión es un gajo más: muestra lo que cuesta
+// Con la rueda abierta el juego va en cámara lenta (no se pausa). Flechas (y la cruz del joystick): cada toque pasa al
+// gajo siguiente (→ ↓) o al anterior (← ↑), en el orden de los números. Palanca del joystick o táctil: por ángulo, 6 zonas
+// parejas de 60° (palancaDe en input.js). El jugador no se mueve mientras tanto; se confirma al soltar. El avión es un gajo más: muestra lo que cuesta
 // y si se puede pedir. Teclas 1–6 eligen directo (6 = avión). De a 2, cada uno tiene su rueda; la cámara lenta es una.
 // Lo llama juego.js en cada cuadro real (ruedaFrame), antes de la cámara lenta, así responde aunque el juego vaya lento.
 // Para la pantalla táctil (publicar/web/tactil.js): window.OXIDO_RUEDA (al final).
@@ -24,7 +25,7 @@ function ruAplicar(p,it){
   if(!it)return;
   withP(p,()=>{
     if(it==='avion'){callAir();return;}
-    if(!ruOk(p,it)){SFX.hit();parts.push({k:'txt',s:p.ride?'EN EL GRILLO NO':'NO TENÉS '+WEAPONS[it].name,x:p.x+4,y:p.y-8,life:45,maxl:45});return;}
+    if(!ruOk(p,it)){SFX.hit();parts.push({k:'txt',s:p.ride?'EN LA CHATARRA NO':'NO TENÉS '+WEAPONS[it].name,x:p.x+4,y:p.y-8,life:45,maxl:45});return;}
     if(p.weapon!==it){p.weapon=it;SFX.swap();}
   });
 }
@@ -38,7 +39,8 @@ function ruedaFrame(){
     inSlot=p.slot;
     if(heldRaw('air')||heldRaw('swap')){
       r.t++;
-      if(r.t===RU_ABRE){r.open=true;r.sel=r.hov=p.ride?'avion':p.weapon;r.o=0;tone('triangle',520,660,0.06,0.025);}
+      if(r.t===RU_ABRE){r.open=true;r.sel=r.hov=p.ride?'avion':p.weapon;r.o=0;tone('triangle',520,660,0.06,0.025);
+        r.kSig=heldRaw('right')||heldRaw('down');r.kAnt=heldRaw('left')||heldRaw('up');} // lo que ya venía apretado no cuenta como toque
     }else{
       if(r.open)ruAplicar(p,r.sel);
       else if(r.t>0&&r.t<RU_ABRE&&!p.ride)withP(p,()=>{nextWeapon();SFX.swap();});
@@ -46,9 +48,18 @@ function ruedaFrame(){
     }
     if(r.open){
       r.o=Math.min(1,r.o+0.25);
-      const dx=(heldRaw('right')?1:0)-(heldRaw('left')?1:0),dy=(heldRaw('down')?1:0)-(heldRaw('up')?1:0);
-      const a=r.ext!==null?r.ext:dx||dy?Math.atan2(dy,dx):null;
+      // palanca táctil (ángulo que manda tactil.js) o palanca del joystick: por ángulo, 6 zonas de 60° parejas
+      const pj=r.ext===null?palancaDe(p.slot):null;
+      const a=r.ext!==null?r.ext:pj?Math.atan2(pj.y,pj.x):null;
       if(a!==null){const it=ruCerca(a);if(it!==r.hov&&ruOk(p,it))tone('square',800,900,0.025,0.02);r.hov=it;if(ruOk(p,it))r.sel=it;}
+      else{
+        // flechas (y la cruz del joystick): cada toque pasa al gajo siguiente (→ o ↓) o al anterior (← o ↑), en el orden
+        // de los números y dando la vuelta; salta los que no se pueden elegir
+        const sig=heldRaw('right')||heldRaw('down'),ant=heldRaw('left')||heldRaw('up');
+        const d=sig&&!r.kSig?1:ant&&!r.kAnt?-1:0;r.kSig=sig;r.kAnt=ant;
+        if(d){const i0=RU_ITEMS.indexOf(r.sel);for(let j=1;j<=RU_ITEMS.length;j++){const it=RU_ITEMS[(i0+d*j+RU_ITEMS.length*2)%RU_ITEMS.length];
+          if(ruOk(p,it)){r.sel=r.hov=it;tone('square',900,1000,0.03,0.025);break;}}}
+      }
     }
   }
   inSlot=k;
@@ -84,7 +95,7 @@ function ruDibujar(p){
   });
   // en el medio: el nombre de lo que está marcado (o por qué no se puede)
   const it=r.hov||r.sel,ok=ruOk(p,it);
-  let s=it==='avion'?(air?'AVIÓN EN VUELO':flares>0?'AVIÓN GRATIS':withP(p,airReady)?'AVIÓN · −1 ♥':'AVIÓN · NECESITÁS 2 ♥'):ok?WEAPONS[it].name:p.ride?'EN EL GRILLO NO':'NO TENÉS';
+  let s=it==='avion'?(air?'AVIÓN EN VUELO':flares>0?'AVIÓN GRATIS':withP(p,airReady)?'AVIÓN · −1 ♥':'AVIÓN · NECESITÁS 2 ♥'):ok?WEAPONS[it].name:p.ride?'EN LA CHATARRA NO':'NO TENÉS';
   txt(s,cx,cy-2.5,4,ok?'#ffe08a':'#ff8a7a','center',false);
   ctx.globalAlpha=1;
 }

@@ -85,6 +85,14 @@ function pollPad(){
   if(p2Pad>=0&&!p2found){padSt2={};if(state==='select')p2Pad=-1;}
   padPrev=st1;return st1;
 }
+// palanca analógica de un jugador (para la rueda de armas: elige por ángulo real, con 6 zonas parejas).
+// Devuelve {x,y} si la palanca está inclinada, o null. Jugador 2: su joystick; jugador 1: el que más se incline de los otros.
+function palancaDe(slot){
+  const list=navigator.getGamepads?navigator.getGamepads():[];let best=null,bm=0.35;
+  for(const gp of list){if(!gp||gp.connected===false)continue;if(slot===1?gp.index!==p2Pad:gp.index===p2Pad)continue;
+    const x=gp.axes[0]||0,y=gp.axes[1]||0,m=Math.hypot(x,y);if(m>bm){bm=m;best={x,y};}}
+  return best;
+}
 // se llama una vez por cuadro, después del primer update()
 function clearPressed(){for(const k in pressed)pressed[k]=false;for(const k in pressed2)pressed2[k]=false;}
 // mantener / tocar, según de quién sea el turno (inSlot)

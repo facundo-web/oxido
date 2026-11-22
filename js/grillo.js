@@ -4,14 +4,16 @@
 function mkMech(x){return{x,y:GROUND-28,w:22,h:28,vx:0,vy:0,face:1,onGround:true,plat:null,armor:12,max:12,ride:false,aim:0,anim:0,
   fireCd:0,canCd:0,shells:12,cool:0,inv:0,flash:0,dying:0,barrel:0,stepPh:0,announced:false,
   canAng:0,recoil:0,fuel:600,fmax:600,jet:false,jetLock:false};}
-// ================== vehículo: GRILLO (caminante de chatarra) ==================
-function enterMech(m){P.ride=m;m.ride=true;m.by=P;m.face=P.face;m.aim=0;m.inv=30;setBanner('¡A BORDO DEL GRILLO!',70);SFX.pick();}
+// ================== vehículo: CHATARRA (en el código, "grillo" / mech) ==================
+// nombre que ve el jugador: CHATARRA, y CHATARRA II / III después de una fusión (fusion.js)
+const mechNombre=m=>'CHATARRA'+['',' II',' III'][Math.max(0,Math.min(2,((m&&m.lvl)||1)-1))];
+function enterMech(m){P.ride=m;m.ride=true;m.by=P;m.face=P.face;m.aim=0;m.inv=30;setBanner('¡A BORDO DE LA '+mechNombre(m)+'!',70);SFX.pick();}
 function ejectMech(m,broken){
   m.ride=false;m.by=null;m.cool=45;m.jet=false;P.ride=null;
   P.x=clamp(m.x+7,camX+2,camX+VW-10);P.y=m.y-6;P.vy=-4.5;P.onGround=false;P.plat=null;P.crouch=false;
   P.inv=Math.max(P.inv,broken?100:40);SFX.jump();
 }
-function mechBreak(m){m.dying=75;ejectMech(m,true);setBanner('¡EL GRILLO NO DA MÁS!',80);SFX.alarm();}
+function mechBreak(m){m.dying=75;ejectMech(m,true);setBanner('¡LA CHATARRA NO DA MÁS!',80);SFX.alarm();}
 function mechFire(m){
   const a=m.aim+rand(-0.06,0.06),px=m.face>0?m.x+18:m.x+4,py=m.y+12;m.barrel^=1;
   const dx=Math.cos(a)*m.face,dy=Math.sin(a),off=m.barrel?-1.2:1.2,nx=-dy,ny=dx;
@@ -201,13 +203,13 @@ function drawMech(m){
   ctx.strokeStyle=C('#2a2a30');ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(4,4+by);ctx.lineTo(3,-4+by);ctx.stroke();
   ctx.fillStyle=(T>>4)%2?'#7dff9a':'#2a5a34';ctx.fillRect(2.4,-5+by,1.5,1.5);
   ctx.restore();
-  if(parked&&m.cool<=0&&players.some(p=>!p.ride&&!p.dead&&Math.abs(p.x+4-(m.x+11))<44))txt('↑ SUBIR AL GRILLO',m.x+11,m.y-10+Math.sin(T/8)*1.5,6,'#ffe08a','center');
+  if(parked&&m.cool<=0&&players.some(p=>!p.ride&&!p.dead&&Math.abs(p.x+4-(m.x+11))<44))txt('↑ SUBIR A LA CHATARRA',m.x+11,m.y-10+Math.sin(T/8)*1.5,6,'#ffe08a','center');
 }
 // HUD del Grillo (arriba a la derecha) mientras vas a bordo
 function drawMechHUD(m){
   const bx=W-56,bw=50,f=m.fuel/m.fmax;
   const rs=P?P.slot:0,ar=RC_ver('ar'+rs,m.armor),gj=RC_salto('gri'+rs); // recolectar.js: lo que se junta va a la cabina
-  txt('GRILLO',W-6,4+gj,5,RC_luz('gri'+rs)?'#fff6c8':'#f3c969','right');RC_ancla('gri'+rs,bx+bw/2,11);
+  txt(mechNombre(m),W-6,4+gj,5,RC_luz('gri'+rs)?'#fff6c8':'#f3c969','right');RC_ancla('gri'+rs,bx+bw/2,11);
   // blindaje
   ctx.fillStyle='#120c18';ctx.fillRect(bx-1,10,bw+2,6);ctx.fillStyle='#4a2730';ctx.fillRect(bx,11,bw,4);
   ctx.fillStyle=m.armor<=m.max*0.3?((T>>3)%2?'#ff5a3c':'#a02a1a'):'#e8c040';ctx.fillRect(bx,11,bw*Math.max(0,ar)/m.max,4);

@@ -66,6 +66,8 @@ function hurtPlayer(n=1){
 }
 // k: el premio levantado (k.amt: munición que soltó un soldado armado, armados.js)
 function collect(kind,x,y,k){
+  if(k&&typeof ecoConvertir==='function'){ecoConvertir(k);kind=k.kind;} // economia.js: en NORMAL y DIFÍCIL el premio puede cambiar
+  if(typeof ECO!=='undefined')ECO.premios[kind]=(ECO.premios[kind]||0)+1;
   const rcAntes=RC_foto(),mun=k&&k.amt; // recolectar.js: lo que tenía antes, para que cada cosa vuele a su lugar del HUD
   SFX.pick();
   if(!mun){addScore(50,x+5,y);RC_soltar(50,x+5,y+5,1);} // los puntos también saltan en una chapita
@@ -81,6 +83,8 @@ function collect(kind,x,y,k){
   else if(kind==='E'){P.shield=3;setBanner('ESCUDO · AGUANTA 3 GOLPES',70);}
   else if(kind==='V'){setBanner(gainLife()?'¡VIDA EXTRA!':'VIDAS AL MÁXIMO · +1000',80);SFX.medal();}
   else if(kind==='A'){flares++;setBanner('AVIÓN GRATIS · '+airPide(),70);}
+  // corazón suelto (economia.js): +1 ♥, o un cuarto de blindaje si vas en el Grillo
+  else if(kind==='C'){if(P.ride){P.ride.armor=Math.min(P.ride.max,P.ride.armor+Math.ceil(P.ride.max/4));setBanner('BLINDAJE +',40);}else{P.hp=Math.min(maxHp,P.hp+1);setBanner('+1 ♥',40);}}
   else if(P.ride){P.ride.armor=P.ride.max;setBanner('BLINDAJE REPARADO',60);}
   else{P.hp=maxHp;setBanner('SALUD AL MÁXIMO',60);}
   RC_junto(kind,x,y,rcAntes);
@@ -201,6 +205,8 @@ function drawPickup(k){
   if(k.kind==='V'){ctx.fillStyle='#ff4d4d';ctx.fillRect(x+2,y+2,2,1);ctx.fillRect(x+5,y+2,2,1);ctx.fillRect(x+1,y+3,7,2);ctx.fillRect(x+2,y+5,5,1);ctx.fillRect(x+3,y+6,3,1);ctx.fillRect(x+4,y+7,1,1);
     if((T>>3)%2){ctx.fillStyle='#fff';ctx.fillRect(x+8,y+1,1,1);}}
   else if(k.kind==='+'){ctx.fillStyle='#d93a2b';ctx.fillRect(x+4,y+2,2,6);ctx.fillRect(x+2,y+4,6,2);}
+  else if(k.kind==='C'){ctx.fillStyle='#ff5a78';ctx.fillRect(x+2,y+3,2,1);ctx.fillRect(x+6,y+3,2,1);ctx.fillRect(x+1,y+4,8,2);ctx.fillRect(x+2,y+6,6,1);ctx.fillRect(x+3,y+7,4,1);ctx.fillRect(x+4,y+8,2,1);
+    ctx.fillStyle='#fff';ctx.fillRect(x+2,y+4,1,1);}
   else txt(k.kind,x+5,y+1.5,7,'#fff','center',false);
 }
 function drawCrate(c){

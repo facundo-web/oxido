@@ -150,7 +150,7 @@ function drawHUD2(){
     return;
   }
   if(p.ride){const m=p.ride,ar=RC_ver('ar'+p.slot,m.armor),gj=RC_salto('gri'+p.slot);
-    txt('GRILLO',x0+4,y2+gj,5,RC_luz('gri'+p.slot)?'#fff6c8':'#f3c969','left',false);RC_ancla('gri'+p.slot,x0+13,y2+3);
+    const nm=mechNombre(m);txt(nm,x0+4,y2+gj,Math.min(5,5*24/hudTW(nm,5)),RC_luz('gri'+p.slot)?'#fff6c8':'#f3c969','left',false);RC_ancla('gri'+p.slot,x0+13,y2+3);
     ctx.fillStyle='#120c18';ctx.fillRect(x0+29,y2+0.5,46,5);ctx.fillStyle='#4a2730';ctx.fillRect(x0+30,y2+1.5,44,3);
     ctx.fillStyle=m.armor<=m.max*0.3?'#ff5a3c':'#e8c040';ctx.fillRect(x0+30,y2+1.5,44*Math.max(0,ar)/m.max,3);
     return;}
@@ -174,14 +174,14 @@ function drawAirChip(right,y){
   return px;
 }
 function dim(a){ctx.fillStyle=`rgba(12,8,18,${a})`;cubrir();}
-const CONTROLS_L_KB=[['← →','mover'],['↑','apuntar arriba sin frenar'],['↓','agacharse · aire: abajo'],['Z','disparar'],['X · ESPACIO','saltar · Grillo: volar'],['C','granada / cañón'],['↓ + X','bajar del Grillo']];
+const CONTROLS_L_KB=[['← →','mover'],['↑','apuntar arriba sin frenar'],['↓','agacharse · aire: abajo'],['Z','disparar'],['X · ESPACIO','saltar · Chatarra: volar'],['C','granada / cañón'],['↓ + X','bajar de la Chatarra']];
 const CONTROLS_R_KB=[['S · TAB','cambiar arma'],['mantenelo','rueda de armas y avión'],['1 … 6','arma directa · 6 avión'],['ESC/⌫ · P','pausa · volver'],['Q','salir (en pausa)'],['M · N','sonido · música'],['F','pantalla completa']];
 // la misma tabla con los botones del joystick que se tocó último (btn en input.js)
 function ctlRows(){const b=a=>btn(a);
-  return[[['← →','mover'],['↑','apuntar arriba sin frenar'],['↓','agacharse · aire: abajo'],[b('shoot')+' '+b('r1')+' '+b('r2'),'disparar'],[b('jump'),'saltar · Grillo: volar'],[b('bomb')+' '+b('l2'),'granada / cañón'],['↓ + '+b('jump'),'bajar del Grillo']],
+  return[[['← →','mover'],['↑','apuntar arriba sin frenar'],['↓','agacharse · aire: abajo'],[b('shoot')+' '+b('r1')+' '+b('r2'),'disparar'],[b('jump'),'saltar · Chatarra: volar'],[b('bomb')+' '+b('l2'),'granada / cañón'],['↓ + '+b('jump'),'bajar de la Chatarra']],
     [[b('swap')+' tocar','cambiar arma'],[b('swap')+' mantener','rueda de armas y avión'],[b('air'),'igual que '+b('swap')],[b('opt')+' · '+b('back'),'pausa · volver'],[b('quit')+' dos veces','salir (en pausa)'],['teclado M · N','sonido · música'],['teclado F','pantalla completa']]];}
-const CONTROLS_L_TOUCH=[['palanca','mover · apuntar'],['palanca ↑','apuntar arriba sin frenar'],['palanca ↓','agacharse · aire: abajo'],['□','disparar (mantener)'],['✕','saltar · Grillo: volar'],['○','granada / cañón']];
-const CONTROLS_R_TOUCH=[['△ tocar','cambiar arma'],['△ mantener','rueda de armas y avión'],['↓ + ✕','bajar del Grillo'],['II','pausa']];
+const CONTROLS_L_TOUCH=[['palanca','mover · apuntar'],['palanca ↑','apuntar arriba sin frenar'],['palanca ↓','agacharse · aire: abajo'],['□','disparar (mantener)'],['✕','saltar · Chatarra: volar'],['○','granada / cañón']];
+const CONTROLS_R_TOUCH=[['△ tocar','cambiar arma'],['△ mantener','rueda de armas y avión'],['↓ + ✕','bajar de la Chatarra'],['II','pausa']];
 // franja libre de los controles en pantalla (publicar/web/tactil.js): {x0,x1,y0} en coordenadas del juego.
 // Debajo de y0 la palanca ocupa x<x0 y el rombo x>x1; arriba de y0 está todo libre. null si no hay controles.
 const tactilLibre=()=>onTouch()&&window.OXIDO_TACTIL_LIBRE||null;

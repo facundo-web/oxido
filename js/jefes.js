@@ -157,9 +157,14 @@ function drawBoss2(b){
 function arenaPlats(A){return platforms.filter(pl=>pl.x+pl.w>A+10&&pl.x<A+W-10&&pl.y<GROUND-8);}
 // Nivel donde está parado el jugador: la plataforma, null si es el suelo, undefined si está en el aire.
 function playerLvl(){const o=P.ride||P;return o.onGround?(o.plat||null):undefined;}
-// Premio por cada jefe derrotado: +1 vida y salud llena, con cartel y sonido.
+// Premio por cada jefe derrotado: +1 vida y salud llena (FÁCIL), o +2 ♥ (NORMAL y DIFÍCIL), con cartel y sonido.
 function bossReward(b){
   const rcV=lives,rcH=players.map(p=>p.hp); // recolectar.js: la vida y la salud vuelan al HUD
+  // NORMAL y DIFÍCIL (economia.js): +2 ♥ hasta el máximo, sin vida extra
+  if(typeof ecoGeneroso==='function'&&!ecoGeneroso()){const o=P.ride||P;
+    eachPlayer(p=>{if(!p.dead)p.hp=Math.min(maxHp,p.hp+2);});
+    toast('¡+2 ♥!','Venciste a '+b.name,'#7dff9a');parts.push({k:'txt',s:'+2 ♥',x:o.x+o.w/2,y:o.y-10,life:90,maxl:90});
+    later(250,SFX.medal);RC_jefe(rcV,rcH,o);return;}
   const got=gainLife(),o=P.ride||P;let heal=false;
   eachPlayer(p=>{if(!p.dead){p.hp=maxHp;heal=true;}}); // salud llena para todos los que siguen vivos
   toast(got?'¡+1 VIDA!':'¡+1000!','Venciste a '+b.name+(heal?' · salud llena':''),'#7dff9a');

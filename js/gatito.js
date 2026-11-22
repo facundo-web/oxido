@@ -68,7 +68,7 @@ function CAT_meow(kind){
   if(kind==='hurt'){tone('sawtooth',1300,620,0.14,0.03);return;}
   tone('triangle',620,1050,0.08,0.03);later(70,()=>tone('triangle',1050,700,0.16,0.03));
 }
-function CAT_scratchSfx(big){noise(0.05,big?0.07:0.05,5200);later(35,()=>noise(0.04,big?0.05:0.035,4200));}
+function CAT_scratchSfx(big){noise(0.05,big?0.045:0.032,5200);later(35,()=>noise(0.04,big?0.032:0.022,4200));} // más bajos: encima va el zumbido del remolino (remolino.js)
 // el gato llega por tierra: nada que vuele, y solo lo que pisa el suelo o una plataforma a su alcance
 function CAT_reach(e,g){
   if(!e||e.type==='drone'||e.air)return false;
@@ -466,15 +466,20 @@ function CAT_drawCage(c){
 }
 function CAT_drawMarks(){
   for(const m of gatoMarcas){
-    const age=m.max-m.life,grow=clamp(age/4,0,1),a=clamp(m.life/(m.max*0.6),0,1);
-    const ca=Math.cos(m.a),sa=Math.sin(m.a),nx=-sa,ny=ca,l=m.len*grow;
+    // tres cortes "de dibujito": gruesos, con contorno de tinta; aparecen de golpe y se van achicándose
+    const age=m.max-m.life,grow=clamp(age/3,0,1),shr=clamp(m.life/(m.max*0.45),0,1),a=clamp(m.life/(m.max*0.3),0,1);
+    const ca=Math.cos(m.a),sa=Math.sin(m.a),nx=-sa,ny=ca,l=m.len*grow*shr,lw=m.lw+0.9;
+    ctx.lineCap='round';
     for(let i=-1;i<=1;i++){
-      const ox=m.x+nx*i*m.lw*2.2-ca*m.len/2,oy=m.y+ny*i*m.lw*2.2-sa*m.len/2;
-      ctx.strokeStyle=m.oro?`rgba(255,210,80,${a*0.8})`:`rgba(255,120,160,${a*0.8})`;ctx.lineWidth=m.lw+0.8;
+      const ox=m.x+nx*i*lw*2.1-ca*l/2,oy=m.y+ny*i*lw*2.1-sa*l/2;
+      ctx.strokeStyle=`rgba(23,20,31,${a*0.9})`;ctx.lineWidth=lw+1.4;
       ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+ca*l,oy+sa*l);ctx.stroke();
-      ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=m.lw*0.6;
+      ctx.strokeStyle=m.oro?`rgba(255,210,80,${a})`:`rgba(255,120,160,${a})`;ctx.lineWidth=lw;
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+ca*l,oy+sa*l);ctx.stroke();
+      ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=lw*0.4;
       ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+ca*l,oy+sa*l);ctx.stroke();
     }
+    ctx.lineCap='butt';
   }
 }
 ON_DRAW.push(function(){
@@ -482,10 +487,13 @@ ON_DRAW.push(function(){
   CAT_drawMarks();
   for(const f of gatoComida)CAT_drawComida(f);
   const g=gato;if(!g)return;
-  if(g.st==='angel'||g.st==='ascend'){CAT_drawAngel(g);return;}
+  if(g.st==='angel'||g.st==='ascend'){if(!(typeof REM_angel==='function'&&REM_angel(g)))CAT_drawAngel(g);return;}
+  // arañando: en vez del gato, el remolino (remolino.js)
+  if(typeof REM_dibuja==='function'&&REM_dibuja(g)){if(g.st!=='free')CAT_drawBar(g);return;}
   // rastro de velocidad mientras araña
   g.trail.forEach((p,i)=>CAT_drawPose(CAT_pose(g),p.x,p.y,g.face,0.15+i*0.08));
   if(!(g.inv>0&&(g.inv>>2)%2))CAT_drawPose(CAT_pose(g),g.x,g.y,g.face);
+  if(typeof REM_mareo==='function')REM_mareo(g);
   if(g.st==='scratch'&&(T>>1)%2){ctx.fillStyle='rgba(255,255,255,0.7)';const sx=g.face>0?g.x-3:g.x+g.w+1;ctx.fillRect(q(sx),q(g.y+2),2,0.6);ctx.fillRect(q(sx-1),q(g.y+5),3,0.6);}
   if(g.st!=='free')CAT_drawBar(g);
 });

@@ -11,7 +11,7 @@ const WEAPONS={
 const WORDER=['pistol','heavy','shotgun','flame','rocket'];
 const WLETTER={pistol:'P',heavy:'H',shotgun:'S',flame:'F',rocket:'R'};
 const DROPMAP={H:'heavy',S:'shotgun',F:'flame',R:'rocket'};
-const PICKCOL={H:'#3c7a3a',S:'#7a4a2a',F:'#b8401e',R:'#3a5a8a',G:'#8a6a2a',E:'#2a8a9a','+':'#e8e2d6',V:'#d9a43a',A:'#3a6a9a'};
+const PICKCOL={H:'#3c7a3a',S:'#7a4a2a',F:'#b8401e',R:'#3a5a8a',G:'#8a6a2a',E:'#2a8a9a','+':'#e8e2d6',V:'#d9a43a',A:'#3a6a9a',C:'#3a2030'};
 // ================== disparo del jugador ==================
 // puntería: cada proyectil del jugador suma un disparo; si pega en un enemigo (combate.js: tiroPega) suma un acierto
 let tirosDisp=0,tirosPeg=0;
