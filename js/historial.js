@@ -304,7 +304,7 @@ const HIST_back=()=>onTouch()?'○':onPad()?btn('bomb'):'ESC';
 function HIST_wrap(s,size,maxW){const out=[];let line='';
   for(const w of s.split(' ')){const t=line?line+' '+w:w;if(line&&HIST_tw(t,size)>maxW){out.push(line);line=w;}else line=t;}
   if(line)out.push(line);return out;}
-function HIST_dim(a){ctx.fillStyle=`rgba(12,8,18,${a})`;ctx.fillRect(0,0,W,H);}
+function HIST_dim(a){ctx.fillStyle=`rgba(12,8,18,${a})`;cubrir();}
 function HIST_date(ms){if(!ms)return'—';const d=new Date(ms);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getFullYear()%100).padStart(2,'0');}
 function HIST_time(secs){const h=Math.floor(secs/3600),m=Math.floor(secs%3600/60);return h?h+' h '+String(m).padStart(2,'0')+' min':m?m+' min':secs+' s';}
 const HIST_where=r=>r.loop==null&&r.level==null?'—':'V'+(r.loop||1)+' · M'+((r.level||0)+1);

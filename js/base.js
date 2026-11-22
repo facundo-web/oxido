@@ -10,13 +10,21 @@ const ON_EVENT=[];
 function emit(type,data){for(const f of ON_EVENT){try{f(type,data||{});}catch(e){console.error('evento '+type,e);}}}
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 let S=4,SQ=4; // SQ: escala para redondear a píxel (con zoom, S×ZOOM mientras se dibuja el mundo)
+// HC: alto del lienzo en unidades del juego. Es H (16:9), salvo en pantallas más altas (Mac 16:10) con TAMAÑO GRANDE:
+// ahí el lienzo llena el alto (altoMax en camara.js) y se ve un poco más del mundo, sin barras negras.
+let HC=H;
 function fit(){
-  const k=Math.min(innerWidth/W,innerHeight/H);
-  const cw=Math.floor(W*k),ch=Math.floor(H*k);
+  const hmax=typeof altoMax==='function'?altoMax():H,alto=innerHeight*W>innerWidth*H;
+  const k=hmax>H&&alto?innerWidth/W:Math.min(innerWidth/W,innerHeight/H);
+  const cw=Math.floor(W*k),ch=hmax>H&&alto?Math.min(Math.floor(innerHeight),Math.floor(hmax*k)):Math.floor(H*k);
   cv.style.width=cw+'px';cv.style.height=ch+'px';
   const dpr=Math.min(2,window.devicePixelRatio||1);
   cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);S=cv.width/W;SQ=S;
+  HC=ch>Math.floor(H*k)?ch*W/cw:H;
+  if(typeof setZoom==='function'){setZoom(ZOOM);camY=clamp(camY,0,H-VH);}
 }
+// pinta todo el lienzo con el color actual, sin importar la escala (oscurecer en la pausa, destellos)
+function cubrir(){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillRect(0,0,cv.width,cv.height);ctx.restore();}
 addEventListener('resize',fit);fit();
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}

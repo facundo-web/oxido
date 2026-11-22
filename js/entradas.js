@@ -301,7 +301,7 @@ function EN_drawMarcas(){
 }
 // destello de pantalla de la foto (encima de todo, cortito y suave)
 function EN_drawHud(){
-  for(const f of EN_fx)if(f.k==='flash'&&f.t<6){ctx.fillStyle=`rgba(255,255,255,${0.28*(1-f.t/6)})`;ctx.fillRect(0,0,W,H);}
+  for(const f of EN_fx)if(f.k==='flash'&&f.t<6){ctx.fillStyle=`rgba(255,255,255,${0.28*(1-f.t/6)})`;cubrir();}
 }
 ON_STEP.push(()=>{
   EN_updBalls();

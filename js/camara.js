@@ -9,16 +9,22 @@
 const ZOOM_GRANDE=1.35;
 let tamano=store.get('oxido-tamano')==='normal'?'normal':'grande';
 let ZOOM=1,VW=W,VH=H,camY=0;
-function setZoom(z){ZOOM=z;VW=W/z;VH=H/z;}
+// VH nunca pasa de H: si el lienzo es más alto que el mundo con este zoom (arena de jefe en 16:10), quedan barras (camOY)
+function setZoom(z){ZOOM=z;VW=W/z;VH=Math.min(H,HC/z);}
+// en Mac 16:10 con GRANDE el lienzo llena el alto: hasta H×ZOOM_GRANDE (ahí se ve el mundo entero de alto).
+// En pantallas táctiles no: los controles de tactil.js se acomodan a un juego de 16:9.
+function altoMax(){return tamano==='grande'&&!(navigator.maxTouchPoints>0)?Math.floor(H*ZOOM_GRANDE):H;}
+// si el mundo no llena el alto del lienzo (zoom abierto en una arena, o los menús), se centra con barras: este es el corrimiento
+const camOY=()=>Math.max(0,(HC-H*ZOOM)/2);
 const zoomBase=()=>tamano==='grande'?ZOOM_GRANDE:1;
 // de coordenadas del mundo a coordenadas del HUD (para lo que vuela al marcador)
-const HX=x=>(x-camX)*ZOOM,HY=y=>(y-camY)*ZOOM;
+const HX=x=>(x-camX)*ZOOM,HY=y=>(y-camY)*ZOOM+camOY();
 // borde de arriba "en reposo": el piso queda abajo con un poquito de tierra; cada misión puede pedir ver más arriba (L.camTop)
 function camReposo(){const r=GROUND+6-VH;return clamp(L&&L.camTop!==undefined?Math.min(r,L.camTop):r,0,H-VH);}
 // lo más abajo que puede ir la cámara sin cortarle los pies a quien está en el piso
 const camPisoMin=()=>clamp(GROUND+3-VH,0,H-VH);
 function setTamano(t,inst){
-  tamano=t==='normal'?'normal':'grande';store.set('oxido-tamano',tamano);
+  tamano=t==='normal'?'normal':'grande';store.set('oxido-tamano',tamano);fit();
   if(inst||state!=='play'){setZoom(state==='play'&&lock&&(lock.a.boss||lock.a.mini)?1:zoomBase());camY=state==='play'?camReposo():0;}
 }
 // la cámara se ajusta después de que se mueven los jugadores (la llama updCam en juego.js)
@@ -30,7 +36,7 @@ function camZoomStep(){
   const arenaJefe=lock&&(lock.a.boss||lock.a.mini);
   let meta=arenaJefe?1:zoomBase();
   // de a 2, si uno está muy arriba (jetpack, plataforma alta) y el otro abajo, el zoom se abre lo justo para que entren los dos
-  if(n>1)meta=Math.min(meta,Math.max(1,H/(bot-top+34)));
+  if(n>1)meta=Math.min(meta,Math.max(1,HC/(bot-top+34)));
   // abrir es más rápido que cerrar: que nadie quede afuera mientras se abre
   if(Math.abs(meta-ZOOM)>0.002)setZoom(ZOOM+(meta-ZOOM)*(meta<ZOOM?0.1:0.06));else if(ZOOM!==meta)setZoom(meta);
   // al acercar (salida de una arena) la cámara corre lo justo para que nadie quede afuera por la derecha
@@ -53,3 +59,4 @@ function camZoomStep(){
 function xLibre(x,z){const lb=typeof onTouch==='function'&&onTouch()&&window.OXIDO_TACTIL_LIBRE;return lb?Math.max(x,(lb.x0+6)/(z||ZOOM)):x;}
 // cada misión arranca con el zoom elegido, sin transición
 ON_START.push(()=>{setZoom(zoomBase());camY=camReposo();});
+fit(); // ya se sabe el tamaño elegido: el lienzo puede llenar el alto

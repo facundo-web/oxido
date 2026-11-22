@@ -127,14 +127,14 @@ function drawHUD(){
     else{ctx.fillStyle=t.col;circle(W/2-67,y+11,4);}
     txt(t.title,W/2-56,y+3,6,t.col,'left',false);txt(t.sub,W/2-56,y+12,5,'#ddd','left',false);ctx.globalAlpha=1;}
   const flags=[muted?'SONIDO: NO (M)':null,!muted&&!mus.on?'MÚSICA: NO (N)':null].filter(Boolean);
-  if(flags.length)txt(flags[0],6,H-10,5,'#ccc','left');
+  if(flags.length)txt(flags[0],6,HC-10,5,'#ccc','left');
   if(twoP())withP(players[1],drawHUD2);
   for(const f of ON_HUD)f();
 }
 // HUD compacto del jugador 2: abajo a la derecha, sobre el piso (los avisos salen abajo al centro).
 // Fila 1: número, cabecita, corazones y escudo. Fila 2: arma y munición, granadas (o el Grillo).
 function drawHUD2(){
-  const p=P,x0=W-80,y0=H-23,col=P_COL[1];
+  const p=P,x0=W-80,y0=HC-23,col=P_COL[1];
   ctx.fillStyle='rgba(18,12,24,0.72)';ctx.fillRect(x0,y0,78,21);ctx.fillStyle=col;ctx.fillRect(x0,y0,78,1);
   ctx.fillStyle=col;ctx.fillRect(x0+3,y0+3,6,7);txt('2',x0+6,y0+3.5,5,'#120c18','center',false);
   if(p.dead){ctx.globalAlpha=0.4;}hudHead(x0+11,y0+3);ctx.globalAlpha=1;
@@ -169,7 +169,7 @@ function drawAirChip(right,y){
   const px=kx-14;ctx.globalAlpha=air?((T>>3)%2?1:0.4):ready?1:0.45;hudPix(HUD_ICONS.plane,px,y+fj);ctx.globalAlpha=1;RC_ancla('fl',px+6,y+3);
   return px;
 }
-function dim(a){ctx.fillStyle=`rgba(12,8,18,${a})`;ctx.fillRect(0,0,W,H);}
+function dim(a){ctx.fillStyle=`rgba(12,8,18,${a})`;cubrir();}
 const CONTROLS_L_KB=[['← →','mover'],['↑','apuntar arriba · subir'],['↓','agacharse'],['Z','disparar'],['X','saltar'],['X en el aire','volar con el Grillo'],['C','granada / cañón']];
 const CONTROLS_R_KB=[['S tocar','cambiar arma'],['S mantener','avión (gratis o −1 ♥)'],['↓ + X','bajar del Grillo'],['ESC · P','pausa · volver'],['Q','salir (en pausa)'],['M · N','sonido · música'],['F','pantalla completa']];
 // la misma tabla con los botones del joystick que se tocó último (btn en input.js)

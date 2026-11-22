@@ -218,20 +218,26 @@ function renderMain(){
   if(menu&&L!==LEVELS[0]){L=LEVELS[0];platforms=L.platforms;LEVEL_END=L.end;}
   if(menu&&(ZOOM!==1||camY)){setZoom(1);camY=0;} // los menús se ven como siempre
   // fondo, mundo y efectos van con zoom (camara.js); el HUD, sin zoom
-  SQ=S*ZOOM;ctx.setTransform(SQ,0,0,SQ,0,0);ctx.translate(0,-q(camY));
+  // si el mundo no llena el alto (camOY), barras negras arriba y abajo y el mundo recortado entre ellas
+  const oy=Math.round(camOY()*S);
+  if(oy>0){ctx.fillStyle='#000';cubrir();ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.beginPath();ctx.rect(0,oy,cv.width,cv.height-2*oy);ctx.clip();}
+  SQ=S*ZOOM;ctx.setTransform(SQ,0,0,SQ,0,oy);ctx.translate(0,-q(camY));
   if(L.drawBG)L.drawBG();else if(L.theme==='port')drawBGPort();else drawBGDusk();
   ctx.save();ctx.translate(q(-camX+sx),q(sy));
   if(menu){drawGround();for(const d of L.decor)if(d.x>camX-60&&d.x<camX+VW+10)drawDecor(d);drawPlatforms();}
   else drawWorld();
   ctx.restore();
   if(L.drawFx)L.drawFx();else if(L.theme==='port')drawRain();
+  if(oy>0)ctx.restore();
+  // el HUD del juego va pegado arriba y abajo del lienzo; los menús y pantallas, en un marco de 320×180 centrado
   SQ=S;ctx.setTransform(S,0,0,S,0,0);
-  if(hs){histDraw();return;}
-  if(state==='title'){drawTitle();return;}
-  if(state==='select'){drawSelect();return;}
+  const marco=()=>ctx.setTransform(S,0,0,S,0,Math.round((HC-H)/2*S));
+  if(hs){marco();histDraw();return;}
+  if(state==='title'){marco();drawTitle();return;}
+  if(state==='select'){marco();drawSelect();return;}
   drawHUD();
-  if(state==='pause')drawPause();
-  if(state==='over'||state==='win')drawEnd();
+  if(state==='pause'){marco();drawPause();}
+  if(state==='over'||state==='win'){marco();drawEnd();}
 }
 // pausa: los botones salen del último control que se tocó (btn en input.js)
 function drawPause(){

@@ -143,7 +143,8 @@ const padNotes=[],padNoteSeen=new Set(),PAD_NOTE_T=330;
 function drawPadNote(){
   if(!padNotes.length)return;const n=padNotes[0];n.t++;
   if(n.t>PAD_NOTE_T){padNotes.shift();return;}
-  const a=Math.min(1,n.t/12,(PAD_NOTE_T-n.t+1)/20),w=150,x=Math.round(W/2-w/2),y=H-27;
+  ctx.setTransform(S,0,0,S,0,0); // pegado abajo del lienzo (en 16:10 con GRANDE el lienzo es más alto que 180)
+  const a=Math.min(1,n.t/12,(PAD_NOTE_T-n.t+1)/20),w=150,x=Math.round(W/2-w/2),y=HC-27;
   ctx.globalAlpha=a;ctx.fillStyle='rgba(18,12,24,0.92)';ctx.fillRect(x,y,w,19);ctx.fillStyle='#ff9a3c';ctx.fillRect(x,y,w,1);
   txt('ESTE CONTROL NO SE RECONOCE',W/2,y+3,6,'#ffb36b','center',false);
   txt('los botones pueden estar cambiados',W/2,y+11,5,'#ddd','center',false);
