@@ -1,5 +1,5 @@
 'use strict';
-// Óxido · Estilo "dibujito viejo" (ESTILO: DIBUJITO / LIMPIO en el menú del título, guardado en oxido-estilo)
+// Óxido · Estilo "dibujito viejo": SIEMPRE activo (ya no hay opción; el viejo oxido-estilo se borra al cargar)
 // El lenguaje general de los dibujitos de los años 30 pasado a Óxido, encima del pixel art de siempre. No copia ningún
 // juego: ni personajes, ni tipografía, ni carteles, ni paleta. Todo es sutil: el juego se tiene que leer igual.
 // · Película (DIB_pelicula, la llama renderMain entre el mundo y el HUD): grano que cambia cada 3 cuadros, viñeta,
@@ -8,13 +8,14 @@
 //   cada 5 cuadros detrás de jugadores, jefes y soldados (en táctil, solo jugadores y jefes).
 // · Rebote: el jugador se estira al saltar y caer y se aplasta al aterrizar; los soldados se hamacan al caminar,
 //   todos al mismo compás.
-// · Cartel de jefe: cuando entra un jefe (chico o villano), su nombre en una chapa que cae rebotando (en los dos estilos).
-let estilo=store.get('oxido-estilo')==='limpio'?'limpio':'dibujito';
-const dibOn=()=>estilo==='dibujito';
-const estiloTxt=()=>'ESTILO: '+(dibOn()?'DIBUJITO':'LIMPIO');
-function setEstilo(e){estilo=e==='limpio'?'limpio':'dibujito';store.set('oxido-estilo',estilo);}
-// celulares y tablets: grano más liviano y sin tinta en los soldados
-const DIB_LIVIANO=navigator.maxTouchPoints>0;
+// · Cartel de jefe: cuando entra un jefe (chico o villano), su nombre en una chapa que cae rebotando.
+// · Rendimiento: en celulares y tablets, o si el juego va lento (DIB_lento), el grano es más liviano y los soldados van sin tinta.
+try{localStorage.removeItem('oxido-estilo');}catch(e){} // quien había guardado LIMPIO ve el dibujito igual
+// celulares y tablets: grano más liviano y sin tinta en los soldados. Además, si el juego va lento (cuadros de más de
+// 22 ms en promedio), lo mismo en cualquier aparato: el estilo no se apaga, se aliviana.
+const DIB_TACTIL=navigator.maxTouchPoints>0;
+let DIB_lento=false,DIB_tAnt=0,DIB_dtProm=16;
+const DIB_LIVIANO_=()=>DIB_TACTIL||DIB_lento;
 let DIB_f=0;
 // ---------- película ----------
 const DIB_GRANO=[11,23,37].map(seed=>{
@@ -27,15 +28,15 @@ const DIB_VIN=(()=>{const c=document.createElement('canvas');c.width=128;c.heigh
   g.fillStyle=v;g.fillRect(0,0,128,96);return c;})();
 let DIB_raya=null,DIB_brillo=0;
 function DIB_pelicula(){
-  if(!dibOn())return;
   DIB_f++;
+  const ahora=performance.now();if(DIB_tAnt){const dt=Math.min(100,ahora-DIB_tAnt);DIB_dtProm+=(dt-DIB_dtProm)*0.02;if(DIB_dtProm>22)DIB_lento=true;}DIB_tAnt=ahora;
   const cw=cv.width,ch=cv.height,u=cw/W; // u = píxeles de pantalla por unidad del juego
   ctx.save();ctx.setTransform(1,0,0,1,0,0);
   // viñeta (suavizada: es un degradé chico estirado)
   ctx.imageSmoothingEnabled=true;ctx.drawImage(DIB_VIN,0,0,cw,ch);ctx.imageSmoothingEnabled=false;
   // grano: cambia cada 3 cuadros y se corre un poco, así no se ve como una textura quieta
   const gi=Math.floor(DIB_f/3),gr=DIB_GRANO[gi%3],ox=(gi*37)%7,oy=(gi*53)%5;
-  ctx.globalAlpha=DIB_LIVIANO?0.07:0.11;ctx.drawImage(gr,ox,oy,gr.width-8,gr.height-6,0,0,cw,ch*(gr.height-6)/(HC*2));
+  ctx.globalAlpha=DIB_LIVIANO_()?0.07:0.11;ctx.drawImage(gr,ox,oy,gr.width-8,gr.height-6,0,0,cw,ch*(gr.height-6)/(HC*2));
   // parpadeo de brillo (muy leve)
   if(DIB_f%2===0)DIB_brillo=Math.random();
   ctx.globalAlpha=1;ctx.fillStyle=DIB_brillo<0.5?`rgba(255,238,205,${0.025*DIB_brillo})`:`rgba(12,6,2,${0.035*(DIB_brillo-0.5)})`;ctx.fillRect(0,0,cw,ch);
@@ -50,7 +51,7 @@ function DIB_pelicula(){
 // ---------- tinta que tiembla ----------
 const DIB_DIRS=[[1,0],[0,1],[-1,1],[1,1],[-1,0],[1,-1],[0,-1]];
 function DIB_tinta(fuerte){
-  if(!dibOn()||(DIB_LIVIANO&&fuerte===0))return;
+  if(DIB_LIVIANO_()&&fuerte===0)return;
   const d=DIB_DIRS[Math.floor(T/5)%DIB_DIRS.length],k=Math.max(1,Math.round(SQ*(fuerte===2?0.5:0.35)));
   ctx.shadowColor='rgba(18,12,24,0.85)';ctx.shadowBlur=0;ctx.shadowOffsetX=d[0]*k;ctx.shadowOffsetY=d[1]*k;
 }
@@ -65,7 +66,7 @@ function DIB_estira(p){
 }
 const DIB_drawPlayer0=drawPlayer;
 drawPlayer=function(){
-  const p=P;if(!dibOn()||p.dead||p.ride)return DIB_drawPlayer0();
+  const p=P;if(p.dead||p.ride)return DIB_drawPlayer0();
   const s=DIB_estira(p);if(Math.abs(s)<0.01)return DIB_drawPlayer0();
   const fx=p.x+4,fy=p.y+18;ctx.save();ctx.translate(fx,fy);ctx.scale(1-s*0.5,1+s);ctx.translate(-fx,-fy);
   try{DIB_drawPlayer0();}finally{ctx.restore();}
@@ -73,7 +74,7 @@ drawPlayer=function(){
 // soldados: se hamacan al caminar, todos al mismo compás (~2 por segundo)
 const DIB_drawSoldier0=drawSoldier;
 drawSoldier=function(e){
-  if(!dibOn()||e.dying||!e.onGround||Math.abs(e.vx||0)<0.05)return DIB_drawSoldier0(e);
+  if(e.dying||!e.onGround||Math.abs(e.vx||0)<0.05)return DIB_drawSoldier0(e);
   const a=Math.sin(T*Math.PI*2/30)*0.07,fx=e.x+e.w/2,fy=e.y+e.h;
   ctx.save();ctx.translate(fx,fy);ctx.rotate(a);ctx.translate(-fx,-fy);
   try{DIB_drawSoldier0(e);}finally{ctx.restore();}
@@ -98,11 +99,11 @@ ON_HUD.push(()=>{
   const sq=t>=8&&t<34?Math.sin((t-8)/26*Math.PI)*0.08:0;
   ctx.save();ctx.translate(cx,y+h);ctx.scale(1+sq,1-sq);ctx.translate(-cx,-(y+h));
   const x=cx-w/2;
-  ctx.fillStyle='#120c18';ctx.fillRect(x-1.5,y-1.5,w+3,h+3);
-  ctx.fillStyle='#4a2c18';ctx.fillRect(x,y,w,h);ctx.fillStyle='#6b4423';ctx.fillRect(x+2,y+2,w-4,h-4);
-  ctx.fillStyle='#8a5a30';ctx.fillRect(x+2,y+2,w-4,1.5);ctx.fillStyle='rgba(18,12,24,0.35)';ctx.fillRect(x+2,y+h-3.5,w-4,1.5);
-  ctx.fillStyle='#f3c969';for(const[rx,ry]of[[x+4,y+4],[x+w-5,y+4],[x+4,y+h-5],[x+w-5,y+h-5]])ctx.fillRect(rx,ry,1.5,1.5);
-  txt(j.mini?'¡CUIDADO!':'¡EL JEFE!',cx,y+3.5,5,'#f3c969','center',false);
-  txt(nm,cx,y+11,12,'#ffe8b0','center');
+  // recuadro de texto de cómic (comic.js): amarillo, borde grueso de tinta y sombra dura corrida
+  ctx.fillStyle='#120c18';ctx.fillRect(x+2.5,y+2.5,w+1,h+1);ctx.fillRect(x-1.5,y-1.5,w+3,h+3);
+  ctx.fillStyle='#ffe066';ctx.fillRect(x,y,w,h);
+  ctx.fillStyle='rgba(224,86,58,0.35)';for(let yy=y+2;yy<y+h-1;yy+=3)for(let xx=x+2+((yy-y)%2);xx<x+w-1;xx+=3)ctx.fillRect(xx,yy,0.9,0.9);
+  txt(j.mini?'¡CUIDADO!':'¡EL JEFE!',cx,y+3.5,5,'#120c18','center',false);
+  txt(nm,cx,y+11,12,'#ffffff','center');
   ctx.restore();
 });

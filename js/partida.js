@@ -148,20 +148,38 @@ function terminarPartida(kind){
 const histOk=()=>typeof histOpen==='function'&&typeof histUpdate==='function'&&typeof histDraw==='function'&&typeof histIsScreen==='function';
 // TAMAÑO: GRANDE (mundo con zoom) / NORMAL (como antes); se guarda en el store (camara.js)
 const tamanoTxt=()=>'TAMAÑO: '+(tamano==='grande'?'GRANDE':'NORMAL');
-const tituloOps=()=>(histOk()?['JUGAR','LOGROS','RÉCORDS']:['JUGAR']).concat(typeof setTamano==='function'?[tamanoTxt()]:[],typeof setEstilo==='function'?[estiloTxt()]:[]);
+// título limpio: logo y un menú corto. Las instrucciones van en CÓMO JUGAR (la tarjeta de controles, ayuda.js) y lo
+// que se configura en OPCIONES (tamaño, música, sonido y CONTROLES: COMPLETOS / SIMPLES; la dificultad va en la
+// elección de personaje).
+const tituloOps=()=>['COMENZAR','CÓMO JUGAR','OPCIONES'].concat(histOk()?['LOGROS','RÉCORDS']:[]);
 function updTitulo(){
   const ops=tituloOps();tituloSel=clamp(tituloSel,0,ops.length-1);
-  if(pressed.up&&tituloSel>0){tituloSel--;SFX.swap();}
-  else if(pressed.down&&tituloSel<ops.length-1){tituloSel++;SFX.swap();}
-  else if(ops[tituloSel].startsWith('TAMAÑO')&&(pressed.left||pressed.right||pressed.start||pressed.shoot||pressed.jump)){
-    audioInit();setTamano(tamano==='grande'?'normal':'grande');SFX.swap();}
-  else if(ops[tituloSel].startsWith('ESTILO')&&(pressed.left||pressed.right||pressed.start||pressed.shoot||pressed.jump)){
-    audioInit();setEstilo(dibOn()?'limpio':'dibujito');SFX.swap();}
+  if(pressed.up){tituloSel=(tituloSel+ops.length-1)%ops.length;SFX.swap();}
+  else if(pressed.down){tituloSel=(tituloSel+1)%ops.length;SFX.swap();}
   else if(pressed.start||pressed.shoot||pressed.jump){
-    audioInit();const o=ops[tituloSel];
-    if(o==='JUGAR'){state='select';selT=0;selLevel=Math.min(selLevel,unlocked);}
+    audioInit();const o=ops[tituloSel];SFX.swap();
+    if(o==='COMENZAR'){state='select';selT=0;selLevel=Math.min(selLevel,unlocked);}
+    else if(o==='CÓMO JUGAR')ayudaAbrir();
+    else if(o==='OPCIONES'){state='opciones';opcSel=0;opcT=0;}
     else histOpen(o==='LOGROS'?'logros':'records');
   }
+}
+// ---------- OPCIONES ----------
+let opcSel=0,opcT=0;
+const opcFilas=()=>[
+  ['TAMAÑO',tamano==='grande'?'GRANDE':'NORMAL',()=>setTamano(tamano==='grande'?'normal':'grande')],
+  ['MÚSICA',mus.on?'SÍ':'NO',()=>{mus.on=!mus.on;store.set('oxido-musica',mus.on?'1':'0');}],
+  ['SONIDO',muted?'NO':'SÍ',()=>{muted=!muted;}],
+  ['CONTROLES',controlesSimples?'SIMPLES':'COMPLETOS',()=>setControles(controlesSimples?'completos':'simples')],
+  ['VOLVER',null,null]].filter(f=>!(f[0]==='CONTROLES'&&onTouch())); // en táctil no aplica
+function updOpciones(){
+  T++;opcT++;camX=(T*0.5)%2400;playMusic('title');
+  const f=opcFilas();opcSel=clamp(opcSel,0,f.length-1);
+  if(pressed.up){opcSel=(opcSel+f.length-1)%f.length;SFX.swap();}
+  else if(pressed.down){opcSel=(opcSel+1)%f.length;SFX.swap();}
+  else if(opcT>6&&pressed.back){state='title';SFX.swap();}
+  else if(pressed.left||pressed.right||pressed.start||pressed.shoot||pressed.jump){
+    audioInit();const r=f[opcSel];if(!r[2]){if(pressed.start||pressed.shoot||pressed.jump){state='title';SFX.swap();}}else{r[2]();SFX.swap();}}
 }
 const tituloRecord=()=>Math.max(record,typeof histBest==='function'?(histBest()||0):0);
 // ---------- dibujo: aviso de tramo y cartel de vuelta (sobre el HUD) ----------

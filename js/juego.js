@@ -143,7 +143,8 @@ function update(){
   switch(state){
   case 'title':T++;camX=(T*0.5)%2400;playMusic('title');updTitulo();break;
   case 'select':T++;selT++;camX=(T*0.5)%2400;playMusic('title');updSelect();break;
-  case 'ayuda':playMusic('title');updAyuda();break; // tarjeta de controles antes de la primera partida (ayuda.js)
+  case 'ayuda':playMusic('title');updAyuda();break; // CÓMO JUGAR: la tarjeta de controles (ayuda.js)
+  case 'opciones':updOpciones();break; // OPCIONES (partida.js)
   case 'play':if(pressed.pause||pressed.back){state='pause';ruCerrar();break;}
     ruedaFrame(); // rueda de armas: cada cuadro real, aunque el juego vaya lento
     if(hitStop>0){hitStop--;break;}
@@ -221,12 +222,12 @@ function drawWorld(){
   if(P)eachPlayer(drawAirCharge);
 }
 // render(): el juego y, encima de todo, el aviso de control no reconocido (input.js)
-function render(){renderMain();drawPadNote();}
+function render(){if(typeof COMIC_deADos==='function'&&COMIC_deADos()&&(T&1))return;renderMain();drawPadNote();} // "de a dos" en momentos especiales (comic.js)
 function renderMain(){
   ctx.setTransform(S,0,0,S,0,0);ctx.imageSmoothingEnabled=false;
   if(document.body.dataset.s!==state)document.body.dataset.s=state;
   const sx=(shake?rand(-shake,shake):0)+kickX,sy=(shake?rand(-shake,shake):0)+kickY;
-  const hs=histOk()&&histIsScreen(),menu=state==='title'||state==='select'||state==='ayuda'||hs;
+  const hs=histOk()&&histIsScreen(),menu=state==='title'||state==='select'||state==='ayuda'||state==='opciones'||hs;
   if(menu&&L!==LEVELS[0]){L=LEVELS[0];platforms=L.platforms;LEVEL_END=L.end;}
   if(menu&&(ZOOM!==1||camY)){setZoom(1);camY=0;} // los menús se ven como siempre
   // fondo, mundo y efectos van con zoom (camara.js); el HUD, sin zoom
@@ -235,12 +236,14 @@ function renderMain(){
   if(oy>0){ctx.fillStyle='#000';cubrir();ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.beginPath();ctx.rect(0,oy,cv.width,cv.height-2*oy);ctx.clip();}
   SQ=S*ZOOM;ctx.setTransform(SQ,0,0,SQ,0,oy);ctx.translate(0,-q(camY));
   if(L.drawBG)L.drawBG();else if(L.theme==='port')drawBGPort();else drawBGDusk();
+  if(typeof COMIC_trama==='function')COMIC_trama(); // cómic: trama de puntos en las sombras del fondo (comic.js)
   ctx.save();ctx.translate(q(-camX+sx),q(sy));
   if(menu){drawGround();for(const d of L.decor)if(d.x>camX-60&&d.x<camX+VW+10)drawDecor(d);drawPlatforms();}
   else drawWorld();
   ctx.restore();
   if(L.drawFx)L.drawFx();else if(L.theme==='port')drawRain();
   if(oy>0)ctx.restore();
+  if(typeof COMIC_post==='function')COMIC_post(); // cómic: líneas de velocidad, color corrido, viñeta de jefe (comic.js)
   if(typeof DIB_pelicula==='function')DIB_pelicula(); // estilo dibujito: grano, viñeta, rayas (dibujito.js); el HUD va limpio encima
   // el HUD del juego va pegado arriba y abajo del lienzo; los menús y pantallas, en un marco de 320×180 centrado
   SQ=S;ctx.setTransform(S,0,0,S,0,0);
@@ -249,6 +252,7 @@ function renderMain(){
   if(state==='title'){marco();drawTitle();return;}
   if(state==='select'){marco();drawSelect();return;}
   if(state==='ayuda'){marco();drawAyuda();return;}
+  if(state==='opciones'){marco();drawOpciones();return;}
   drawHUD();
   if(state==='pause'){marco();drawPause();}
   if(state==='over'||state==='win'){marco();drawEnd();}

@@ -5,7 +5,7 @@
 // · Mientras araña (st 'scratch'), en vez del gato se ve un trompo del color del pelaje: 4 franjas curvas que giran,
 //   ancho arriba y angosto abajo, con polvo en la base. A ratos asoman las orejas, la cola y tres rayitas de garras
 //   hacia el enemigo; saltan mechones y alguna estrellita. Se hamaca de lado a lado sobre el enemigo.
-// · Al terminar, el gato queda mareado un instante (ojitos en espiral, 0,4 s; con LIMPIO más corto y sin estrellas).
+// · Al terminar, el gato queda mareado un instante (ojitos en espiral, 0,4 s).
 // · El ángel, cuando va a arañar un dron, es un remolino blanco y celeste con la aureola girando arriba.
 // · Sonido: zumbido de giro (ruido filtrado que sube y baja); los rasguños de siempre quedan encima, más bajos.
 // Prefijo REM_.
@@ -27,7 +27,7 @@ ON_STEP.push(()=>{
     // mechones de pelo y alguna estrellita (solo adorno)
     if(T%3===0){const cx=g.x+6+REM_vaiven(),cy=g.y+3;parts.push({k:'p',x:cx+rand(-5,5),y:cy+rand(-3,4),vx:rand(-1.6,1.6),vy:rand(-1.8,-0.4),g:0.1,life:rand(10,18),maxl:18,size:1,col:Math.random()<0.15?'#ffe066':Math.random()<0.5?REM_COL.pelo:REM_COL.crema});}
     if(T%4===0)parts.push({k:'smoke',col:'200,180,150',x:g.x+6+REM_vaiven()+rand(-3,3),y:g.y+10,vx:rand(-0.6,0.6),vy:rand(-0.3,-0.1),life:rand(12,18),maxl:18,size:rand(1,1.8)});}
-  if(REM_ant==='scratch'&&g.st!=='scratch')REM_mareoT=typeof dibOn!=='function'||dibOn()?24:12;
+  if(REM_ant==='scratch'&&g.st!=='scratch')REM_mareoT=24;
   if(REM_mareoT>0)REM_mareoT--;
   REM_ant=g.st;
 });
@@ -70,10 +70,10 @@ function REM_dibuja(g){
 // mareo: ojitos en espiral y estrellitas sobre la cabeza (encima del gato normal)
 function REM_mareo(g){
   if(REM_mareoT<=0||!g||g.st==='angel'||g.st==='ascend')return;
-  const fx=g.face>0?g.x+9:g.x+1,hy=g.y+2,giro=T*0.5,anim=typeof dibOn!=='function'||dibOn();
+  const fx=g.face>0?g.x+9:g.x+1,hy=g.y+2,giro=T*0.5;
   for(const dx of[0,2.4]){const ex=fx+dx;ctx.strokeStyle=REM_COL.tinta;ctx.lineWidth=0.5;ctx.beginPath();
     for(let k=0;k<1;k+=0.08){const r=0.2+k*1.1,a=giro+k*9;ctx.lineTo(ex+Math.cos(a)*r,hy+Math.sin(a)*r);}ctx.stroke();}
-  if(anim)for(let i=0;i<3;i++){const a=T*0.25+i*2.1,sx=g.x+6+Math.cos(a)*6,sy=g.y-3+Math.sin(a)*1.6;ctx.fillStyle='#ffe066';ctx.fillRect(q(sx-1),q(sy-0.5),2,1);ctx.fillRect(q(sx-0.5),q(sy-1),1,2);}
+  for(let i=0;i<3;i++){const a=T*0.25+i*2.1,sx=g.x+6+Math.cos(a)*6,sy=g.y-3+Math.sin(a)*1.6;ctx.fillStyle='#ffe066';ctx.fillRect(q(sx-1),q(sy-0.5),2,1);ctx.fillRect(q(sx-0.5),q(sy-1),1,2);}
 }
 // ángel: cuando va a arañar un dron, remolino blanco y celeste con la aureola girando arriba
 function REM_angel(g){

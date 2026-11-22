@@ -8,20 +8,46 @@ const keys={},pressed={};let padState={},padPrev={};
 const KEYMAP={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',
   KeyZ:'shoot',KeyX:'jump',Space:'jump',KeyC:'bomb',KeyS:'air',Tab:'air',
   KeyN:'music',KeyM:'mute',KeyP:'pause',Escape:'back',Backspace:'back',KeyQ:'quit',Enter:'start'};
+// ---------- CONTROLES SIMPLES (simple.js) ----------
+// De a 2 con un solo teclado (el jugador 2 entra con . en la elección de personaje): cada uno 4 direcciones + 2 teclas.
+//   J1: W A S D · F disparar · G granada.   J2: flechas · . disparar · , granada.   ↑ (W) salta, el apuntado es automático.
+// Con 1 jugador y CONTROLES: SIMPLES en OPCIONES: flechas · Z disparar · X granada.
+// ESC/⌫, P, Q, ENTER y N son de los dos. Se lee por e.code: anda igual en teclado español o inglés.
+const KB2=999; // p2Pad === KB2: el jugador 2 juega con el teclado (no hay joystick con ese índice)
+const kb2On=()=>p2Pad===KB2;
+const kb2St={};
+const KEYS_COMUN={KeyN:'music',KeyP:'pause',Escape:'back',Backspace:'back',KeyQ:'quit',Enter:'start'};
+const KEYMAP_S1={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Space:'up',KeyZ:'shoot',KeyX:'bomb',KeyM:'mute',...KEYS_COMUN};
+const KEYMAP_J1={KeyA:'left',KeyD:'right',KeyW:'up',KeyS:'down',KeyF:'shoot',KeyG:'bomb',...KEYS_COMUN};
+const KEYMAP_J2={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Period:'shoot',Comma:'bomb'};
+let controlesSimples=store.get('oxido-controles')==='simples';
+function setControles(v){controlesSimples=v==='simples';store.set('oxido-controles',controlesSimples?'simples':'completos');clearKeys();}
+// qué mapa usa el teclado del jugador 1 ahora
+const mapaJ1=()=>kb2On()?KEYMAP_J1:controlesSimples?KEYMAP_S1:KEYMAP;
+// nombre real de una tecla (en un teclado español la de / es -): navigator.keyboard si existe; si no, por idioma
+const KB_NOMBRE={Comma:',',Period:'.',Slash:'/'};
+try{navigator.keyboard&&navigator.keyboard.getLayoutMap&&navigator.keyboard.getLayoutMap().then(m=>{for(const c in KB_NOMBRE){const k=m.get(c);if(k)KB_NOMBRE[c]=k.toUpperCase();}}).catch(()=>{});}catch(e){}
 addEventListener('keydown',e=>{
   audioInit();
-  if(e.code==='KeyF'){toggleFull();return;}
+  if(e.code==='KeyF'&&!kb2On()){toggleFull();return;}
   // ⌘+. (el "escape" de los teclados de Mac y de iPad)
   if(e.metaKey&&(e.key==='.'||e.code==='Period')){e.preventDefault();if(!keys.back)pressed.back=true;keys.back=true;later(120,()=>{keys.back=false;});return;}
   if(e.metaKey||e.ctrlKey)return;
-  const a=KEYMAP[e.code];if(!a)return;e.preventDefault();
+  // jugador 2 por teclado: entra con . en la elección de personaje, si no hay un joystick que ya sea el jugador 2
+  if(e.code==='Period'&&state==='select'&&p2Pad<0&&!kb2On()){e.preventDefault();kb2Entrar();return;}
+  if(kb2On()){const b=KEYMAP_J2[e.code];if(b){e.preventDefault();if(!kb2St[b])pressed2[b]=true;kb2St[b]=true;return;}}
+  const a=mapaJ1()[e.code];if(!a)return;e.preventDefault();
   if(!keys[a])pressed[a]=true;keys[a]=true;
 });
+function kb2Entrar(){p2Pad=KB2;for(const k in kb2St)kb2St[k]=false;clearKeys();p2Ci=charIdx===2?0:2;if(typeof colFix==='function')colFix(charIdx,p2Ci);
+  kb2Tarjeta=180;try{SFX.pick();}catch(e){}}
+let kb2Tarjeta=0; // cuadros que le quedan a la tarjeta con las teclas de los dos (hud.js)
 // el teclado pasa a ser "el último control" (va en captura: llega aunque historial.js frene la tecla al escribir el nombre)
 addEventListener('keydown',e=>{if(e.key!=='Meta'&&e.key!=='Control'&&e.key!=='Alt'&&e.key!=='Shift'){dev1=-1;devAny=-1;}},true);
-addEventListener('keyup',e=>{const a=KEYMAP[e.code];if(a)keys[a]=false;});
+addEventListener('keyup',e=>{if(kb2On()&&KEYMAP_J2[e.code])kb2St[KEYMAP_J2[e.code]]=false;
+  for(const m of [KEYMAP,KEYMAP_S1,KEYMAP_J1]){const a=m[e.code];if(a&&!(kb2On()&&KEYMAP_J2[e.code]))keys[a]=false;}});
 addEventListener('pointerdown',audioInit);
-function clearKeys(){for(const k in keys)keys[k]=false;}
+function clearKeys(){for(const k in keys)keys[k]=false;for(const k in kb2St)kb2St[k]=false;}
 addEventListener('blur',()=>{clearKeys();if(state==='play')state='pause';});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')state='pause';});
 function toggleFull(){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(e){}}
@@ -82,7 +108,8 @@ function pollPad(){
   for(const i of padSeen)if(!seen.has(i))padGone(i); // por si el navegador no avisa con el evento
   if(padLost>0&&seen.has(padLostIdx))padLost=-padLost; // volvió: se sigue con pausa, como siempre
   padSeen=seen;
-  if(p2Pad>=0&&!p2found){padSt2={};if(state==='select')p2Pad=-1;}
+  if(kb2On())padSt2=kb2St; // jugador 2 por teclado
+  else if(p2Pad>=0&&!p2found){padSt2={};if(state==='select')p2Pad=-1;}
   padPrev=st1;return st1;
 }
 // palanca analógica de un jugador (para la rueda de armas: elige por ángulo real, con 6 zonas parejas).
@@ -99,8 +126,9 @@ function clearPressed(){for(const k in pressed)pressed[k]=false;for(const k in p
 const heldRaw=a=>inSlot?!!padSt2[a]:!!(keys[a]||padState[a]);
 // con la rueda de armas abierta (rueda.js), las flechas son de la rueda: el jugador no se mueve ni apunta
 const RU_DIRS={left:1,right:1,up:1,down:1};
-const held=a=>RU_DIRS[a]&&typeof ruAbiertaDe==='function'&&ruAbiertaDe(inSlot)?false:heldRaw(a);
-const tapped=a=>inSlot?!!pressed2[a]:!!pressed[a];
+// con CONTROLES SIMPLES (simple.js) saltar es ↑, el apuntado es automático y no hay rueda ni avión
+const held=a=>RU_DIRS[a]&&typeof ruAbiertaDe==='function'&&ruAbiertaDe(inSlot)?false:typeof simpleDe==='function'&&P&&simpleDe(inSlot)?simHeld(a):heldRaw(a);
+const tapped=a=>typeof simpleDe==='function'&&P&&simpleDe(inSlot)?simTapped(a):inSlot?!!pressed2[a]:!!pressed[a];
 // el joystick i, en la pantalla de personaje, suma al jugador 2 con ✕: no es el del jugador 1 (dev1)
 const padJoins=i=>state==='select'&&p2Pad<0&&i!==dev1;
 // hay un joystick libre para sumar al jugador 2 (ni el del jugador 2 ni el del jugador 1)
@@ -118,7 +146,13 @@ const PAD_LBL={ps:['✕','○','□','△','L1','R1','L2','R2','CREATE','OPTIONS
   xb:['A','B','X','Y','LB','RB','LT','RT','VISTA','MENÚ'],
   ns:['B','A','Y','X','L','R','ZL','ZR','−','+']};
 const BTN_PAD={jump:0,ok:0,bomb:1,shoot:2,swap:3,quit:3,air:4,r1:5,l2:6,r2:7,back:8,opt:9,start:9};
-const BTN_KB={jump:'X',ok:'ENTER',bomb:'C',shoot:'Z',swap:'S',quit:'Q',air:'S',r1:'Z',l2:'C',r2:'Z',back:'ESC/⌫',opt:'P',start:'ENTER'};
+const BTN_KB={jump:'X',ok:'ENTER',bomb:'C',shoot:'Z',swap:'S',quit:'Q',air:'S',r1:'Z',l2:'C',r2:'Z',back:'ESC/⌫',opt:'P',start:'ENTER',up:'↑',down:'↓',left:'←',right:'→'};
+// controles simples: 1 jugador (flechas, Z, X) y de a 2 con un teclado (J1 a la izquierda, J2 a la derecha)
+const BTN_KBS={...BTN_KB,jump:'↑',bomb:'X',l2:'X',swap:'—',air:'—'};
+const BTN_KB1={...BTN_KB,jump:'W',shoot:'F',r1:'F',r2:'F',bomb:'G',l2:'G',swap:'—',air:'—',up:'W',down:'S',left:'A',right:'D'};
+const BTN_KB2={get jump(){return '↑';},get shoot(){return KB_NOMBRE.Period;},get r1(){return KB_NOMBRE.Period;},get r2(){return KB_NOMBRE.Period;},
+  get bomb(){return KB_NOMBRE.Comma;},get l2(){return KB_NOMBRE.Comma;},swap:'—',air:'—',ok:'ENTER',quit:'Q',back:'ESC/⌫',opt:'P',start:'ENTER',up:'↑',down:'↓',left:'←',right:'→'};
+const kbBtns=who=>kb2On()?(who===1?BTN_KB2:BTN_KB1):controlesSimples?BTN_KBS:BTN_KB;
 let dev1=-1,devAny=-1,lastPad=-1; // -1 = teclado; si no, el índice del joystick
 const padInfo={};
 function padBrand(gp){
@@ -156,7 +190,8 @@ const onPad=who=>devOf(who)>=0;
 function onTouch(){return !!window.OXIDO_TOQUE;}
 const BTN_TOUCH={ok:'✕',start:'✕',jump:'✕',shoot:'□',r1:'□',r2:'□',bomb:'○',l2:'○',swap:'△',air:'△',quit:'△',back:'○',opt:'II'};
 function btn(a,who){if(onTouch()&&(who===undefined||who===0)&&BTN_TOUCH[a])return BTN_TOUCH[a];
-  const d=devOf(who);if(d<0)return BTN_KB[a];
+  const d=devOf(who);if(d<0)return kbBtns(who)[a];
+  if(a==='up'||a==='down'||a==='left'||a==='right')return BTN_KB[a];
   return PAD_LBL[(padInfo[d]&&padInfo[d].brand)||'ps'][BTN_PAD[a]];}
 // joystick con mapeo que no es 'standard': un aviso, una sola vez por joystick (se sigue pudiendo jugar)
 const padNotes=[],padNoteSeen=new Set(),PAD_NOTE_T=330;

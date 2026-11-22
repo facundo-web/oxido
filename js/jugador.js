@@ -87,7 +87,8 @@ function updPlayer(){
   }
   if(p.inv>0)p.inv--;
   if(p.onGround&&p.vx)p.anim++;
-  for(const m of mechs)if(!m.ride&&!m.dying&&m.cool<=0&&U&&overlap(hurtbox(),m)){enterMech(m);break;}
+  const subir=U||(typeof simpleDe==='function'&&simpleDe(p.slot)&&heldRaw('up')); // controles simples: ↑ (que también salta) sube
+  for(const m of mechs)if(!m.ride&&!m.dying&&m.cool<=0&&subir&&overlap(hurtbox(),m)){enterMech(m);break;}
 }
 function drawPlayer(){
   const p=P;if(p.dead||p.ride)return;

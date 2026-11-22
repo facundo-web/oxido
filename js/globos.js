@@ -6,8 +6,7 @@
 // · Globos: globo(s, x, y, {grito, t, dur}) dibuja el globo con la colita apuntando a (x, y) (la cabeza del que habla).
 //   "habla": esquinas recortadas, relleno crema, borde #120c18, 1 px de sombra abajo, colita escalonada.
 //   "grito": borde con picos, como una explosión chiquita.
-//   Con ESTILO: DIBUJITO entra con un pop (0 → 1,2 → 1 en ~6 cuadros), flota apenas y se va achicándose;
-//   con LIMPIO aparece y se va sin animación. Nunca se corta en el borde, no pisa el HUD y no se encima con otro
+//   Entra con un pop (0 → 1,2 → 1 en ~6 cuadros), flota apenas y se va achicándose. Nunca se corta en el borde, no pisa el HUD y no se encima con otro
 //   globo del mismo cuadro (el que llega después sube). GL_reset() al empezar cada cuadro (drawWorld).
 // Carteles, HUD y menús siguen con la letra de siempre.
 const PF={
@@ -89,13 +88,12 @@ function GL_reset(){GL_rects=[];}
 function glEscala(t,dur){if(t<3)return 1.2*t/3;if(t<6)return 1.2-0.2*(t-3)/3;if(dur&&t>dur-5)return Math.max(0,(dur-t)/5);return 1;}
 // dibuja un globo con la colita en (ax, ay), en coordenadas del mundo
 function globo(s,ax,ay,o={}){
-  const anim=typeof dibOn!=='function'||dibOn();
-  const t=o.t??99,dur=o.dur??0,sc=anim?glEscala(t,dur):(dur&&t>=dur?0:1);if(sc<=0.02)return;
+  const t=o.t??99,dur=o.dur??0,sc=glEscala(t,dur);if(sc<=0.02)return;
   let w=pfW(s)+6,h=10;
   // dónde va el globo: arriba de la cabeza, sin salirse de la pantalla ni pisar el HUD, y sin encimarse con otro
   const xMin=camX+2,xMax=camX+VW-2,yMin=camY+28/ZOOM;
   let bx=Math.round(ax)-(w>>1),by=Math.round(ay)-h-3;
-  if(anim)by+=Math.round(Math.sin((T+ax*3)/14)*0.6);
+  by+=Math.round(Math.sin((T+ax*3)/14)*0.6);
   let lado=0;if(bx<xMin){bx=xMin;lado=-1;}else if(bx+w>xMax){bx=xMax-w;lado=1;}
   for(let k=0;k<6;k++){const r=GL_rects.find(r=>bx<r.x+r.w+1&&bx+w>r.x-1&&by<r.y+r.h+2&&by+h>r.y-2);if(!r)break;by=r.y-h-3;}
   if(by<yMin)by=Math.max(yMin,by);

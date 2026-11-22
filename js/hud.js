@@ -167,6 +167,7 @@ function drawHUD2(){
 function hudRuedita(x,y,col){ctx.strokeStyle=col;ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(x+3.5,y+3.5,2.8,0,7);ctx.stroke();
   ctx.fillStyle=col;for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;ctx.fillRect(x+3.5+Math.cos(a)*2.8-0.5,y+3.5+Math.sin(a)*2.8-0.5,1,1);}ctx.fillRect(x+3,y+3,1,1);}
 function drawAirChip(right,y){
+  if(typeof simpleDe==='function'&&simpleDe(P.slot))return right; // controles simples: sin avión
   const fv=RC_ver('fl',flares),fj=RC_salto('fl'),free=fv>0,s=free?'×'+fv:'−1♥',sw=hudTW(s,5),ready=airReady(),k=airKey();
   txt(s,right,y+1+fj,5,free?(RC_luz('fl')?'#fff6c8':'#9ad0ff'):'#aaa','right',false);
   const kx=right-sw-2-(k?keycapW(k):7);if(k)keycap(k,kx,y,free?'#9ad0ff':'#aaa');else hudRuedita(kx,y,free?'#9ad0ff':'#aaa');
@@ -185,8 +186,22 @@ const CONTROLS_R_TOUCH=[['△ tocar','cambiar arma'],['△ mantener','rueda de a
 // franja libre de los controles en pantalla (publicar/web/tactil.js): {x0,x1,y0} en coordenadas del juego.
 // Debajo de y0 la palanca ocupa x<x0 y el rombo x>x1; arriba de y0 está todo libre. null si no hay controles.
 const tactilLibre=()=>onTouch()&&window.OXIDO_TACTIL_LIBRE||null;
+// CONTROLES SIMPLES (simple.js): 1 jugador con flechas, Z y X; y de a 2 con un teclado, una columna cada uno
+const CONTROLS_L_S1=[['← →','mover'],['↑','saltar · mantener: volar'],['↓','agacharse · ×2: bajar'],['Z','disparar (apunta solo)'],['X','granada']];
+const CONTROLS_R_S1=[['ESC/⌫ · P','pausa · volver'],['Q','salir (en pausa)'],['M · N','sonido · música'],['F','pantalla completa']];
+function drawSimples2(y,nota){
+  const J=[[P_COL[0],'JUGADOR 1',[['A D','mover'],['W','saltar'],['S','agacharse · ×2 bajar'],['F','disparar'],['G','granada']]],
+    [P_COL[1],'JUGADOR 2',[['← →','mover'],['↑','saltar'],['↓','agacharse · ×2 bajar'],[KB_NOMBRE.Period,'disparar'],[KB_NOMBRE.Comma,'granada']]]];
+  ctx.fillStyle='rgba(18,12,24,0.8)';ctx.fillRect(30,y,260,58);
+  J.forEach(([col,t,rows],i)=>{const x=34+i*130;ctx.fillStyle=col;ctx.fillRect(x,y+3,122,1);txt(t,x+61,y+5,6,col,'center',false);
+    rows.forEach(([k,v],j)=>{txt(k,x+28,y+15+j*8,6,col,'right',false);txt(v,x+33,y+15.5+j*8,5,'#ddd','left',false);});});
+  txt('Apuntan solos · ESC/⌫ o P: pausa',W/2,y+60,5,'#aaa','center',false);
+  if(nota)txt('Algunos teclados no registran muchas teclas a la vez: si una no anda, soltá las otras.',W/2,y+68,4,'#8a7f92','center',false);
+}
 function drawControls(y){
-  const [colL,colR]=onTouch()?[CONTROLS_L_TOUCH,CONTROLS_R_TOUCH]:onPad()?ctlRows():[CONTROLS_L_KB,CONTROLS_R_KB];
+  if(!onTouch()&&kb2On()){drawSimples2(y);return;}
+  const s1=!onTouch()&&!onPad()&&controlesSimples;
+  const [colL,colR]=onTouch()?[CONTROLS_L_TOUCH,CONTROLS_R_TOUCH]:onPad()?ctlRows():s1?[CONTROLS_L_S1,CONTROLS_R_S1]:[CONTROLS_L_KB,CONTROLS_R_KB];
   const lb=tactilLibre();
   if(!lb||y+60<=lb.y0){
     ctx.fillStyle='rgba(18,12,24,0.75)';ctx.fillRect(30,y,260,60);
@@ -205,27 +220,36 @@ function drawControls(y){
 }
 function drawTitle(){
   dim(0.45);
-  const g=ctx.createLinearGradient(0,20,0,56);g.addColorStop(0,'#ffe08a');g.addColorStop(1,'#e0582c');
-  ctx.font='bold 36px ui-monospace,Menlo,Consolas,monospace';ctx.textAlign='center';ctx.textBaseline='top';
-  ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#120c18';ctx.strokeText('ÓXIDO',W/2,18);ctx.fillStyle=g;ctx.fillText('ÓXIDO',W/2,18);
-  txt('ACCIÓN · '+LEVELS.length+' MISIONES · 3 DIFICULTADES',W/2,58,6,'#f3c969','center');
-  // menú: JUGAR (y LOGROS · RÉCORDS si está el historial). ↑ ↓ elegir · ENTER o ✕ entrar
-  const ops=tituloOps();
-  const pad=onPad(),ok=btn('ok');
-  if(ops.length===1){if((T>>5)%2===0)txt('PULSÁ '+ok+' PARA EMPEZAR',W/2,76,8,'#fff','center');}
-  else{const st=ops.length>4?6.4:ops.length>3?8:9.5,y0=ops.length>4?65.5:ops.length>3?65:66,fz=ops.length>4?6:7;ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;
-    if(on){const w=hudTW(o,fz)+26;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(W/2-w/2,y-1,w,st);
-      txt('▶',W/2-w/2+4+((T>>4)%2),y,fz,'#ffe08a','left',false);}
-    txt(o,W/2,y,fz,on?'#ffe08a':'#aaa','center');});}
-  drawControls(98);
-  // de a 2: el jugador 2 entra con el botón de saltar de un joystick libre (o hay que conectar uno;
-  // si el único joystick es el del jugador 1, hace falta otro)
-  const two=padFree()?'de a 2: '+btn('jump','free')+' al elegir personaje':'de a 2: conectá '+(padsOn?'otro':'un')+' joystick';
-  const pie=ops.length>1?(onTouch()?'palanca ↑ ↓: ELEGIR · ':'↑ ↓ ELEGIR · ')+ok+': ENTRAR · '+two:(pad?'':'También con joystick · ')+two;
-  // en táctil, la línea de abajo entra entre la palanca y el rombo
+  const g=ctx.createLinearGradient(0,24,0,62);g.addColorStop(0,'#ffe08a');g.addColorStop(1,'#e0582c');
+  ctx.font='bold 38px ui-monospace,Menlo,Consolas,monospace';ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#120c18';ctx.strokeText('ÓXIDO',W/2,22);ctx.fillStyle=g;ctx.fillText('ÓXIDO',W/2,22);
+  // menú vertical corto: ↑ ↓ elegir · ENTER o ✕ entrar
+  const ops=tituloOps(),st=11,y0=78;
+  ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;
+    if(on){const w=hudTW(o,8)+30;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(W/2-w/2,y-1.5,w,st-0.5);
+      txt('▶',W/2-w/2+5+((T>>4)%2),y,8,'#ffe08a','left',false);}
+    txt(o,W/2,y,8,on?'#ffe08a':'#aaa','center');});
+  // una sola línea chica abajo, con los botones del control que se usó último (en táctil, entre la palanca y el rombo)
+  const pie=(onTouch()?'palanca ↑ ↓':'↑ ↓')+' · '+btn('ok')+': ELEGIR';
   const lb=tactilLibre(),pw=lb&&H-12>=lb.y0?Math.min(290,lb.x1-4)-Math.max(30,lb.x0+4):999;
   txt(pie,lb&&pw<999?(Math.max(30,lb.x0+4)+Math.min(290,lb.x1-4))/2:W/2,H-12,Math.min(5,5*pw/hudTW(pie,5)),'#aaa','center');
   const rec=tituloRecord();if(rec)txt('RÉCORD '+String(rec).padStart(7,'0'),W-6,4,5,'#f3c969','right');
+}
+// OPCIONES: tamaño, música, sonido y controles (partida.js)
+function drawOpciones(){
+  dim(0.6);
+  txt('OPCIONES',W/2,20,13,'#ffe08a','center');
+  const f=opcFilas(),y0=52,st=14;
+  f.forEach(([n,v],i)=>{const y=y0+i*st,on=i===opcSel;
+    ctx.fillStyle=on?'rgba(243,201,105,0.16)':'rgba(18,12,24,0.6)';ctx.fillRect(70,y-2,180,12);
+    if(on){ctx.strokeStyle='#f3c969';ctx.lineWidth=1;ctx.strokeRect(70.5,y-1.5,179,11);}
+    if(v===null){txt(n,W/2,y,7,on?'#ffe08a':'#aaa','center');return;}
+    txt(n,78,y+0.5,6,on?'#ffe08a':'#aaa','left');
+    txt(v,212,y,7,'#fff','center');
+    if(on){const b=(T>>4)%2?1:0;txt('◀',212-hudTW(v,7)/2-4-b,y,7,'#ffe08a','right',false);txt('▶',212+hudTW(v,7)/2+4+b,y,7,'#ffe08a','left',false);}});
+  const pie=(onTouch()?'palanca ':'')+'↑ ↓ elegir · ← → o '+btn('ok')+' cambiar · '+btn('back')+' volver';
+  const lb=tactilLibre(),pw=lb&&H-12>=lb.y0?Math.min(290,lb.x1-4)-Math.max(30,lb.x0+4):999;
+  txt(pie,lb&&pw<999?(Math.max(30,lb.x0+4)+Math.min(290,lb.x1-4))/2:W/2,H-12,Math.min(5,5*pw/hudTW(pie,5)),'#aaa','center');
 }
 // ================== elegir personaje, misión y dificultad ==================
 const DIFF_COL=['#7dff9a','#ffe08a','#ff6b5b'];
@@ -295,11 +319,15 @@ function drawSelect(){
     ry+=18;}
   // jugador 1: botones de su último control (con su joystick, ✕ u OPTIONS juegan; ✕ en otro joystick suma al jugador 2)
   if(selLocked(selLevel))txt('BLOQUEADA · GANÁ LA MISIÓN '+selLevel+' PARA JUGARLA',W/2,ry+1,5,selNo>0?'#ff6b5b':'#c8b8a0','center');
-  else txt('↑ ↓ ELEGIR FILA · ← → CAMBIAR · '+btn(onPad(0)?'jump':'start',0)+': JUGAR',W/2,ry+1,5,'#fff','center');
+  else txt(btn('up',0)+' '+btn('down',0)+' ELEGIR FILA · '+btn('left',0)+' '+btn('right',0)+' CAMBIAR · '+btn(onPad(0)?'jump':'start',0)+': JUGAR',W/2,ry+1,5,'#fff','center');
   txt(btn('back',0)+': volver',W/2,ry+9,4,'#aaa','center',false);
   // jugador 2: se suma con saltar (✕, A o B) en un joystick libre; sus botones salen de su joystick
   if(two)txt('JUGADOR 2: ← → ELEGIR · ↑ ↓ COLOR · '+btn('bomb',1)+' SALIR',W/2,ry+16,5,P_COL[1],'center');
   else if(padFree()&&(T>>5)%2===0)txt('JUGADOR 2: APRETÁ '+btn('jump','free')+' PARA SUMARTE',W/2,ry+16,5,P_COL[1],'center');
+  else if(!padFree()&&!onTouch()&&(T>>5)%2===0)txt('JUGADOR 2 CON EL MISMO TECLADO: APRETÁ '+KB_NOMBRE.Period,W/2,ry+16,5,P_COL[1],'center');
+  // recién entró el jugador 2 por teclado: las teclas de los dos (3 s o hasta que alguien apriete)
+  if(kb2On()&&kb2Tarjeta>0){dim(0.9);txt('DE A 2 CON UN TECLADO',W/2,34,10,'#ffe08a','center');txt('controles simples',W/2,47,5,'#aaa','center',false);drawSimples2(58,true);
+    ctx.fillStyle='#f3c969';ctx.fillRect(30,136,260*kb2Tarjeta/180,1);}
 }
 // número de jugador sobre la tarjeta elegida
 function selTag(x,y,n){ctx.fillStyle='#120c18';ctx.fillRect(x-0.5,y-0.5,9,9);ctx.fillStyle=P_COL[n-1];ctx.fillRect(x,y,8,8);txt(String(n),x+4,y+1.2,6,'#120c18','center',false);}
@@ -309,6 +337,7 @@ function updSelect(){
   // jugador 2: entra con ✕ en un joystick libre, elige con ← →, sale con ○ o Create
   if(p2Join>=0){if(p2Pad<0){p2Pad=p2Join;p2Ci=charIdx===2?0:2;SFX.pick();}p2Join=-1;}
   else if(p2Pad>=0){
+    if(kb2Tarjeta>0){kb2Tarjeta--;if(kb2Tarjeta<170&&(Object.values(pressed).some(Boolean)||Object.values(pressed2).some(Boolean))){kb2Tarjeta=0;clearPressed();}return;}
     const d2=pressed2.left?-1:pressed2.right?1:0;
     if(d2){p2Ci=(p2Ci+CHARS.length+d2)%CHARS.length;colFix(charIdx,p2Ci);SFX.swap();}
     // ↑ ↓: su color (salteando el del jugador 1 si repiten personaje)
@@ -329,7 +358,7 @@ function updSelect(){
   if(selNo>0)selNo--;
   if(selT>8&&(pressed.start||pressed.shoot||pressed.jump)){
     if(selLocked(selLevel)){selNo=16;selRow=1;SFX.hit();}
-    else{SFX.pick();if(!ayudaVista())ayudaAbrir(selLevel);else startLevel(selLevel,false);}}
+    else{SFX.pick();startLevel(selLevel,false);}}
   else if(pressed.back){state='title';}
 }
 // ================== fin de juego y misión cumplida ==================

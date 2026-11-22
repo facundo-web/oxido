@@ -54,6 +54,9 @@ function blast(x,y,r,d,bossMul=1){
 }
 function hurtPlayer(n=1){
   const p=P;if(p.dead||winT)return;
+  // el bot de pruebas juega invulnerable (inv ≥ 9000): se cuentan los golpes que habría recibido, con la misma ventana de
+  // invulnerabilidad de un golpe real (70 cuadros), para medir la dificultad (economia.js, ECO.golpesBot)
+  if(typeof ECO!=='undefined'&&(p.inv>=9000||(p.ride&&p.ride.inv>=9000))&&!(T-(p._bh??-999)<70)){p._bh=T;ECO.golpesBot++;}
   if(p.ride){const m=p.ride;if(m.inv>0)return;m.armor-=n;m.inv=24;m.flash=5;SFX.hit();shake=Math.max(shake,2);if(m.armor<=0)mechBreak(m);return;}
   if(p.inv>0)return;
   if(p.shield>0){p.shield--;p.inv=45;SFX.shield();parts.push({k:'ring',x:p.x+4,y:p.y+9,r:6,max:16,life:12,maxl:12,col:'120,220,255'});

@@ -1,9 +1,10 @@
 'use strict';
 // Óxido · Economía de vidas y corazones
 // Contadores para medir (los lee el bot): vidas y corazones que se juntaron en la misión.
-const ECO={vidas:0,corazones:0,premios:{}};
+const ECO={vidas:0,corazones:0,premios:{},golpes:0,golpesBot:0};
+ON_EVENT.push(t=>{if(t==='hurt')ECO.golpes++;});
 let ECO_hp=new Map();
-ON_START.push(()=>{ECO.vidas=0;ECO.corazones=0;ECO.premios={};ECO_hp=new Map();});
+ON_START.push(()=>{ECO.vidas=0;ECO.corazones=0;ECO.premios={};ECO.golpes=0;ECO.golpesBot=0;ECO_hp=new Map();});
 ON_STEP.push(()=>{for(const p of players){const h=ECO_hp.get(p);if(h!==undefined&&!p.dead&&p.hp>h)ECO.corazones+=p.hp-h;ECO_hp.set(p,p.hp);}});
 // ---------- NORMAL y DIFÍCIL: la dificultad viene del daño, no de cuántas vidas juntás ----------
 // FÁCIL queda generoso como siempre. En NORMAL y DIFÍCIL:

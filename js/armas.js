@@ -49,7 +49,7 @@ function fire(){
     else if(w==='heavy'&&T%6===0)parts.push({k:'smoke',col:'200,195,190',x:sx,y:sy,vx:dx*0.3,vy:-0.25,life:20,maxl:20,size:1.2});
   }
   if(w==='pistol'||w==='heavy'||w==='shotgun')parts.push({k:'shell',x:cx,y:p.y+8,vx:-p.face*rand(0.6,1.3),vy:rand(-2.3,-1.2),g:0.18,life:rand(45,60),maxl:60,col:w==='shotgun'?'#d93a2b':'#e8c25a'});
-  if(w!=='pistol'){p.weapons[w]--;if(p.weapons[w]<=0){delete p.weapons[w];nextWeapon();setBanner('SIN MUNICIÓN',50);}}
+  if(w!=='pistol'){p.weapons[w]--;if(p.weapons[w]<=0){delete p.weapons[w];if(typeof simpleDe==='function'&&simpleDe(p.slot))simVolverArma(p);else nextWeapon();setBanner('SIN MUNICIÓN',50);}}
 }
 function nextWeapon(){
   const i=WORDER.indexOf(P.weapon);

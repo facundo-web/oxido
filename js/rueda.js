@@ -35,7 +35,7 @@ function ruedaFrame(){
   const k=inSlot;
   for(const p of players){
     const r=RU[p.slot];
-    if(p.dead||winT){r.open=false;r.t=0;r.o=0;continue;}
+    if(p.dead||winT||(typeof simpleDe==='function'&&simpleDe(p.slot))){r.open=false;r.t=0;r.o=0;continue;} // controles simples: sin rueda
     inSlot=p.slot;
     if(heldRaw('air')||heldRaw('swap')){
       r.t++;
@@ -65,7 +65,7 @@ function ruedaFrame(){
   inSlot=k;
   // números: el jugador 1 (es el del teclado)
   const p1=players[0];
-  for(const n of RU_num){const it=RU_ITEMS[n-1];if(!it||!p1||p1.dead)continue;ruAplicar(p1,it);if(RU[0].open)RU[0].sel=RU[0].hov=it;}
+  for(const n of RU_num){const it=RU_ITEMS[n-1];if(!it||!p1||p1.dead||(typeof simpleDe==='function'&&simpleDe(0)))continue;ruAplicar(p1,it);if(RU[0].open)RU[0].sel=RU[0].hov=it;}
   RU_num.length=0;
 }
 // ---------- dibujo (en el HUD, alrededor de cada jugador) ----------
