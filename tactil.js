@@ -1,0 +1,417 @@
+// Óxido · controles en pantalla para celular y tablet, con la lógica de un joystick de PlayStation.
+// Va solo en la copia pública (dist/): armar.mjs lo carga después de los js del juego.
+// No cambia la lógica del juego: aprieta las mismas acciones que el teclado (keys y pressed de input.js).
+//
+// A la derecha, siempre el rombo ✕ ○ □ △. A la izquierda, la palanca (jugando) o la cruz (menús).
+//   Jugando:  ✕ saltar · □ disparar (mantener = ráfaga) · ○ granada · △ arma (tocar = cambiar,
+//             mantener = avión, con anillo de carga) · II pausa. Palanca flotante con diagonales.
+//   Menús:    ✕ aceptar · ○ volver · cruz para elegir.
+//   Fin del juego y misión cumplida: ✕ seguir · mantener ○ terminar (con anillo, para no perder la partida sin querer).
+//   Pausa:    ✕ u ○ seguir · △ dos veces salir · II seguir.
+//   Nombre:   ✕ listo · ○ borrar · cruz para las letras · ESCRIBIR abre el teclado del celular.
+// Extras:    la pantalla no se apaga mientras jugás · pantalla completa en Android · en iPhone, cómo
+//            agregarlo a inicio · "Girá la pantalla" con pausa · sin zoom ni gestos del navegador ·
+//            el gesto de "atrás" pausa en vez de salir del juego.
+// Se muestran al tocar la pantalla y se esconden al usar el teclado o un joystick. En escritorio no aparece nada.
+// window.OXIDO_TOQUE dice si el último control fue la pantalla: el juego lo lee con onTouch() para
+// nombrar los botones (✕ ○ □ △) en sus textos.
+//
+// Usa del juego: keys, pressed, state, audioInit y, si existe, AIR_HOLD.
+window.OXIDO_TACTIL = true; // apaga el aviso "se juega con teclado o joystick" (aviso-tactil.js)
+window.OXIDO_TOQUE = false;
+(() => {
+  if (typeof keys === 'undefined' || typeof pressed === 'undefined') return;
+  const mm = q => matchMedia(q).matches;
+  const soloTactil = mm('(any-pointer: coarse)') && !mm('(any-pointer: fine)');
+  if (!soloTactil && !(navigator.maxTouchPoints > 0)) return;
+  const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const instalada = mm('(display-mode: standalone)') || mm('(display-mode: fullscreen)') || navigator.standalone === true;
+  const leer = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const estado = () => (typeof state === 'string' ? state : '');
+  const durAvion = (typeof AIR_HOLD === 'number' ? AIR_HOLD : 36) / 60;
+  const DUR_TERMINAR = 0.6; // segundos manteniendo ○ para terminar la partida
+
+  // qué hace cada botón del rombo en cada pantalla (como el joystick de PlayStation en el juego)
+  // 'mantener:back' = hay que mantenerlo apretado DUR_TERMINAR segundos
+  const MAPA = {
+    play: { x: 'jump', o: 'bomb', c: 'shoot', t: 'air' },
+    menu: { x: 'start', o: 'back' },
+    fin: { x: 'start', o: 'mantener:back' },
+    pausa: { x: 'start', o: 'back', t: 'swap' },
+    nombre: { x: 'jump', o: 'bomb' },
+  };
+
+  // ---------- dibujos ----------
+  const svg = d => '<svg viewBox="0 0 24 24" aria-hidden="true">' + d + '</svg>';
+  const ICO = {
+    x: svg('<path d="M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'),
+    o: svg('<circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2.6"/>'),
+    c: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="1" fill="none" stroke="currentColor" stroke-width="2.6"/>'),
+    t: svg('<path d="M12 4.5l8 13.5H4z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>'),
+    flecha: svg('<path d="M12 5l7 9H5z" fill="currentColor"/>'),
+    teclado: svg('<rect x="2" y="6" width="20" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 10h1M10 10h1M14 10h1M18 10h1M6 14h1M18 14h1M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
+  };
+  // anillo de carga (mantener apretado): un círculo que se dibuja de a poco; anda en cualquier Safari
+  const ANILLO = '<svg class="anillo" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" pathLength="100"/></svg>';
+
+  // ---------- estilos ----------
+  const css = document.createElement('style');
+  css.textContent = `
+html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#tactil{--u:clamp(52px,17vh,84px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
+  --borde:12px; /* lejos de los bordes, donde están los gestos del sistema */
+  position:fixed;inset:0;z-index:5;pointer-events:none;display:none;color:#fff;font:bold 12px/1 ui-monospace,Menlo,Consolas,monospace;transition:opacity .4s}
+#tactil.on{display:block}
+#tactil.quieto{opacity:.45}
+#tactil .b,#tactil .zona,#tactil .girar,#tactil .inicio{pointer-events:auto;touch-action:none}
+/* botones casi transparentes: se ve el juego detrás */
+#tactil .b{--c:255,224,138;position:absolute;display:none;align-items:center;justify-content:center;border-radius:50%;box-sizing:border-box;
+  background:rgba(10,8,14,.14);border:2px solid rgba(var(--c),.7);color:rgb(var(--c));transition:transform .06s,background .06s,opacity .15s}
+#tactil .b::before{content:"";position:absolute;inset:-8px;border-radius:inherit}
+#tactil .b svg{width:48%;height:48%;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.8));pointer-events:none}
+#tactil .b.a{background:rgba(var(--c),.4);transform:scale(.92)}
+#tactil .b.apagado{opacity:.28}
+/* rombo de PlayStation */
+#tactil .ps{display:flex;width:calc(var(--u)*.9);height:calc(var(--u)*.9)}
+#tactil .ps.x{--c:124,180,255;right:calc(var(--sr) + var(--borde) + var(--u)*1.1);bottom:calc(var(--sb) + var(--borde) + var(--u)*.18)}
+#tactil .ps.o{--c:255,107,107;right:calc(var(--sr) + var(--borde) + var(--u)*.28);bottom:calc(var(--sb) + var(--borde) + var(--u)*1)}
+#tactil .ps.c{--c:244,154,216;right:calc(var(--sr) + var(--borde) + var(--u)*1.92);bottom:calc(var(--sb) + var(--borde) + var(--u)*1)}
+#tactil .ps.t{--c:63,214,168;right:calc(var(--sr) + var(--borde) + var(--u)*1.1);bottom:calc(var(--sb) + var(--borde) + var(--u)*1.82)}
+#tactil .b svg.anillo{position:absolute;left:-6px;top:-6px;width:calc(100% + 12px);height:calc(100% + 12px);transform:rotate(-90deg);opacity:0;filter:none}
+#tactil .anillo circle{fill:none;stroke:rgb(var(--c));stroke-width:3;stroke-dasharray:100;stroke-dashoffset:100}
+#tactil .b.carga svg.anillo{opacity:1}
+#tactil .b.carga .anillo circle{animation:oxCarga var(--dur,.6s) linear forwards}
+@keyframes oxCarga{to{stroke-dashoffset:0}}
+/* pausa (II) arriba a la izquierda, jugando y en pausa */
+#tactil .pausa{width:max(46px,calc(var(--u)*.7));height:max(46px,calc(var(--u)*.7));border-radius:14px;font-size:18px;
+  left:calc(10px + var(--sl));top:calc(10px + var(--st))}
+#tactil[data-modo=play] .pausa,#tactil[data-modo=pausa] .pausa{display:flex}
+/* ESCRIBIR (nombre del récord) arriba a la derecha */
+#tactil .escribir{border-radius:999px;height:max(46px,calc(var(--u)*.7));padding:0 18px;gap:8px;font-size:14px;
+  right:calc(12px + var(--sr));top:calc(10px + var(--st))}
+#tactil .escribir svg{width:22px;height:22px}
+#tactil[data-modo=nombre] .escribir{display:flex}
+/* palanca (jugando) */
+#tactil .zona{position:absolute;left:calc(var(--sl) + 24px);bottom:calc(var(--sb) + 8px);width:44vw;top:calc(var(--u)*.95 + var(--st));display:none}
+#tactil[data-modo=play] .zona{display:block}
+#tactil .base{position:absolute;width:calc(var(--u)*1.9);height:calc(var(--u)*1.9);margin:calc(var(--u)*-.95) 0 0 calc(var(--u)*-.95);border-radius:50%;box-sizing:border-box;
+  background:rgba(10,8,14,.12);border:2px solid rgba(255,224,138,.45);opacity:.7;transition:opacity .15s;pointer-events:none}
+#tactil .zona:not(.toca) .base{left:calc(var(--u)*1.05);top:calc(100% - var(--u)*1.1)}
+#tactil .zona.toca .base{opacity:1}
+#tactil .perilla{position:absolute;left:50%;top:50%;width:calc(var(--u)*.85);height:calc(var(--u)*.85);margin:calc(var(--u)*-.425) 0 0 calc(var(--u)*-.425);border-radius:50%;box-sizing:border-box;
+  background:rgba(255,224,138,.22);border:2px solid rgba(255,224,138,.8)}
+#tactil .base i{position:absolute;width:14px;height:14px;color:rgba(255,224,138,.5)}
+#tactil .base i svg{width:100%;height:100%;display:block}
+#tactil .base i.on{color:#ffe08a;filter:drop-shadow(0 0 4px #ffe08a)}
+#tactil .base .u{left:50%;top:6px;margin-left:-7px}
+#tactil .base .d{left:50%;bottom:6px;margin-left:-7px;transform:rotate(180deg)}
+#tactil .base .l{top:50%;left:6px;margin-top:-7px;transform:rotate(-90deg)}
+#tactil .base .r{top:50%;right:6px;margin-top:-7px;transform:rotate(90deg)}
+/* cruz (menús y nombre): compacta, tapa lo menos posible */
+#tactil .f{width:max(46px,calc(var(--u)*.72));height:max(46px,calc(var(--u)*.72));border-radius:12px}
+#tactil .f svg{width:46%;height:46%}
+#tactil .f[data-a=up]{left:calc(var(--sl) + var(--borde) + var(--u)*1.03);bottom:calc(var(--sb) + var(--borde) + var(--u)*1.55)}
+#tactil .f[data-a=down]{left:calc(var(--sl) + var(--borde) + var(--u)*1.03);bottom:calc(var(--sb) + var(--borde) + var(--u)*.25)}
+#tactil .f[data-a=left]{left:calc(var(--sl) + var(--borde) + var(--u)*.25);bottom:calc(var(--sb) + var(--borde) + var(--u)*.9)}
+#tactil .f[data-a=right]{left:calc(var(--sl) + var(--borde) + var(--u)*1.81);bottom:calc(var(--sb) + var(--borde) + var(--u)*.9)}
+#tactil .f[data-a=down] svg{transform:rotate(180deg)}#tactil .f[data-a=left] svg{transform:rotate(-90deg)}#tactil .f[data-a=right] svg{transform:rotate(90deg)}
+#tactil[data-modo=menu] .f,#tactil[data-modo=fin] .f,#tactil[data-modo=nombre] .f{display:flex}
+/* avisos */
+#tactil .girar{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;
+  background:#0b0a10;color:#ffe08a;font:bold 18px/1.35 ui-monospace,Menlo,Consolas,monospace;text-align:center;padding:24px}
+#tactil .girar span{font-size:52px;display:inline-block;animation:oxGira 1.6s ease-in-out infinite}
+@keyframes oxGira{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
+#tactil.on.parado .girar{display:flex}
+#tactil .inicio{position:absolute;left:50%;top:calc(8px + var(--st));transform:translateX(-50%);display:none;align-items:center;gap:10px;
+  background:rgba(18,12,24,.92);border:1px solid #f3c969;border-radius:999px;padding:4px 4px 4px 16px;font-size:12px;color:#eee;white-space:nowrap}
+#tactil .inicio b{color:#ffe08a}
+#tactil .inicio button{font:inherit;font-size:16px;color:#fff;background:transparent;border:0;width:40px;height:40px;border-radius:50%}
+#tactil.inicio-on[data-pantalla=title] .inicio{display:flex}
+#tactil input{position:fixed;left:50%;top:0;width:1px;height:1px;opacity:.01;font-size:16px;border:0;padding:0;pointer-events:none;
+  -webkit-user-select:text;user-select:text} /* Safari no deja escribir en un campo con user-select:none */
+@media (prefers-reduced-motion:reduce){#tactil .girar span{animation:none}#tactil .b,#tactil{transition:none}}`;
+  document.head.appendChild(css);
+
+  // ---------- armado ----------
+  const raiz = document.createElement('div');
+  raiz.id = 'tactil';
+  raiz.setAttribute('aria-hidden', 'true');
+  const el = (cls, a, html) => { const d = document.createElement('div'); d.className = cls; if (a) d.dataset.a = a; if (html) d.innerHTML = html; raiz.appendChild(d); return d; };
+  const rombo = {};
+  for (const k of ['x', 'o', 'c', 't']) { rombo[k] = el('b ps ' + k, 'ps', ANILLO + ICO[k]); rombo[k].dataset.k = k; }
+  rombo.t.style.setProperty('--dur', durAvion + 's');
+  rombo.o.style.setProperty('--dur', DUR_TERMINAR + 's');
+  const pausa = el('b pausa', 'pause', 'II');
+  for (const d of ['up', 'down', 'left', 'right']) el('b f', d, ICO.flecha);
+  const escribir = el('b escribir', 'escribir', ICO.teclado + 'ESCRIBIR');
+  const zona = el('zona');
+  const base = document.createElement('div'); base.className = 'base';
+  base.innerHTML = '<i class="u">' + ICO.flecha + '</i><i class="d">' + ICO.flecha + '</i><i class="l">' + ICO.flecha + '</i><i class="r">' + ICO.flecha + '</i><div class="perilla"></div>';
+  zona.appendChild(base);
+  const perilla = base.querySelector('.perilla');
+  const marcas = { up: base.querySelector('.u'), down: base.querySelector('.d'), left: base.querySelector('.l'), right: base.querySelector('.r') };
+  el('girar', '', '<span>↻</span>Girá la pantalla para jugar');
+  const inicio = el('inicio', '', 'Pantalla completa: <b>Compartir</b> → <b>Agregar a inicio</b><button type="button" aria-label="Cerrar">✕</button>');
+  const campo = document.createElement('input');
+  Object.assign(campo, { type: 'text', autocomplete: 'off', spellcheck: false });
+  campo.setAttribute('autocapitalize', 'characters'); campo.setAttribute('autocorrect', 'off'); campo.setAttribute('enterkeyhint', 'done');
+  raiz.appendChild(campo);
+  document.body.appendChild(raiz);
+
+  // ---------- apretar y soltar acciones (igual que el teclado) ----------
+  const cuenta = {};  // cuántos dedos sostienen cada acción
+  const dedos = {};   // pointerId → acción que sostiene ese dedo
+  const dedosEn = {}; // pointerId → botón que toca ese dedo (para iluminarlo)
+  const relojes = {}; // pointerId → temporizador de "mantener"
+  let palancaDedo = null, centro = null, dir = {};
+  const vibrar = () => { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} };
+  const esMantener = a => typeof a === 'string' && a.startsWith('mantener:');
+  function bajar(a) {
+    try { audioInit(); } catch (e) {}
+    if (!cuenta[a]) { if (!keys[a]) pressed[a] = true; keys[a] = true; }
+    cuenta[a] = (cuenta[a] || 0) + 1;
+  }
+  function subir(a) { if (!cuenta[a]) return; if (--cuenta[a] <= 0) { cuenta[a] = 0; keys[a] = false; } }
+  function soltarDedo(id) {
+    const a = dedos[id];
+    if (esMantener(a)) { clearTimeout(relojes[id]); delete relojes[id]; } else if (a) subir(a);
+    delete dedos[id]; delete dedosEn[id];
+  }
+  function soltarPalanca() { palancaDedo = null; centro = null; zona.classList.remove('toca'); base.style.left = base.style.top = ''; direccion(null); }
+  function soltarTodo() {
+    for (const id in dedos) soltarDedo(id);
+    for (const a in cuenta) if (cuenta[a]) { cuenta[a] = 0; keys[a] = false; }
+    soltarPalanca(); marcar();
+  }
+
+  // qué acción hace un botón en la pantalla actual (null = nada)
+  function accion(b) {
+    if (b.dataset.a !== 'ps') return b.dataset.a;
+    return (MAPA[raiz.dataset.modo] || {})[b.dataset.k] || null;
+  }
+  function botonEn(x, y) {
+    let n = document.elementFromPoint(x, y);
+    while (n && n !== raiz) { if (n.classList && n.classList.contains('b') && n.dataset.a) return n; n = n.parentNode; }
+    return null;
+  }
+  function marcar() {
+    const tocados = new Set(Object.values(dedosEn));
+    raiz.querySelectorAll('.b').forEach(b => b.classList.toggle('a', tocados.has(b)));
+    // anillo: △ mantenido jugando (avión) y ○ mantenido para terminar
+    const cargando = new Set(Object.keys(dedos).filter(id => dedos[id] === 'air' || esMantener(dedos[id])).map(id => dedosEn[id]));
+    for (const k in rombo) rombo[k].classList.toggle('carga', cargando.has(rombo[k]));
+  }
+
+  function apretar(id, b) {
+    const a = accion(b);
+    if (!a) return false; // botón sin uso en esta pantalla
+    if (a === 'start' && estado() === 'select') pantallaCompleta();
+    dedos[id] = a; dedosEn[id] = b;
+    if (esMantener(a)) {
+      relojes[id] = setTimeout(() => {
+        delete relojes[id];
+        if (dedos[id] !== a) return;
+        const real = a.slice(9); pressed[real] = true; vibrar();
+        dedos[id] = null; marcar(); // ya hizo lo suyo: el anillo se apaga
+      }, DUR_TERMINAR * 1000);
+    } else bajar(a);
+    vibrar(); marcar(); despertar();
+    return true;
+  }
+  raiz.addEventListener('pointerdown', e => {
+    const b = botonEn(e.clientX, e.clientY);
+    if (!b || b === escribir) return;
+    e.preventDefault();
+    apretar(e.pointerId, b);
+  });
+  addEventListener('pointermove', e => {
+    if (e.pointerId === palancaDedo) { direccion(e); return; }
+    // un dedo que quedó apoyado en la zona de la palanca (por ejemplo al volver de la pausa) la retoma
+    if (palancaDedo === null && raiz.dataset.modo === 'play' && e.pointerType === 'touch' && !(e.pointerId in dedos) && raiz.classList.contains('on')) {
+      const r = zona.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { tomarPalanca(e); return; }
+    }
+    // jugando, el dedo se puede deslizar de un botón del rombo a otro (por ejemplo de □ a ✕)
+    if (!(e.pointerId in dedos) || raiz.dataset.modo !== 'play') return;
+    const b = botonEn(e.clientX, e.clientY);
+    if (!b || b.dataset.a !== 'ps' || b === dedosEn[e.pointerId] || !accion(b)) return;
+    soltarDedo(e.pointerId); apretar(e.pointerId, b);
+  });
+  function fin(e) {
+    try { audioInit(); } catch (err) {} // iPhone: el sonido se habilita al levantar el dedo
+    if (e.pointerId === palancaDedo) { soltarPalanca(); return; }
+    if (!(e.pointerId in dedos)) return;
+    soltarDedo(e.pointerId); marcar();
+  }
+  addEventListener('pointerup', fin);
+  addEventListener('pointercancel', fin);
+
+  // ---------- palanca flotante ----------
+  // La dirección se mide desde donde apoyaste el dedo (apoyar sin mover no aprieta nada). Solo el dibujo
+  // se corre hacia adentro si el dedo está muy cerca del borde.
+  const radio = () => base.offsetWidth / 2;
+  function direccion(e) {
+    const nueva = {};
+    if (e && centro) {
+      const R = radio();
+      let dx = e.clientX - centro.x, dy = e.clientY - centro.y, d = Math.hypot(dx, dy);
+      // si el dedo se va lejos, la palanca lo sigue (no hace falta volver al centro para cambiar de lado)
+      const max = R * 1.15;
+      if (d > max) {
+        centro.x += dx * (1 - max / d); centro.y += dy * (1 - max / d);
+        dx = e.clientX - centro.x; dy = e.clientY - centro.y; d = max;
+      }
+      ubicarBase();
+      if (d > R * 0.22) {
+        const ux = dx / d, uy = dy / d, h = k => (dir[k] ? 0.06 : 0); // un poco de margen para que no titile
+        if (ux > 0.42 - h('right')) nueva.right = 1; else if (ux < -0.42 + h('left')) nueva.left = 1;
+        // agacharse pide más inclinación, para no frenar sin querer mientras corrés
+        if (uy < -0.5 + h('up')) nueva.up = 1; else if (uy > 0.64 - h('down')) nueva.down = 1;
+      }
+      const k = Math.min(d, R * 0.8) / (d || 1);
+      perilla.style.transform = `translate(${dx * k}px,${dy * k}px)`;
+    } else perilla.style.transform = '';
+    for (const a of ['up', 'down', 'left', 'right']) {
+      if (nueva[a] && !dir[a]) bajar(a);
+      if (!nueva[a] && dir[a]) subir(a);
+      marcas[a].classList.toggle('on', !!nueva[a]);
+    }
+    dir = nueva;
+  }
+  function ubicarBase() { // el dibujo, sin salirse de la zona
+    const r = zona.getBoundingClientRect(), R = radio() * 0.7;
+    base.style.left = (Math.max(r.left + R, Math.min(centro.x, r.right - R)) - r.left) + 'px';
+    base.style.top = (Math.max(r.top + R, Math.min(centro.y, r.bottom - R)) - r.top) + 'px';
+  }
+  function tomarPalanca(e) {
+    palancaDedo = e.pointerId;
+    centro = { x: e.clientX, y: e.clientY };
+    zona.classList.add('toca'); direccion(e); despertar();
+  }
+  zona.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (palancaDedo === null) tomarPalanca(e);
+  });
+
+  // ---------- teclado del celular para el nombre del récord ----------
+  // Las letras llegan al juego como teclas (historial.js ya sabe leerlas). Si el teclado manda teclas con
+  // nombre, historial.js las toma directo. Si no (iPhone a veces manda "Unidentified", y los teclados que
+  // arman palabras, como Gboard, mandan la palabra entera cada vez), se compara lo que hay en el campo con
+  // lo que había y se mandan solo las diferencias: letras nuevas o borrados.
+  const tecla = key => dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  let previo = '';
+  escribir.addEventListener('click', () => {
+    campo.value = ''; previo = '';
+    campo.style.pointerEvents = 'auto';
+    campo.blur(); campo.focus(); // blur antes: en Android, si quedó con foco, focus() solo no reabre el teclado
+  });
+  campo.addEventListener('input', () => {
+    const v = campo.value.toUpperCase();
+    let comun = 0;
+    while (comun < v.length && comun < previo.length && v[comun] === previo[comun]) comun++;
+    for (let i = previo.length; i > comun; i--) tecla('Backspace');
+    for (const ch of v.slice(comun)) tecla(ch);
+    previo = v;
+  });
+  campo.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); campo.blur(); tecla('Enter'); }
+  });
+  campo.addEventListener('blur', () => { campo.style.pointerEvents = 'none'; });
+
+  // ---------- pantalla completa (Android) y aviso de "Agregar a inicio" (iPhone) ----------
+  function pantallaCompleta() {
+    if (esIOS || instalada || !document.fullscreenEnabled || document.fullscreenElement) return;
+    document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+      .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}))
+      .catch(() => {});
+  }
+  if (esIOS && !instalada && leer('oxido-inicio-visto') !== '1') raiz.classList.add('inicio-on');
+  inicio.querySelector('button').addEventListener('click', () => { raiz.classList.remove('inicio-on'); guardar('oxido-inicio-visto', '1'); });
+
+  // ---------- el gesto de "atrás" (Android) pausa en vez de salir del juego ----------
+  let resguardo = false;
+  function ponerResguardo() { if (!resguardo) { try { history.pushState({ oxido: 1 }, ''); resguardo = true; } catch (e) {} } }
+  addEventListener('popstate', () => {
+    resguardo = false;
+    const s = estado();
+    if (s === 'play' || s === 'pause') { if (s === 'play') state = 'pause'; ponerResguardo(); }
+  });
+
+  // ---------- la pantalla no se apaga mientras jugás ----------
+  let traba = null, pidiendo = false, falloEn = -1e9;
+  function pantallaEncendida(quiero) {
+    if (!('wakeLock' in navigator)) return;
+    if (quiero && !traba && !pidiendo && document.visibilityState === 'visible' && performance.now() - falloEn > 5000) {
+      pidiendo = true;
+      navigator.wakeLock.request('screen')
+        .then(t => { traba = t; t.addEventListener('release', () => { traba = null; }); })
+        .catch(() => { falloEn = performance.now(); })
+        .finally(() => { pidiendo = false; });
+    } else if (!quiero && traba) { traba.release().catch(() => {}); traba = null; }
+  }
+
+  // ---------- ¿el aparato está parado? ----------
+  // Se mira la orientación del aparato, no la forma de la ventana: en pantalla dividida (iPad con Split View)
+  // la ventana puede ser angosta con el aparato acostado, y ahí no hay que pedir que lo giren.
+  function parado() {
+    const o = screen.orientation && screen.orientation.type;
+    if (o) return o.startsWith('portrait');
+    if (typeof window.orientation === 'number') return window.orientation % 180 === 0;
+    return innerHeight > innerWidth;
+  }
+
+  // ---------- mostrar y esconder ----------
+  let ultimoToque = performance.now();
+  function despertar() { ultimoToque = performance.now(); raiz.classList.remove('quieto'); }
+  function mostrar() { window.OXIDO_TOQUE = true; raiz.classList.add('on'); ponerResguardo(); }
+  function esconder() {
+    window.OXIDO_TOQUE = false;
+    if (raiz.classList.contains('on')) { raiz.classList.remove('on'); soltarTodo(); }
+  }
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { mostrar(); despertar(); } }, true);
+  // teclado de verdad: se esconden (las teclas que manda ESCRIBIR no cuentan). keyup también: en la
+  // pantalla del nombre, historial.js frena el keydown.
+  const deTeclado = e => e.isTrusted && e.target !== campo && document.activeElement !== campo;
+  addEventListener('keydown', e => { if (deTeclado(e)) esconder(); }, true);
+  addEventListener('keyup', e => { if (deTeclado(e)) esconder(); }, true);
+  addEventListener('blur', soltarTodo);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) soltarTodo(); });
+  // sin zoom con dos dedos, sin lupa ni menú al mantener, sin gestos del navegador sobre los controles
+  for (const ev of ['gesturestart', 'gesturechange', 'contextmenu']) document.addEventListener(ev, e => e.preventDefault());
+  raiz.addEventListener('touchstart', e => { if (!e.target.closest('.escribir,.inicio') && e.target !== campo) e.preventDefault(); }, { passive: false });
+  raiz.addEventListener('touchmove', e => { if (e.target !== campo) e.preventDefault(); }, { passive: false });
+
+  // cada cuadro: modo según la pantalla del juego y avisos
+  let modoViejo = '', pantallaVieja = '';
+  function cuadro() {
+    requestAnimationFrame(cuadro);
+    const s = estado();
+    const modo = s === 'play' ? 'play' : s === 'pause' ? 'pausa' : s === 'nombre' ? 'nombre' : s === 'over' || s === 'win' ? 'fin' : 'menu';
+    if (modo !== modoViejo) {
+      soltarTodo(); raiz.dataset.modo = modo; modoViejo = modo; despertar();
+      // los botones del rombo que no hacen nada en esta pantalla se apagan
+      for (const k in rombo) rombo[k].classList.toggle('apagado', !(MAPA[modo] || {})[k]);
+      // al salir de la pantalla del nombre se cierra el teclado del celular (el Enter lo toma historial.js)
+      if (modo !== 'nombre' && document.activeElement === campo) campo.blur();
+    }
+    if (s !== pantallaVieja) { raiz.dataset.pantalla = s; pantallaVieja = s; pausa.textContent = s === 'pause' ? '▶' : 'II'; }
+    // jugando y sin tocar un rato: los controles se aclaran para ver mejor el juego
+    if (modo === 'play' && palancaDedo === null && !Object.keys(dedos).length && performance.now() - ultimoToque > 2500) raiz.classList.add('quieto');
+    // aparato parado: "Girá la pantalla" y, si estaba jugando, pausa
+    const p = raiz.classList.contains('on') && parado();
+    raiz.classList.toggle('parado', p);
+    if (p && s === 'play') state = 'pause';
+    pantallaEncendida(s === 'play');
+  }
+  requestAnimationFrame(cuadro);
+  // joystick: si se aprieta un botón o se mueve la palanca, los controles en pantalla se esconden
+  setInterval(() => {
+    const l = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const g of l) {
+      if (g && (g.buttons.some(b => b && b.pressed) || Math.abs(g.axes[0] || 0) > 0.5 || Math.abs(g.axes[1] || 0) > 0.5)) { esconder(); break; }
+    }
+  }, 150);
+  if (soloTactil) mostrar();
+})();
