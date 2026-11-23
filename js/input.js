@@ -2,12 +2,23 @@
 // Óxido · Teclado y joystick
 // ================== input: teclado + joystick ==================
 const keys={},pressed={};let padState={},padPrev={};
-// Acciones: Z disparar · X o ESPACIO saltar · C granada · S o TAB (tocar) cambiar arma · S o TAB (mantener) rueda de armas (rueda.js). Flechas para moverse.
-// ESC (o ⌫, o ⌘+. en los teclados de iPad, que no tienen ESC) vuelve o sale de menús · P pausa · Q sale al menú desde la pausa.
-// 1–6 eligen arma directo (rueda.js). En la pantalla del nombre, ⌫ borra letras (historial.js se queda con la tecla antes).
-const KEYMAP={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',
-  KeyZ:'shoot',KeyX:'jump',Space:'jump',KeyC:'bomb',KeyS:'air',Tab:'air',
-  KeyN:'music',KeyM:'mute',KeyP:'pause',Escape:'back',Backspace:'back',KeyQ:'quit',Enter:'start'};
+// TECLADO DE 1 JUGADOR: DOS ESQUEMAS ACTIVOS A LA VEZ (23 nov, notas/investigacion/controles.md: lo más repetido del género)
+//   A · WASD (el que se muestra primero): W A S D mover y apuntar (W arriba, S agacharse o abajo en el aire) · ESPACIO o K
+//       saltar · J disparar · L granada · Q / E arma anterior / siguiente (mantener Q o E abre la rueda, rueda.js).
+//   B · FLECHAS: flechas mover · Z saltar · X disparar · C granada · TAB arma (tocar cicla, mantener abre la rueda).
+//   De los dos: 1–6 arma directa (rueda.js) · ESC o P pausa · ESC/⌫ (o ⌘+. en iPad) vuelve · ENTER · N música · M sonido.
+//   En la pausa, Q sale al menú (la Q no es "salir" durante el juego: es arma anterior).
+//   La S ya no cambia de arma (en WASD es abajo).
+// KB_ESQUEMAS es la tabla única: qué tecla hace qué en cada esquema. KEYMAP (lo que lee el juego) se arma con las dos
+// más las comunes; reasignar.js la cambia y la guarda. kbEsquema es el último esquema que se tocó (para los carteles).
+const KB_ESQUEMAS={
+  wasd:{KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',Space:'jump',KeyK:'jump',KeyJ:'shoot',KeyL:'bomb',KeyQ:'armaAnt',KeyE:'armaSig'},
+  flechas:{ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right',KeyZ:'jump',KeyX:'shoot',KeyC:'bomb',Tab:'air'}};
+const KB_COMUNES={KeyN:'music',KeyM:'mute',KeyP:'pause',Escape:'back',Backspace:'back',Enter:'start'};
+const KEYMAP={...KB_ESQUEMAS.wasd,...KB_ESQUEMAS.flechas,...KB_COMUNES};
+// el último esquema tocado (ESPACIO, 1–6, ESC, P y ENTER no lo cambian); de entrada, WASD
+let kbEsquema='wasd';
+const KB_DE={};for(const e in KB_ESQUEMAS)for(const c in KB_ESQUEMAS[e])if(c!=='Space')KB_DE[c]=e;
 // ---------- CONTROLES SIMPLES (simple.js) ----------
 // De a 2 con un solo teclado (el jugador 2 entra con . en la elección de personaje): cada uno 4 direcciones + 2 teclas.
 //   J1: W A S D · F disparar · G granada.   J2: flechas · . disparar · , granada.   ↑ (W) salta, el apuntado es automático.
@@ -36,7 +47,10 @@ addEventListener('keydown',e=>{
   // jugador 2 por teclado: entra con . en la elección de personaje, si no hay un joystick que ya sea el jugador 2
   if(e.code==='Period'&&state==='select'&&p2Pad<0&&!kb2On()){e.preventDefault();kb2Entrar();return;}
   if(kb2On()){const b=KEYMAP_J2[e.code];if(b){e.preventDefault();if(!kb2St[b])pressed2[b]=true;kb2St[b]=true;return;}}
+  // en la pausa, Q sale al menú (en el juego es arma anterior)
+  if(state==='pause'&&e.code==='KeyQ'&&!kb2On()){e.preventDefault();pressed.quit=true;return;}
   const a=mapaJ1()[e.code];if(!a)return;e.preventDefault();
+  if(mapaJ1()===KEYMAP&&KB_DE[e.code]&&KB_DE[e.code]!==kbEsquema){kbEsquema=KB_DE[e.code];if(typeof REA_etiquetas==='function')REA_etiquetas();}
   if(!keys[a])pressed[a]=true;keys[a]=true;
 });
 function kb2Entrar(){p2Pad=KB2;for(const k in kb2St)kb2St[k]=false;clearKeys();p2Ci=charIdx===2?0:2;if(typeof colFix==='function')colFix(charIdx,p2Ci);
@@ -75,7 +89,11 @@ function readPad(gp){
   let sl=ux<-0.3,sr=ux>0.3,su=uy<-0.5,sd=uy>0.6;
   if(typeof state!=='undefined'&&state!=='play'&&(sl||sr)&&(su||sd)){if(Math.abs(ux)>Math.abs(uy))su=sd=false;else sl=sr=false;}
   st.left=b(14)||sl;st.right=b(15)||sr;st.up=b(12)||su;st.down=b(13)||sd;
-  st.jump=b(0);st.shoot=b(2)||b(5)||b(7);st.bomb=b(1)||b(6);st.swap=b(3);st.air=b(4);st.pause=b(9);st.back=b(8);st.start=b(9)||b(0);st.opt=b(9);
+  // botones reasignables (reasignar.js); los gatillos siguen disparando y tirando granada si no se cambió eso
+  const RB=(a,d)=>typeof REA_boton==='function'?REA_boton(a,d):d,RC=a=>typeof REA_padCambiado==='function'&&REA_padCambiado(a);
+  st.jump=b(RB('jump',0));st.shoot=b(RB('shoot',2))||(!RC('shoot')&&b(7));st.bomb=b(RB('bomb',1))||(!RC('bomb')&&b(6));st.swap=b(RB('swap',3));st.air=b(RB('air',10));
+  st.armaAnt=b(4);st.armaSig=b(5); // L1 y R1: arma anterior y siguiente, siempre (rueda.js); el avión pasó a L3 (y a la rueda)
+  st.pause=b(9);st.back=b(8);st.start=b(9)||b(RB('jump',0));st.opt=b(9);
   return st;
 }
 function pollPad(){
@@ -127,8 +145,9 @@ const heldRaw=a=>inSlot?!!padSt2[a]:!!(keys[a]||padState[a]);
 // con la rueda de armas abierta (rueda.js), las flechas son de la rueda: el jugador no se mueve ni apunta
 const RU_DIRS={left:1,right:1,up:1,down:1};
 // con CONTROLES SIMPLES (simple.js) saltar es ↑, el apuntado es automático y no hay rueda ni avión
-const held=a=>RU_DIRS[a]&&typeof ruAbiertaDe==='function'&&ruAbiertaDe(inSlot)?false:typeof simpleDe==='function'&&P&&simpleDe(inSlot)?simHeld(a):heldRaw(a);
-const tapped=a=>typeof simpleDe==='function'&&P&&simpleDe(inSlot)?simTapped(a):inSlot?!!pressed2[a]:!!pressed[a];
+const held=a=>typeof MC_manda==='function'&&MC_manda()?(a==='shoot'&&typeof ACC!=='undefined'&&ACC.disparo==='alternado'?(ACC_fuegoAlt(),false):MC_held(a)): // (con ALTERNADO, el toque cuenta aunque el personaje vaya caminando solo)
+  a==='shoot'&&typeof ACC!=='undefined'&&ACC.disparo==='alternado'?ACC_fuegoAlt():RU_DIRS[a]&&typeof ruAbiertaDe==='function'&&ruAbiertaDe(inSlot)?false:typeof simpleDe==='function'&&P&&simpleDe(inSlot)?simHeld(a):heldRaw(a);
+const tapped=a=>typeof MC_manda==='function'&&MC_manda()?MC_tapped(a):typeof simpleDe==='function'&&P&&simpleDe(inSlot)?simTapped(a):inSlot?!!pressed2[a]:!!pressed[a];
 // el joystick i, en la pantalla de personaje, suma al jugador 2 con ✕: no es el del jugador 1 (dev1)
 const padJoins=i=>state==='select'&&p2Pad<0&&i!==dev1;
 // hay un joystick libre para sumar al jugador 2 (ni el del jugador 2 ni el del jugador 1)
@@ -142,11 +161,12 @@ const padFree=()=>{for(const i of padSeen)if(i!==p2Pad&&i!==dev1)return true;ret
 //   quién: nada = el último control de cualquiera (pantallas compartidas) · 0 = jugador 1 · 1 = jugador 2 (p2Pad)
 //          'free' = un joystick libre (para sumar al jugador 2) · 'pad' = el último joystick · {i:n} = el joystick n
 // Acciones: jump ok bomb shoot swap quit air r1 l2 r2 back opt start. onPad(quién) dice si es un joystick.
-const PAD_LBL={ps:['✕','○','□','△','L1','R1','L2','R2','CREATE','OPTIONS'],
-  xb:['A','B','X','Y','LB','RB','LT','RT','VISTA','MENÚ'],
-  ns:['B','A','Y','X','L','R','ZL','ZR','−','+']};
-const BTN_PAD={jump:0,ok:0,bomb:1,shoot:2,swap:3,quit:3,air:4,r1:5,l2:6,r2:7,back:8,opt:9,start:9};
-const BTN_KB={jump:'X',ok:'ENTER',bomb:'C',shoot:'Z',swap:'S',quit:'Q',air:'S',r1:'Z',l2:'C',r2:'Z',back:'ESC/⌫',opt:'P',start:'ENTER',up:'↑',down:'↓',left:'←',right:'→'};
+const PAD_LBL={ps:['✕','○','□','△','L1','R1','L2','R2','CREATE','OPTIONS','L3','R3'],
+  xb:['A','B','X','Y','LB','RB','LT','RT','VISTA','MENÚ','LS','RS'],
+  ns:['B','A','Y','X','L','R','ZL','ZR','−','+','L3','R3']}; // 10 y 11: palancas apretadas (el avión va en L3)
+const BTN_PAD={jump:0,ok:0,bomb:1,shoot:2,swap:3,quit:3,air:10,l1:4,r1:5,l2:6,r2:7,back:8,opt:9,start:9};
+// (reasignar.js los rehace según el último esquema tocado: REA_etiquetas)
+const BTN_KB={jump:'ESPACIO',ok:'ENTER',bomb:'L',shoot:'J',swap:'Q/E',quit:'Q',air:'Q/E',r1:'J',l2:'L',r2:'J',back:'ESC/⌫',opt:'P',start:'ENTER',up:'W',down:'S',left:'A',right:'D',armaAnt:'Q',armaSig:'E'};
 // controles simples: 1 jugador (flechas, Z, X) y de a 2 con un teclado (J1 a la izquierda, J2 a la derecha)
 const BTN_KBS={...BTN_KB,jump:'↑',bomb:'X',l2:'X',swap:'—',air:'—'};
 const BTN_KB1={...BTN_KB,jump:'W',shoot:'F',r1:'F',r2:'F',bomb:'G',l2:'G',swap:'—',air:'—',up:'W',down:'S',left:'A',right:'D'};
@@ -191,7 +211,7 @@ function onTouch(){return !!window.OXIDO_TOQUE;}
 const BTN_TOUCH={ok:'✕',start:'✕',jump:'✕',shoot:'□',r1:'□',r2:'□',bomb:'○',l2:'○',swap:'△',air:'△',quit:'△',back:'○',opt:'II'};
 function btn(a,who){if(onTouch()&&(who===undefined||who===0)&&BTN_TOUCH[a])return BTN_TOUCH[a];
   const d=devOf(who);if(d<0)return kbBtns(who)[a];
-  if(a==='up'||a==='down'||a==='left'||a==='right')return BTN_KB[a];
+  if(a==='up'||a==='down'||a==='left'||a==='right')return {up:'↑',down:'↓',left:'←',right:'→'}[a];
   return PAD_LBL[(padInfo[d]&&padInfo[d].brand)||'ps'][BTN_PAD[a]];}
 // joystick con mapeo que no es 'standard': un aviso, una sola vez por joystick (se sigue pudiendo jugar)
 const padNotes=[],padNoteSeen=new Set(),PAD_NOTE_T=330;

@@ -3,9 +3,11 @@
 // Selva en capas, volcán lejano, cascadas, cuellos largos que pastan y ruinas tomadas por raíces.
 // Prefijo M8_ en todo lo global.
 // La acción que identifica la misión (el único guiño): el gigante se anuncia antes de aparecer. Temblores rítmicos
-// que hacen saltar el agua de los charcos en círculos, sacuden helechos y piedritas, espantan a los pájaros y
-// mueven la cámara, cada vez más fuertes, hasta que asoma. A mitad de la misión cruza la selva: hay que meterse
-// en el tronco hueco. Al final vuelve como villano (PISATRUENO, ver jefes8.js).
+// que levantan polvo y piedritas, hacen caer hojas, espantan a los pájaros y mueven la cámara, cada vez más fuertes,
+// hasta que asoma (los charcos son decoración: no marcan nada). A mitad de la misión cruza la selva: hay que meterse en
+// el tronco hueco; el gigante PASA DE LARGO por encima (el tronco tiembla y suelta aserrín), sin pararse a olfatear.
+// Al final vuelve como villano (PISATRUENO, ver jefes8.js). Las garras atacan POR TURNOS (una salta y la otra espera,
+// con otro ritmo), sin repartirse "una distrae y la otra flanquea". Los cuellos largos del fondo son máquinas de pastar.
 
 // ================== datos de la misión ==================
 const M8_LVL={name:'MISIÓN 8 · VALLE DEL TRUENO',short:'8 · VALLE DEL TRUENO',theme:'selva',end:3380,music:'l8',
@@ -30,7 +32,7 @@ const M8_LVL={name:'MISIÓN 8 · VALLE DEL TRUENO',short:'8 · VALLE DEL TRUENO'
   prisoners:[{x:290,k:'ally'},{x:830,y:102,k:'item'},{x:1530,k:'item'},{x:1810,y:102,k:'ally'},{x:2010,y:60,k:'item'},
     {x:2330,k:'item'},{x:2770,y:104,k:'item'},{x:3010,k:'ally'}],
   extraPrisoners:[{x:1850,y:64,p:0.75,k:'ally'},{x:2580,p:0.4,k:'item'}],
-  // charcos (k:'charco'): el agua marca cada temblor con círculos. Hay uno pegado a la entrada del tronco.
+  // charcos (k:'charco'): decoración (agua que refleja el cielo).
   decor:[{x:30,k:'helecho'},{x:120,k:'huesos'},{x:186,k:'helecho'},{x:300,k:'charco'},{x:430,k:'hongo'},{x:556,k:'nido'},
     {x:640,k:'charco'},{x:672,k:'helecho'},{x:780,k:'huesos'},{x:930,k:'hongo'},{x:990,k:'charco'},{x:1060,k:'helecho'},
     {x:1250,k:'charco'},{x:1296,k:'helecho'},{x:1418,k:'charco'},{x:1446,k:'hongo'},{x:1640,k:'charco'},{x:1668,k:'helecho'},
@@ -78,7 +80,7 @@ if(typeof KILL_NAMES!=='undefined')KILL_NAMES.push(['garra','garras']);
 // ================== utilidades y paleta ==================
 const M8_sfx=(n,...a)=>{if(typeof SFX!=='undefined'&&SFX[n])SFX[n](...a);};
 const M8_C={musgo:'#4a7a2a',musgoC:'#7aa83a',musgoO:'#2a4a1a',hoja:'#2e5a2a',tierra:'#2a1e14',corteza:'#5a3a22',cortezaC:'#8a6040',
-  piedra:'#5a6252',piedraC:'#8a9478',piedraO:'#333a30',agua:'#1e3a40',aguaC:'#9ad0c8',pluma:'#ff6a2a',plumaC:'#ffc040',
+  piedra:'#5a6252',piedraC:'#8a9478',piedraO:'#465044',agua:'#2e5258', /* más claros a la altura del cuerpo (contraste, Dirección de Arte) */aguaC:'#9ad0c8',pluma:'#ff6a2a',plumaC:'#ffc040',
   garra:'#54406a',garraO:'#3a2a4c',panza:'#c9b48e',ojo:'#ffe04a'};
 const M8_TUN=M8_LVL.tunnels[0];
 function M8_pc(p){p=p||P;return p.ride?{x:p.ride.x+p.ride.w/2,y:p.ride.y+p.ride.h/2}:{x:p.x+4,y:p.y+9};}
@@ -95,14 +97,15 @@ function M8_reset(){
 ON_START.push(()=>{if(L===M8_LVL)M8_reset();});
 
 // ================== TEMBLOR: la pisada que se siente antes de ver ==================
-// Cada pisada queda anotada (M8.th): los charcos dibujan sus círculos desde ahí. k va de 0 (lejos) a 1 (al lado).
+// Cada pisada queda anotada (M8.th). k va de 0 (lejos) a 1 (al lado).
 function M8_thump(k){
   k=clamp(k,0.05,1);
   M8.th.push({t:T,k});if(M8.th.length>8)M8.th.shift();
   M8.trem=Math.max(M8.trem,k);if(k>0.3)M8.alert=Math.max(M8.alert,1);
   shake=Math.max(shake,0.5+k*3.2);
   M8_sfx('m8paso',k);
-  if(k>0.25&&M8_LVL.decor.some(d=>d.k==='charco'&&d.x>camX&&d.x<camX+VW))later(90,()=>M8_sfx('m8gota'));
+  // polvo que se levanta del piso con cada pisada (el aviso se ve en el polvo, las hojas, los pájaros y la cámara)
+  for(let i=0;i<Math.round(1+k*4);i++)parts.push({k:'smoke',col:'150,140,110',x:camX+rand(4,W-4),y:GROUND-1,vx:rand(-0.3,0.3),vy:-rand(0.1,0.4),life:rand(20,34),maxl:34,size:rand(1.5,2.5+k*2)});
   // piedritas que saltan del piso
   const n=Math.round(2+k*7);
   for(let i=0;i<n;i++)parts.push({k:'p',x:camX+rand(4,W-4),y:GROUND-1,vx:rand(-0.3,0.3),vy:-rand(0.6,1.1+k*1.6),g:0.16,life:rand(16,26),maxl:26,size:Math.random()<0.3?1.5:1,col:i%2?'#6a6a58':'#4a4034'});
@@ -126,8 +129,8 @@ function M8_birdsUpd(){
 
 // ================== EL PASO DEL GIGANTE (mitad de la misión) ==================
 // 8 s de temblores que crecen (charcos, helechos, piedritas, pájaros, cámara), aviso de esconderse y el cruce.
-// El gigante entra por la derecha caminando hacia la izquierda, se para encima del tronco y olfatea la entrada,
-// ruge y sigue. Adentro del tronco no te ve. Afuera, su cuerpo y su cabeza pegan (1 golpe y te empuja).
+// El gigante entra por la derecha caminando hacia la izquierda y PASA DE LARGO por encima del tronco (que tiembla y
+// suelta aserrín), sin pararse. Adentro del tronco no te ve. Afuera, su cuerpo y su cabeza pegan (1 golpe y te empuja).
 const M8_PRE_AT=560,M8_PASO_AT=1240;
 const M8_GOLPES=[[0,0.14],[80,0.22],[150,0.3],[215,0.4],[272,0.5],[324,0.6],[372,0.7],[414,0.8],[452,0.9]];
 function M8_mkGig(x){return{x,face:-1,anim:0,st:'walk',t:0,head:0,jaw:0,lift:0,bite:0,biteU:0,biteY:0,eyeRed:0,plates:1,flash:0,sniffed:false,step:0,tilt:0,sink:0,steam:0};}
@@ -180,7 +183,9 @@ function M8_gigUpd(g,s){
   g.t++;if(g.flash>0)g.flash--;
   if(g.st==='walk'){
     M8_gigWalk(g,1.15,1);g.head+=(0-g.head)*0.08;g.jaw*=0.9;
-    if(!g.sniffed){const t=M8_TUN,ok=t.x+t.w>camX&&t.x<camX+VW,sx=ok?t.x+50:camX+VW*0.55;if(g.x<=sx){g.st='sniff';g.t=0;g.sniffed=true;}}
+    // pasa por encima del tronco: tiembla y suelta aserrín (no se para)
+    const t=M8_TUN;if(g.x<t.x+t.w+30&&g.x>t.x-60){if(g.t%10===0){shake=Math.max(shake,1.6);for(let i=0;i<4;i++)parts.push({k:'p',x:t.x+rand(6,t.w-6),y:t.y+10,vx:rand(-0.2,0.2),vy:rand(0.2,0.6),g:0.06,life:rand(26,40),maxl:40,size:1,col:'#8a6a44'});}}
+    if(!g.sniffed&&g.x<t.x-60)g.sniffed=true; // ya pasó (el nombre quedó del gesto viejo)
   }else if(g.st==='sniff'){
     g.head=g.t<84?Math.min(1,g.head+0.035):Math.max(0,g.head-0.06);
     if(g.t%28===14&&g.t<84)M8_resoplido(g);
@@ -207,14 +212,14 @@ function M8_pasoUpd(){
     if(s.g.x<camX-125){s.st='aleja';s.t=0;}
   }else if(s.st==='aleja'){
     if(s.t===30)M8_thump(0.55);if(s.t===80)M8_thump(0.35);if(s.t===130)M8_thump(0.16);
-    if(s.t===40){if(!s.hit){toast('¡NI TE OLIÓ!','+1000 por esconderte','#c8e070');addScore(1000,camX+VW/2,70);}else setBanner('SE ALEJA…',90);}
+    if(s.t===40){if(!s.hit){toast('¡NO TE VIO!','+1000 por esconderte','#c8e070');addScore(1000,camX+VW/2,70);}else setBanner('SE ALEJA…',90);}
     if(s.t>=160)s.st='done';
   }
 }
 // aviso: flechas sobre la entrada del tronco mientras hay que esconderse
 ON_DRAW.push(()=>{
   if(L!==M8_LVL)return;const s=M8.paso;
-  const show=(s.st==='temblor'&&s.t>=240)||(s.st==='cruce'&&s.g.st==='walk'&&!s.g.sniffed);
+  const show=(s.st==='temblor'&&s.t>=240)||(s.st==='cruce'&&!s.g.sniffed);
   if(!show)return;const t=M8_TUN;if(t.x+t.w<camX||t.x>camX+VW)return;
   const on=(T>>3)%2,bob=Math.sin(T/6)*1.5;
   for(const ax of [t.x+16,t.x+t.w-16]){const y=t.y-14+bob;
@@ -225,11 +230,11 @@ ON_DRAW.push(()=>{
   ctx.fillStyle=`rgba(200,224,112,${on?0.10:0.05})`;ctx.fillRect(t.x+4,t.y+10,t.w-8,GROUND-t.y-10);
 });
 
-// ================== GARRAS: cazadoras de a dos ==================
-// Plumas violeta oscuro, cresta y cola naranja. Cazan de a dos: una DISTRAE (se queda adelante, chilla y amaga)
-// y la otra FLANQUEA (busca tu espalda, aunque tenga que saltarte por arriba sin tocarte). Atacan de a una:
-// la que tiene el turno se AGAZAPA (cresta que titila, cola arriba, tres chasquidos) y SALTA a donde estabas
-// al terminar el aviso. Después cambian de papel. Mueren con 3 tiros. Una sola, sin pareja, ataca por su cuenta.
+// ================== GARRAS: cazadoras que se turnan ==================
+// Plumas violeta oscuro, cresta y cola naranja. De a dos se TURNAN: la que tiene el turno se acerca, se AGAZAPA (cresta
+// que titila, cola arriba) y SALTA a donde estabas al terminar el aviso; la otra espera más lejos, de su mismo lado,
+// con otro ritmo, y después le toca a ella. No se reparten papeles (nada de "una distrae y la otra flanquea") ni te
+// rodean por la espalda. Mueren con 3 tiros. Una sola, sin pareja, ataca por su cuenta.
 function M8_mkGarra(x,y){
   const fromL=Math.abs(x-(camX-20))<0.5;
   const yy=y===undefined?GROUND-12:Math.min(GROUND-12,y+6);
@@ -237,16 +242,21 @@ function M8_mkGarra(x,y){
     st:'corre',t:0,anim:rand(0,99),onGround:false,plat:null,crouch:0,head:0,mouth:0,partner:null,role:'solo',hitD:false,spd:rand(1.45,1.65),
     upd:M8_updGarra,draw:M8_drawGarra,onKill:M8_killGarra};
   const p=enemies.find(o=>o.type==='garra'&&!o.gone&&!o.partner);
-  if(p){p.partner=e;e.partner=p;p.role='distrae';e.role='flanquea';e.cd=rand(70,100);}
+  // de a dos entran por el MISMO lado, una detrás de la otra: la segunda espera afuera de la pantalla hasta que la
+  // primera saltó y volvió (Investigación, revisión de la 2ª ronda: nada de una a cada lado, que se lee como pinza)
+  if(p){p.partner=e;e.partner=p;p.role='turno';e.role='espera';e.dormida=true;e.cd=rand(70,100);
+    const der=p.x>camX+VW/2;e.x=der?Math.max(e.x,camX+VW+20):Math.min(e.x,camX-34);e.face=der?-1:1;}
   return e;
 }
 ENEMY_MAKERS.garra=M8_mkGarra;
 function M8_turnoFin(e){
   const o=e.partner;
-  if(o&&!o.gone){e.role='distrae';o.role='flanquea';o.cd=rand(55,85)*DIFF().fire;e.ccd=rand(40,80);}
+  if(o&&!o.gone){e.role='espera';o.role='turno';o.cd=rand(80,130)*DIFF().fire;} // le toca a la otra, con su ritmo
   else{e.role='solo';e.cd=rand(90,140)*DIFF().fire;}
 }
 function M8_updGarra(e){
+  if(e.dormida){const o=e.partner;if(!o||o.gone||((o.saltos||0)>0&&o.st==='corre')){e.dormida=false;e.role=o&&!o.gone?'turno':'solo';if(o&&!o.gone)o.role='espera';}
+    else{e.vx=0;e.vy=0;return;}}
   if(e.flash>0)e.flash--;e.anim++;
   if(e.partner&&e.partner.gone){e.partner=null;e.role='solo';if(e.cd>200)e.cd=rand(60,100);}
   const pc=P.dead?null:M8_pc(),ex=e.x+e.w/2,dx=pc?pc.x-ex:0,ad=Math.abs(dx);
@@ -257,25 +267,21 @@ function M8_updGarra(e){
     e.crouch*=0.8;e.head*=0.85;e.mouth*=0.8;
     if(!pc){e.vx*=0.8;break;}
     if(e.onGround)e.face=dx<0?-1:1;
-    // lado buscado: la que flanquea va al lado contrario de su pareja
-    const mine=Math.sign(ex-pc.x)||1;
-    const side=e.role==='flanquea'&&e.partner?(-Math.sign(e.partner.x+7-pc.x)||1):mine;
-    const want=e.role==='distrae'?64:e.role==='flanquea'?50:56;
+    // cada una se queda de su lado; la que espera, más lejos
+    const mine=Math.sign(ex-pc.x)||1,side=mine;
+    const want=e.role==='espera'?84:56;
     const tx=clamp(pc.x+side*want,camX+12,camX+VW-12);
-    // rodeo: para cruzar al otro lado salta por arriba del jugador (sin tocarlo)
-    if(side!==mine&&ad<46&&e.onGround&&Math.abs(pfy-efy)<12){e.st='rodeo';e.vy=-4.6;e.vx=side*1.9;e.face=side;e.onGround=false;e.plat=null;M8_sfx('m8salto');break;}
     const d=tx-ex,sp=e.spd*(Math.abs(d)<10?0.3:1);
     e.vx+=(clamp(d*0.08,-sp,sp)-e.vx)*0.25;
     if(!onScreen(e,-8)){e.vx=e.x<camX?Math.max(e.vx,1.4):Math.min(e.vx,-1.4);break;}
-    // la que distrae chilla y amaga (no pega)
-    if(e.role==='distrae'&&--e.ccd<=0&&e.onGround&&ad<120){e.st='chilla';e.t=44;M8_sfx('m8chillido');break;}
+    // la que espera, de vez en cuando chilla en su lugar (no amaga ni se mete)
+    if(e.role==='espera'&&--e.ccd<=0&&e.onGround&&ad<140){e.st='chilla';e.t=30;M8_sfx('m8chillido');break;}
     // la del turno se agazapa
     const reach=efy-pfy<56;
-    if(e.role!=='distrae'&&e.onGround&&ad<130&&reach&&--e.cd<=0){e.st='agazapa';e.t=34;e.vx=0;M8_sfx('m8agazape');}
+    if(e.role!=='espera'&&e.onGround&&ad<130&&reach&&--e.cd<=0){e.st='agazapa';e.t=34;e.vx=0;M8_sfx('m8agazape');}
     break;}
   case 'chilla':
     e.vx*=0.7;e.head=Math.min(1,e.head+0.15);e.mouth=e.t>8?1:e.mouth*0.7;if(pc)e.face=dx<0?-1:1;
-    if(e.t===24&&e.onGround){e.vy=-1.8;e.vx=e.face*1.1;e.onGround=false;e.plat=null;}   // amago corto
     if(--e.t<=0){e.st='corre';e.ccd=rand(90,150);}
     break;
   case 'agazapa':
@@ -288,7 +294,7 @@ function M8_updGarra(e){
       if(dh>8)vy=-Math.min(5.4,Math.sqrt(2*0.22*(dh+12)));
       if(under(pc.x)||under(ex))vy=-2.3;
       const n=Math.max(16,2*Math.abs(vy)/0.22);
-      e.vx=clamp(dx/n,-3.2,3.2);e.vy=vy;e.st='salta';e.hitD=false;e.onGround=false;e.plat=null;e.crouch=0;M8_sfx('m8salto');
+      e.saltos=(e.saltos||0)+1;e.vx=clamp(dx/n,-3.2,3.2);e.vy=vy;e.st='salta';e.hitD=false;e.onGround=false;e.plat=null;e.crouch=0;M8_sfx('m8salto');
     }else if(!pc&&e.t<=0){e.st='corre';}
     break;
   case 'salta':case 'rodeo':
@@ -535,7 +541,7 @@ const M8_CER=(()=>{const [c,g]=M8_canvas(760,56);
   for(let x=0;x<760;x+=10+M8_R()*12){const h=14+M8_R()*26;g.strokeStyle=M8_R()<0.5?'#0e1c12':'#122418';g.lineWidth=1.4;
     for(let i=0;i<5;i++){const a=-Math.PI/2+(i-2)*0.42;g.beginPath();g.moveTo(x,56);g.quadraticCurveTo(x+Math.cos(a)*h*0.5,56-h*0.7,x+Math.cos(a)*h*0.9,56-h*Math.abs(Math.sin(a))*0.95);g.stroke();}}
   g.fillStyle='#0e1c12';g.fillRect(0,50,760,6);return M8_franjas(c);})();
-// cuellos largos que pastan a lo lejos (posiciones en un lienzo de 760, se dibujan en vivo)
+// máquinas de pastar con cuello de grúa a lo lejos (posiciones en un lienzo de 760, se dibujan en vivo)
 const M8_CUELLOS=[{x:90,s:1,ph:0},{x:150,s:0.8,ph:2.2},{x:430,s:1.1,ph:4.1},{x:620,s:0.9,ph:1.3}];
 const M8_POLEN=Array.from({length:22},()=>({x:M8_R(),y:M8_R(),v:0.2+M8_R()*0.4,s:M8_R()}));
 let M8_SKY=null;
@@ -548,7 +554,7 @@ function M8_cielo(){
     const disco=(r,col)=>{g.fillStyle=col;g.beginPath();g.arc(84,58,r,0,7);g.fill();};
     disco(44,'rgba(255,240,190,0.07)');disco(26,'rgba(255,240,190,0.12)');disco(11,'rgba(255,246,214,0.45)');disco(7,'rgba(255,250,230,0.5)');
     M8_SKY=c;}
-  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(M8_SKY,0,0);ctx.restore();
+  GN_cubre(M8_SKY); // el cielo cubre lo que se ve, también en el lienzo chico (base.js)
 }
 function M8_volcan(){
   const vx=236-camX*0.02,top=GROUND-104;
@@ -568,26 +574,41 @@ function M8_cascadas(off,y0){
     ctx.fillStyle='rgba(240,255,250,0.7)';for(let i=0;i<4;i++){const yy=top+((T*0.9+i*13)%(bot-top));ctx.fillRect(x+(i%2)*2,yy,1.4,4);}
     ctx.fillStyle='rgba(220,240,236,0.25)';ctx.beginPath();ctx.ellipse(x+2,bot,9+Math.sin(T/12)*1.5,3,0,0,7);ctx.fill();}
 }
+// máquinas de pastar (mitad máquina): chasis con remaches sobre cuatro patas articuladas, cuello de grúa en dos
+// tramos rectos con bisagras y un cable tenso, y la cabeza es una pala con un foquito. Bajan la pala para "pastar";
+// si se asustan (temblores) levantan el brazo y el foquito se prende.
 function M8_cuello(c,x,base){
   const s=c.s,graze=(Math.sin(T/150+c.ph)+1)/2,up=Math.max(M8.alert,0);
-  const a=-0.15-up*0.9+graze*(1-up)*0.95;   // ángulo del cuello: arriba si se asustan, abajo si pastan
-  const col='#3a625a',bx=x,by=base-10*s;
+  const a=-0.15-up*0.9+graze*(1-up)*0.95;   // ángulo del brazo: arriba si se asustan, abajo si pastan
+  const col='#3a625a',osc='#2c4e48',bx=x,by=base-10*s;
   ctx.fillStyle=col;
-  // patas
-  for(const dx of [-9,-4,5,10]){ctx.fillRect(bx+dx*s,by+2*s,2.4*s,8*s);}
-  // cuerpo y cola
-  ctx.beginPath();ctx.ellipse(bx,by,14*s,6*s,0,0,7);ctx.fill();
-  ctx.beginPath();ctx.moveTo(bx-12*s,by-2*s);ctx.quadraticCurveTo(bx-26*s,by,bx-34*s,by+6*s);ctx.lineTo(bx-12*s,by+3*s);ctx.fill();
-  // cuello largo
-  const nx=bx+12*s,ny=by-3*s,L1=26*s,ex=nx+Math.cos(-1.1+a)*L1,ey=ny+Math.sin(-1.1+a)*L1;
-  ctx.strokeStyle=col;ctx.lineWidth=3*s;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(nx,ny);ctx.quadraticCurveTo(nx+8*s,ny-14*s*(1-a),ex,ey);ctx.stroke();ctx.lineCap='butt';
-  ctx.beginPath();ctx.ellipse(ex+2*s,ey,3.2*s,2*s,0,0,7);ctx.fill();
+  // patas articuladas (muslo y caña en ángulo, con pie plano)
+  for(const dx of [-10,-4,5,11]){const kx=bx+dx*s,ky=by+5*s,fx=kx+(dx<0?-2:2)*s;
+    ctx.strokeStyle=col;ctx.lineWidth=2*s;ctx.beginPath();ctx.moveTo(kx,by+2*s);ctx.lineTo(fx,ky);ctx.lineTo(kx,by+10*s);ctx.stroke();
+    ctx.fillRect(kx-2*s,by+10*s,4*s,1.2*s);}
+  // chasis: caja con techo inclinado, remaches y un caño de escape atrás
+  ctx.beginPath();ctx.moveTo(bx-14*s,by+3*s);ctx.lineTo(bx-14*s,by-4*s);ctx.lineTo(bx-6*s,by-7*s);ctx.lineTo(bx+13*s,by-7*s);ctx.lineTo(bx+14*s,by+3*s);ctx.closePath();ctx.fill();
+  ctx.fillStyle=osc;ctx.fillRect(bx-12*s,by-1*s,24*s,1.2*s);
+  for(let i=0;i<5;i++)ctx.fillRect(bx-10*s+i*5*s,by+1*s,1*s,1*s);
+  ctx.fillStyle=col;ctx.fillRect(bx-12*s,by-12*s,2*s,6*s);
+  if(T%40<20){ctx.fillStyle='rgba(150,170,160,0.25)';circle(bx-11*s,by-14*s-(T%20)*0.2*s,1.6*s);}
+  // brazo de grúa: dos tramos rectos con bisagras
+  const nx=bx+11*s,ny=by-6*s,L1=15*s,L2=14*s;
+  const a1=-1.25+a*0.5,ex1=nx+Math.cos(a1)*L1,ey1=ny+Math.sin(a1)*L1;
+  const a2=-0.35+a*1.2,ex2=ex1+Math.cos(a2)*L2,ey2=ey1+Math.sin(a2)*L2;
+  ctx.strokeStyle=col;ctx.lineWidth=2.6*s;ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(ex1,ey1);ctx.lineTo(ex2,ey2);ctx.stroke();
+  ctx.strokeStyle=osc;ctx.lineWidth=0.6*s;ctx.beginPath();ctx.moveTo(nx-3*s,ny+1*s);ctx.lineTo(ex1,ey1-1.5*s);ctx.lineTo(ex2,ey2);ctx.stroke(); // cable
+  ctx.fillStyle=osc;circle(nx,ny,1.6*s);circle(ex1,ey1,1.6*s);
+  // cabeza: pala con dientes y foquito
+  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(ex2-1*s,ey2-2.5*s);ctx.lineTo(ex2+5*s,ey2-1.5*s);ctx.lineTo(ex2+5*s,ey2+2.5*s);ctx.lineTo(ex2-1*s,ey2+2*s);ctx.closePath();ctx.fill();
+  for(let i=0;i<3;i++)ctx.fillRect(ex2+i*2*s,ey2+2.5*s,1*s,1.2*s);
+  ctx.fillStyle=up>0.2?`rgba(255,200,110,${0.5+0.4*up})`:'rgba(190,200,170,0.35)';ctx.fillRect(ex2+3.6*s,ey2-1.2*s,1.4*s,1.4*s);
 }
 M8_LVL.drawBG=function(){
   M8_cielo();
   M8_volcan();
   const lo=((camX*0.08)%720+720)%720;M8_capa(M8_LEJ,lo,GROUND-118);M8_cascadas(lo,GROUND-118);
-  // cuellos largos en el claro del fondo
+  // máquinas de cuello largo en el claro del fondo
   const co=((camX*0.15)%760+760)%760;
   for(const c of M8_CUELLOS)for(const rep of [0,760]){const x=c.x-co+rep;if(x<-50||x>W+50)continue;M8_cuello(c,x,GROUND-34);}
   // niebla baja entre capas
@@ -622,10 +643,12 @@ M8_LVL.drawGround=function(){
 };
 
 // ================== capa de arriba: rayos de luz, hojas que cuelgan y polen ==================
-M8_LVL.drawFx=function(){
-  // rayos de luz entre las copas
+// rayos de luz entre las copas: detrás de los personajes (juego.js, drawWorld)
+M8_LVL.drawFxFondo=function(){
   for(let i=0;i<3;i++){const x=40+i*110-((camX*0.05)%110),a=0.05+0.025*Math.sin(T/70+i*2);
     ctx.fillStyle=`rgba(255,246,200,${a})`;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+16,0);ctx.lineTo(x+56,GROUND);ctx.lineTo(x+26,GROUND);ctx.closePath();ctx.fill();}
+};
+M8_LVL.drawFx=function(){
   // polen y bichitos de luz
   for(const m of M8_POLEN){const x=((m.x*W-camX*0.8+Math.sin(T/50+m.s*9)*6)%W+W)%W,y=((m.y*H-T*0.12*m.v)%H+H)%H;
     ctx.fillStyle=m.s>0.85?'rgba(230,255,140,0.7)':'rgba(255,250,220,0.35)';ctx.fillRect(x,y,m.s>0.85?1.2:0.8,m.s>0.85?1.2:0.8);}
@@ -640,23 +663,14 @@ M8_LVL.drawFx=function(){
 };
 
 // ================== decorado ==================
-// charco: agua oscura que refleja el cielo; cada pisada (M8.th) abre tres círculos que se agrandan
+// charco: agua oscura que refleja el cielo (solo decoración)
 function M8_drawCharco(d){
   const x=d.x+16,y=GROUND+7,rx=17,ry=3.4;
   ctx.fillStyle='#16241a';ctx.beginPath();ctx.ellipse(x,y+0.6,rx+1.5,ry+1,0,0,7);ctx.fill();
   ctx.fillStyle=M8_C.agua;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();
-  const jit=M8.trem>0.1?Math.sin(T*1.3)*M8.trem*0.6:0;
+  const jit=0;
   ctx.fillStyle='rgba(154,208,200,0.35)';ctx.fillRect(x-rx*0.55+jit,y-ry*0.45,rx*0.7,0.7);
   ctx.fillStyle='rgba(255,246,214,0.35)';ctx.fillRect(x+rx*0.25-jit,y-ry*0.2,3,0.6);
-  ctx.save();ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.clip();
-  ctx.lineWidth=0.8;
-  for(const th of M8.th)for(let i=0;i<3;i++){const a=T-th.t-i*7;if(a<0||a>48)continue;const r=1+a*0.36,al=Math.min(1,0.15+th.k*1.1)*(1-a/48);
-    ctx.strokeStyle=`rgba(207,236,226,${al})`;ctx.beginPath();ctx.ellipse(x,y,r,r*0.21,0,0,7);ctx.stroke();}
-  ctx.restore();
-  // con las pisadas fuertes el agua salta en gotitas
-  for(const th of M8.th){const a=T-th.t;if(th.k<=0.45||a<0||a>=14)continue;
-    ctx.fillStyle=`rgba(207,236,226,${0.9*(1-a/14)})`;const hgt=Math.sin(a/14*Math.PI)*th.k*5;
-    ctx.fillRect(x-0.5,y-hgt-1,1,1.2);if(th.k>0.7){ctx.fillRect(x-3,y-hgt*0.6-0.5,1,1);ctx.fillRect(x+2.6,y-hgt*0.7-0.5,1,1);}}
   // piedritas y pasto de la orilla
   ctx.fillStyle='#4a4a3a';ctx.fillRect(x-rx-1,y-1,2.4,1.6);ctx.fillRect(x+rx-2,y,2,1.4);
   ctx.fillStyle=M8_C.musgo;ctx.fillRect(x-rx+3,y-ry-0.6,0.8,1.6);ctx.fillRect(x+rx-6,y-ry-0.4,0.8,1.4);
@@ -739,12 +753,12 @@ function M8_roca(x,y,w,h){
 // árbol gigante: tronco desde el piso y una rama ancha arriba (la que se camina)
 function M8_arbol(pl){
   const x=pl.x,y=pl.y,w=pl.w,cx=x+w/2;
-  ctx.fillStyle='#24180e';ctx.fillRect(cx-6,y+4,12,GROUND-y-4);
+  ctx.fillStyle='#56402e';ctx.fillRect(cx-6,y+4,12,GROUND-y-4);
   ctx.fillStyle=M8_C.corteza;ctx.fillRect(cx-5,y+4,8,GROUND-y-4);
-  ctx.fillStyle='#3a2414';for(let yy=y+10;yy<GROUND;yy+=9)ctx.fillRect(cx-4+((yy*3)%4),yy,1,6);
+  ctx.fillStyle='#6a4a30';for(let yy=y+10;yy<GROUND;yy+=9)ctx.fillRect(cx-4+((yy*3)%4),yy,1,6);
   ctx.fillStyle='rgba(74,122,42,0.7)';ctx.fillRect(cx-5,y+20,3,10);ctx.fillRect(cx+1,y+48,2,8);
   // raíces
-  ctx.fillStyle='#24180e';ctx.beginPath();ctx.moveTo(cx-14,GROUND);ctx.quadraticCurveTo(cx-7,GROUND-4,cx-5,GROUND-12);ctx.lineTo(cx+5,GROUND-12);ctx.quadraticCurveTo(cx+8,GROUND-4,cx+15,GROUND);ctx.fill();
+  ctx.fillStyle='#56402e';ctx.beginPath();ctx.moveTo(cx-14,GROUND);ctx.quadraticCurveTo(cx-7,GROUND-4,cx-5,GROUND-12);ctx.lineTo(cx+5,GROUND-12);ctx.quadraticCurveTo(cx+8,GROUND-4,cx+15,GROUND);ctx.fill();
   // copa por detrás, a los costados (no tapa la rama)
   for(const [ox,oy,r,c] of [[-18,-6,9,'#1e3a22'],[20,-4,10,'#1e3a22'],[-10,-12,8,'#24442a'],[12,-12,8,'#24442a'],[0,-16,7,'#2e5434']]){
     ctx.fillStyle=c;ctx.beginPath();ctx.arc(cx+ox+Math.sin(T/70+ox)*0.6,y+oy,r,0,7);ctx.fill();}
@@ -790,8 +804,8 @@ function M8_tier(pl){
 // tronco hueco: por dentro madera oscura con anillos y hongos que brillan; el lomo con corteza y musgo
 function M8_troncoFondo(pl){
   const x=pl.x,y=pl.y,w=pl.w,iy=y+9;
-  ctx.fillStyle='#1a120c';ctx.fillRect(x+2,iy,w-4,GROUND-iy);
-  ctx.strokeStyle='#2a1c12';ctx.lineWidth=0.8;for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(x+4,iy+4+i*7);ctx.lineTo(x+w-4,iy+3+i*7+((i%2)?1:-1));ctx.stroke();}
+  ctx.fillStyle='#4a3628';ctx.fillRect(x+2,iy,w-4,GROUND-iy);ctx.fillStyle='#6a5038';ctx.fillRect(x+2,iy,w-4,1); // interior más claro, con borde de arriba claro (contraste)
+  ctx.strokeStyle='#5a4230';ctx.lineWidth=0.8;for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(x+4,iy+4+i*7);ctx.lineTo(x+w-4,iy+3+i*7+((i%2)?1:-1));ctx.stroke();}
   for(const [ox,h] of [[18,4],[22,6],[70,5],[100,4],[104,6]]){const hx=x+ox;ctx.fillStyle='#c8e070';ctx.fillRect(hx,GROUND-h,1,h);
     ctx.fillStyle=`rgba(200,240,140,${0.5+0.3*Math.sin(T/30+ox)})`;ctx.beginPath();ctx.ellipse(hx+0.5,GROUND-h,2,1,0,Math.PI,0);ctx.fill();}
   ctx.fillStyle='rgba(200,240,140,0.05)';ctx.fillRect(x+12,GROUND-10,100,10);

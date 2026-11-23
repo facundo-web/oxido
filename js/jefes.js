@@ -11,6 +11,7 @@ function isBoss(e){return !!e.isBoss;}
 // el cuerpo del jefe le pega a cualquier jugador que lo toque
 function bossContact(b){eachPlayer(()=>bossTouch(b));}
 function bossTouch(b){
+  if(b.touch===0)return; // touch 0: en ese momento no pega con el cuerpo
   const hb=hurtbox();
   if(!P.dead&&overlap(hb,b)){
     hurtPlayer(b.touch||2);
@@ -497,6 +498,7 @@ function updCeniza(b){
   const same=b.pLvl===b.plat;
   if(b.onGround&&!same&&(b.pLvl===null||pl.includes(b.pLvl)))b.lvlT++;else b.lvlT=0;
   b.air=!b.onGround;
+  b.touch=b.mode==='jump'?1:0; // con el cuerpo solo pega al caer de un salto (se ve venir); caminando o tirando fuego, no
   const keepIn=()=>{b.x=clamp(b.x,A+4,A+W-b.w-4);if(b.plat&&b.onGround)b.x=clamp(b.x,b.plat.x,b.plat.x+b.plat.w-b.w);};
   const nozzleFx=()=>{if(T%2===0){const n=cenNozzle(b);parts.push({k:'fire',x:n.x,y:n.y,vx:b.face*0.2,vy:-0.3,life:6,maxl:8,size:(T>>2)%2?2.2:1.2});}if(b.mt%8===0)noise(0.08,0.03,3000);};
   switch(b.mode){
@@ -524,7 +526,7 @@ function updCeniza(b){
   case 'jump':b.x+=b.vx;b.ang=-0.3;phys(!b.noPlat||b.y+b.h>GROUND-2);keepIn();
     if(b.onGround){b.mode='walk';b.cd=Math.max(b.cd,ph2?20:35);}break;
   case 'high':case 'low':case 'angled':{
-    phys(true);const tel=ph2?22:30,low=b.mode==='low';
+    phys(true);const tel=ph2?28:30,low=b.mode==='low'; // aviso de 0,45 s o más (accesibilidad)
     if(b.mt<=tel){
       if(low){b.kneel=Math.min(5,b.kneel+0.5);b.ang+=(0.33-b.ang)*0.3;}
       else if(b.mode==='high'){b.kneel=0;b.ang+=(-0.5-b.ang)*0.3;}
@@ -546,9 +548,9 @@ function updCeniza(b){
   case 'cans':{
     phys(true);b.kneel=Math.max(0,b.kneel-0.5);b.ang+=(-0.9-b.ang)*0.2;const n=ph2?4:3;
     if(b.mt>=20&&(b.mt-20)%10===0&&b.shots<n){
-      const lvY=b.pLvl?b.pLvl.y:GROUND,off=(b.shots-(n-1)/2)*26;let tx=pcx+off;
-      if(b.pLvl)tx=clamp(tx,b.pLvl.x+4,b.pLvl.x+b.pLvl.w-4);
-      cenCan(b,clamp(tx,A+12,A+W-12),lvY);b.shots++;}
+      const lvY=b.pLvl?b.pLvl.y:GROUND,off=(b.shots-(n-1)/2)*26;let xT=pcx+off; // (no "tx": es la función de textos.js)
+      if(b.pLvl)xT=clamp(xT,b.pLvl.x+4,b.pLvl.x+b.pLvl.w-4);
+      cenCan(b,clamp(xT,A+12,A+W-12),lvY);b.shots++;}
     if(b.shots>=n&&b.mt>=20+n*10+8){b.mode='walk';b.cd=ph2?40:60;}
     break;}
   }

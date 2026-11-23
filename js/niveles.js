@@ -4,7 +4,7 @@
 const LEVELS=[
  {name:'MISIÓN 1 · ZONA ÓXIDO',short:'1 · ZONA ÓXIDO',theme:'dusk',end:3300,music:'l1',
   platforms:[{x:300,y:124,w:56},{x:420,y:108,w:56},{x:700,y:120,w:80},{x:820,y:98,w:60},{x:960,y:122,w:70},{x:1110,y:124,w:56},{x:1230,y:106,w:50},
-    {x:1440,y:120,w:70},{x:1560,y:100,w:60},{x:1820,y:122,w:90},{x:2080,y:122,w:60},{x:2200,y:104,w:56},
+    {x:1440,y:120,w:80},{x:1560,y:100,w:60},{x:1820,y:122,w:90},{x:2080,y:122,w:60},{x:2200,y:104,w:56},
     {x:2380,y:118,w:70},{x:2500,y:98,w:60},{x:2640,y:122,w:80},{x:3000,y:118,w:46},
     // altas: cartel oxidado (encadenando saltos) y uno solo para el Grillo
     {x:862,y:60,w:40,hi:'sign'},{x:1622,y:62,w:44,hi:'sign'},{x:2900,y:84,w:44,hi:'sign'},
@@ -57,7 +57,7 @@ const LEVELS=[
  {name:'MISIÓN 2 · PUERTO CENIZA',short:'2 · PUERTO CENIZA',theme:'port',end:3400,music:'l2',
   platforms:[{x:260,y:130,w:56,box:'#8c3b2a'},{x:420,y:114,w:50,box:'#2f6a8a'},{x:470,y:130,w:56,box:'#b07a2a'},{x:720,y:126,w:70,box:'#3a7a4a'},
     {x:880,y:104,w:44,box:'#8c3b2a'},{x:924,y:126,w:60,box:'#2f6a8a'},{x:1150,y:126,w:50,box:'#b07a2a'},{x:1320,y:110,w:50,box:'#3a7a4a'},
-    {x:1560,y:120,w:70,box:'#2f6a8a'},{x:1700,y:100,w:50,box:'#8c3b2a'},{x:1750,y:124,w:60,box:'#b07a2a'},
+    {x:1560,y:120,w:70,box:'#2f6a8a'},{x:1672,y:100,w:50,box:'#8c3b2a'},{x:1750,y:124,w:60,box:'#b07a2a'},
     {x:2220,y:124,w:56,box:'#3a7a4a'},{x:2380,y:108,w:50,box:'#2f6a8a'},
     {x:2650,y:122,w:70,box:'#8c3b2a'},{x:2800,y:104,w:60,box:'#b07a2a'},{x:2860,y:126,w:56,box:'#3a7a4a'},
     {x:3140,y:112,w:44},{x:3300,y:112,w:44},

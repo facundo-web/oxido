@@ -1,11 +1,192 @@
-// Óxido · service worker: guarda el juego en el equipo para jugar sin conexión.
-// Este archivo es una plantilla: armar.mjs reemplaza VERSION y ARCHIVOS al generar dist/.
-const VERSION = "54cba1780abc";
-const ARCHIVOS = ["./","LICENCIA.txt","aviso-tactil.js","creditos.html","iconos/apple-touch-icon.png","iconos/favicon-32.png","iconos/favicon-64.png","iconos/icono-192.png","iconos/icono-512.png","iconos/icono-maskable-512.png","index.html","js/aliados.js","js/armados.js","js/armas.js","js/audio.js","js/avion.js","js/ayuda.js","js/base.js","js/camara.js","js/combate.js","js/comic.js","js/dibujito.js","js/economia.js","js/enemigos.js","js/entradas.js","js/espera.js","js/fusion.js","js/gatito.js","js/globos.js","js/grillo.js","js/guinos.js","js/historial.js","js/hud.js","js/input.js","js/jefes.js","js/jefes10.js","js/jefes4.js","js/jefes5.js","js/jefes6.js","js/jefes7.js","js/jefes8.js","js/jefes9.js","js/juego.js","js/jugador.js","js/medallas.js","js/mision10.js","js/mision3.js","js/mision4.js","js/mision5.js","js/mision6.js","js/mision7.js","js/mision8.js","js/mision9.js","js/momentos.js","js/mundo.js","js/mundos.js","js/musica10.js","js/musica3.js","js/musica4.js","js/musica5.js","js/musica6.js","js/musica7.js","js/musica8.js","js/musica9.js","js/niveles.js","js/partida.js","js/personajes.js","js/pieles.js","js/planta.js","js/recolectar.js","js/remolino.js","js/rueda.js","js/simple.js","js/sprites.js","manifest.webmanifest","privacidad.html","registrar.js","tactil.js"];
+// Óxido · service worker: guarda el juego entero en el equipo para jugar sin conexión (y sin gastar datos).
+// Este archivo es una plantilla: armar.mjs reemplaza VERSION y ARCHIVOS ([ruta, huella, bytes]) al generar dist/.
+//
+// Primera visita: baja todo (lo mide probar-web.mjs; ver PUBLICAR.md). Después el juego abre y se juega sin conexión.
+// Versión nueva: solo baja los archivos cuya huella cambió; los demás se copian de lo que ya estaba guardado.
+// Con ahorro de datos activado o red de celular (navigator.connection, donde el navegador lo dice; Safari de iPhone
+// no lo dice), si la actualización pesa más de CHICA se deja para más tarde: el juego sigue con la versión que tiene
+// y se vuelve a intentar en la próxima visita o al pasar a wifi (registrar.js).
+const VERSION = "4344367f3b21";
+const ARCHIVOS = [
+  ["LICENCIA.txt","49a1176ce7",275],
+  ["aviso-tactil.js","b862e0ab3f",2276],
+  ["creditos.html","cf9547d866",2160],
+  ["iconos/apple-touch-icon.png","1d04aee907",9353],
+  ["iconos/favicon-32.png","6ef161cc85",1331],
+  ["iconos/favicon-64.png","9af022872d",3043],
+  ["iconos/icono-192.png","ff39c279b8",10314],
+  ["iconos/icono-512.png","97d86e23c9",37094],
+  ["iconos/icono-maskable-512.png","e15ab8c8af",32217],
+  ["index.html","4e685fbe4b",5753],
+  ["js/accesible.js","5ac6a7e323",3854],
+  ["js/aliados.js","11c884abd8",5382],
+  ["js/armados.js","364d0b74b6",13384],
+  ["js/armas.js","6d8d515aa0",5931],
+  ["js/arpon.js","817e39c3fe",17926],
+  ["js/arte-caminatas.js","5e9a01ff0c",18827],
+  ["js/arte-fx.js","1edb663152",16396],
+  ["js/arte-historia.js","87f939b492",16894],
+  ["js/arte-intro.js","5e8f5ec08b",12072],
+  ["js/arte-jefe.js","d951d21d46",8858],
+  ["js/arte-jefes-m1.js","61f8b2292b",14403],
+  ["js/arte-jefes-m10.js","e78d5ae376",4289],
+  ["js/arte-jefes-m2.js","cf0d0e9b49",8776],
+  ["js/arte-jefes-m3.js","2e3c93391f",9573],
+  ["js/arte-jefes-m4.js","dbe63c9489",5336],
+  ["js/arte-jefes-m5.js","7c6406b225",10841],
+  ["js/arte-jefes-m6.js","1d75b5b6cc",6195],
+  ["js/arte-jefes-m7.js","2699bd482e",5860],
+  ["js/arte-jefes-m8.js","cdbd83e86d",2757],
+  ["js/arte-jefes-m9.js","de27f55819",9889],
+  ["js/arte-luz.js","ca6e925b40",22374],
+  ["js/arte-personaje.js","ff873be2b6",3357],
+  ["js/arte-tasador.js","a9d6b55a54",12204],
+  ["js/arte-vehiculos.js","3140e0479b",26796],
+  ["js/audio.js","453e5f3e71",12839],
+  ["js/avion.js","56cf1056b7",3526],
+  ["js/ayuda.js","4679abee39",3929],
+  ["js/base.js","7f08b20dcd",12941],
+  ["js/camara.js","4b5c6e732c",6266],
+  ["js/caminos-m2.js","36de13737e",10212],
+  ["js/caminos.js","2a9a7d1221",18062],
+  ["js/clima.js","559314480c",31428],
+  ["js/combate.js","58122702a6",18255],
+  ["js/comic.js","3db5cb6c6a",13025],
+  ["js/consejos.js","e06eddb41e",6261],
+  ["js/controles.js","ae74fd43a8",39983],
+  ["js/cumplida.js","e9ec2641cb",10535],
+  ["js/dibujito.js","552df41726",7685],
+  ["js/eco-armas.js","30952bead7",14825],
+  ["js/economia.js","5852f9d810",1462],
+  ["js/enemigos.js","0f2a137a03",11854],
+  ["js/entradas.js","e982a34ac6",24431],
+  ["js/escenario-base.js","10c3cabcf5",41127],
+  ["js/escenario-m1.js","fb6c7da466",25282],
+  ["js/escenario-m10.js","b09dc4c6a5",21278],
+  ["js/escenario-m2.js","0f66573fbe",27863],
+  ["js/escenario-m3.js","f4f2feae59",25764],
+  ["js/escenario-m4.js","3e010b2870",13025],
+  ["js/escenario-m5.js","0ac6d7ced0",25050],
+  ["js/escenario-m6.js","43f46c775c",18846],
+  ["js/escenario-m7.js","11f1d766e8",18607],
+  ["js/escenario-m8.js","e7d60d7c2c",13515],
+  ["js/escenario-m9.js","a63ebc2496",12255],
+  ["js/espera.js","579d495cb1",9088],
+  ["js/fin.js","8dae8bda71",15272],
+  ["js/fusion-carga.js","b271a24e17",6347],
+  ["js/fusion.js","1381109d5e",6989],
+  ["js/gatito.js","33fd164eb4",30554],
+  ["js/globos.js","b1f7588cd7",10317],
+  ["js/grillo.js","1d7fccc4e3",14983],
+  ["js/guinos.js","f0642813aa",17109],
+  ["js/historia.js","161c3fbd26",23509],
+  ["js/historial.js","ea6d48b1fb",34561],
+  ["js/hud.js","bb2d6b805b",49820],
+  ["js/input.js","61be665f09",17537],
+  ["js/intro.js","255e269d7e",23438],
+  ["js/jefes.js","785d4eefa4",43393],
+  ["js/jefes10.js","101ac56fad",31816],
+  ["js/jefes4.js","0511ffa1b9",26832],
+  ["js/jefes5.js","ee1f8309ca",25958],
+  ["js/jefes6.js","810ced5241",23849],
+  ["js/jefes7.js","db1c5b3226",21352],
+  ["js/jefes8.js","87d5d0a522",24147],
+  ["js/jefes9.js","3badf34f71",28172],
+  ["js/juego.js","a767b7114e",35810],
+  ["js/jugador.js","d2108384b3",7726],
+  ["js/medallas.js","378d41ea04",1668],
+  ["js/mision10.js","1300934b23",64495],
+  ["js/mision3.js","1648721e14",39237],
+  ["js/mision4.js","c3d0f03c5d",58186],
+  ["js/mision5.js","42f8117dec",50870],
+  ["js/mision6.js","2ba1804e1f",42746],
+  ["js/mision7.js","e38a7c2fb2",44565],
+  ["js/mision8.js","cc54dc3fd7",62106],
+  ["js/mision9.js","d49ca35ed1",62410],
+  ["js/momentos.js","2cd2bea116",20601],
+  ["js/mundo.js","349ab45438",27373],
+  ["js/mundos.js","cfb74b5c65",6379],
+  ["js/musica10.js","9ba0e26cf0",11122],
+  ["js/musica3.js","7112620a07",7082],
+  ["js/musica4.js","7489bca41c",6451],
+  ["js/musica5.js","3b840b0f57",5998],
+  ["js/musica6.js","78f12d4788",5399],
+  ["js/musica7.js","11bf4fba46",6606],
+  ["js/musica8.js","e0ca97c843",5529],
+  ["js/musica9.js","3cc518c0e8",7337],
+  ["js/niveles.js","c0720716e2",14491],
+  ["js/nota.js","173b55db95",5406],
+  ["js/partida.js","b97842e066",16500],
+  ["js/personajes.js","80118e0db9",3601],
+  ["js/pieles-arte.js","a12744b5fa",7081],
+  ["js/pieles.js","60c75d8e25",16674],
+  ["js/planta.js","d2b4a94c23",41735],
+  ["js/raton.js","6fbb3d986d",1781],
+  ["js/reasignar.js","32f3f25407",10125],
+  ["js/recolectar.js","4211659763",18704],
+  ["js/reloj.js","d541fc5a9f",11577],
+  ["js/remolino.js","01f39dc4c1",6331],
+  ["js/rescate.js","4631a212ef",7606],
+  ["js/rueda.js","7b0427781c",9666],
+  ["js/simple.js","46e217394d",3913],
+  ["js/sprites.js","5192c1b6e4",7667],
+  ["js/textos.js","56db8d602f",38532],
+  ["js/tuerca.js","df6b685edc",4012],
+  ["js/vehiculos.js","5fd757520b",31630],
+  ["manifest.webmanifest","1de8a7b57f",825],
+  ["privacidad.html","87bea1d814",6050],
+  ["registrar.js","78fe276a8f",806],
+  ["registro-prueba.js","e2fb248292",13102],
+  ["tactil.js","765e4cf526",60805]
+];
 const CACHE = 'oxido-' + VERSION;
+const HUELLAS = '__huellas__'; // en cada caché: qué huella tiene cada archivo guardado
+const CHICA = 150 * 1024;
+
+// la versión guardada que está andando (la más nueva que terminó de instalarse)
+async function anterior() {
+  const ks = (await caches.keys()).filter(k => k.startsWith('oxido-') && k !== CACHE);
+  for (let i = ks.length - 1; i >= 0; i--) {
+    const c = await caches.open(ks[i]), r = await c.match(HUELLAS);
+    if (r) { try { return { c, h: await r.json() }; } catch (e) {} }
+  }
+  return null;
+}
+async function huellaDe(r) {
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', await r.arrayBuffer()));
+  return Array.from(d, x => x.toString(16).padStart(2, '0')).join('').slice(0, 10);
+}
+function ahorraDatos() {
+  const c = self.navigator && self.navigator.connection;
+  return !!c && (c.saveData === true || c.type === 'cellular');
+}
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
+  e.waitUntil((async () => {
+    const ant = await anterior();
+    const cambian = ARCHIVOS.filter(([f, h]) => !ant || ant.h[f] !== h);
+    const peso = cambian.reduce((s, a) => s + a[2], 0);
+    // ya hay una versión que anda y la persona ahorra datos: si es grande, queda para después (no se instala)
+    if (ant && ahorraDatos() && peso > CHICA) throw new Error('Óxido: actualización de ' + Math.round(peso / 1024) + ' KB postergada (ahorro de datos o celular)');
+    const c = await caches.open(CACHE);
+    await Promise.all(ARCHIVOS.map(async ([f, h]) => {
+      if (ant && ant.h[f] === h) {
+        const r = await ant.c.match(f);
+        if (r) { await c.put(f, r); return; }
+      }
+      // Primera visita: la página ya bajó estos archivos, así que se piden normal y salen del caché del navegador
+      // (no se bajan dos veces). Se revisa la huella: si lo guardado era de otra versión, se baja la buena.
+      // En una actualización van directo con ?v=huella, para que ningún caché del camino dé la versión vieja.
+      let r = ant ? null : await fetch(f).catch(() => null);
+      if (r && r.ok && await huellaDe(r.clone()) === h) { await c.put(f, r); return; }
+      r = await fetch(f + '?v=' + h, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('Óxido: no se pudo bajar ' + f);
+      await c.put(f, r);
+    }));
+    await c.put(HUELLAS, new Response(JSON.stringify(Object.fromEntries(ARCHIVOS.map(([f, h]) => [f, h]))),
+      { headers: { 'content-type': 'application/json' } }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', e => {
@@ -16,7 +197,8 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Primero lo guardado; si no está, la red. La portada ("./") sale de index.html.
+// Primero lo guardado; si no está, la red. La portada ("./") sale de index.html. Lo de otros sitios (el clima real,
+// si está activado) no pasa por acá.
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;

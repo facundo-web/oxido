@@ -84,7 +84,7 @@ function J5_updLechuza(b){
     if(b.lockN>=16||b.mt>150){b.mode='focoLock';b.mt=0;b.lock={x:b.spot,y:J5_surf(b.spot,pc.y-10)};J5_sfx('fija');}
     break;}
   case 'focoLock':b.vx*=0.85;b.x+=b.vx;if(b.mt%6===0)tone('square',1180,1180,0.04,0.035);
-    if(b.mt>=(ph2?20:28)){b.mode='rafaga';b.mt=0;b.shots=0;}
+    if(b.mt>=(ph2?28:32)){b.mode='rafaga';b.mt=0;b.shots=0;} // aviso (mira roja fija) de 0,45 s o más (accesibilidad)
     break;
   case 'rafaga':{b.vx*=0.85;b.x+=b.vx;const n=ph2?10:7;
     if(b.mt%4===0&&b.shots<n){const e=J5_eyes(b),tx=b.lock.x+rand(-4,4),ty=b.lock.y-rand(3,12),d=Math.hypot(tx-e.x,ty-e.y)||1,sp=3;
@@ -257,8 +257,8 @@ function J5_updNiebla(b){
     break;}
   case 'canon':{ // apunta (mira de puntos) y dispara
     b.vx*=0.9;b.x+=b.vx;b.face=pc.x<cx?-1:1;
-    const tel=R?24:32;
-    if(b.mt<tel-8)b.aim={x:pc.x,y:pc.y};
+    const tel=R?30:34;                            // aviso de 0,45 s o más (accesibilidad)
+    if(b.mt<tel-14)b.aim={x:pc.x,y:pc.y};          // la mira queda quieta los últimos 14 cuadros
     if(b.mt%8===0&&b.mt<tel)tone('square',900,900,0.04,0.03);
     const n=R?5:3;
     if(b.mt>=tel&&(b.mt-tel)%6===0&&b.shots<n){const g=J5_gond(b),sx=g.x+b.face*16,sy=g.y+4,tx=b.aim.x+(b.shots-(n-1)/2)*10,ty=b.aim.y,d=Math.hypot(tx-sx,ty-sy)||1,sp=2.6;

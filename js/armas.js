@@ -16,6 +16,7 @@ const PICKCOL={H:'#3c7a3a',S:'#7a4a2a',F:'#b8401e',R:'#3a5a8a',G:'#8a6a2a',E:'#2
 // puntería: cada proyectil del jugador suma un disparo; si pega en un enemigo (combate.js: tiroPega) suma un acierto
 let tirosDisp=0,tirosPeg=0;
 function fire(){
+  if(P.weapon==='harpoon'){if(typeof AR_disparar==='function')AR_disparar(P);return;} // arpón: herramienta, un tiro por toque (arpon.js)
   const p=P,w=p.weapon,cx=p.x+4,bd=playerSet(p).dy||0;let sx,sy,dx,dy; // bd: el dibujo baja si las piernas son más cortas
   if(p.aim==='up'){sx=cx+p.face*2;sy=p.y-4+bd;dx=0;dy=-1;}
   else if(p.aim==='down'){sx=cx+p.face;sy=p.y+20;dx=0;dy=1;}
@@ -49,11 +50,15 @@ function fire(){
     else if(w==='heavy'&&T%6===0)parts.push({k:'smoke',col:'200,195,190',x:sx,y:sy,vx:dx*0.3,vy:-0.25,life:20,maxl:20,size:1.2});
   }
   if(w==='pistol'||w==='heavy'||w==='shotgun')parts.push({k:'shell',x:cx,y:p.y+8,vx:-p.face*rand(0.6,1.3),vy:rand(-2.3,-1.2),g:0.18,life:rand(45,60),maxl:60,col:w==='shotgun'?'#d93a2b':'#e8c25a'});
-  if(w!=='pistol'){p.weapons[w]--;if(p.weapons[w]<=0){delete p.weapons[w];if(typeof simpleDe==='function'&&simpleDe(p.slot))simVolverArma(p);else nextWeapon();setBanner('SIN MUNICIÓN',50);}}
+  if(w!=='pistol'){p.weapons[w]--;if(p.weapons[w]<=0){delete p.weapons[w];if(typeof simpleDe==='function'&&simpleDe(p.slot))simVolverArma(p);else{nextWeapon();if(p.weapon==='harpoon')nextWeapon();}setBanner('SIN MUNICIÓN',50);}}
+}
+function prevWeapon(){ // la anterior que tengas (L1, deslizar a la izquierda sobre △)
+  const i=WORDER.indexOf(P.weapon),n=WORDER.length;
+  for(let k=1;k<=n;k++){const w=WORDER[(i-k+n*2)%n];if(w==='pistol'||P.weapons[w]>0){P.weapon=w;return;}}
 }
 function nextWeapon(){
   const i=WORDER.indexOf(P.weapon);
-  for(let k=1;k<=WORDER.length;k++){const w=WORDER[(i+k)%WORDER.length];if(w==='pistol'||P.weapons[w]>0){P.weapon=w;return;}}
+  for(let k=1;k<=WORDER.length;k++){const w=WORDER[(i+k)%WORDER.length];if(w==='pistol'||P.weapons[w]>0){P.weapon=w;return;}} // (sin munición, armas.js fire salta el arpón: no sirve para pelear)
 }
 function rocketBoom(b){b.gone=true;const k=killSrc;killSrc='rocket';if(blast(b.x,b.y,22,5*dmgMul))tiroPega(b);killSrc=k;}
 // ================== render: entidades ==================

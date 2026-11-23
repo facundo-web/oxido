@@ -11,15 +11,15 @@ function freePris(pr){
   for(let i=0;i<6;i++)parts.push({k:'p',x:pr.x+5,y:pr.y+8,vx:rand(-1.5,1.5),vy:rand(-2,-0.5),g:0.15,life:rand(20,30),maxl:30,size:1,col:'#b08a4a'});
   pr.join=pr.kind==='ally'&&allies.length+prisoners.filter(o=>o.join&&o.state==='freed').length<MAX_ALLIES;
   emit('rescue',{kind:pr.join?'ally':'prisoner'});
-  if(pr.join){setBanner('¡UN AMIGO SE SUMA!',70);parts.push({k:'txt',g:'habla',s:'¡VAMOS!',x:pr.x+5,y:pr.y-2,life:50,maxl:50});}
+  if(pr.join){setBanner('¡UN AMIGO SE SUMA!',70);parts.push({k:'txt',g:'habla',s:typeof HIS_prisionero==='function'?HIS_prisionero('¡VAMOS!'):'¡VAMOS!',x:pr.x+5,y:pr.y-2,life:50,maxl:50});}
   else{const k=pick(['H','S','F','R','G','E','+','A']);pickups.push({kind:k,x:pr.x,y:pr.y-4,w:10,h:10,vy:-3,life:900});
-    setBanner('¡PRISIONERO LIBERADO!',60);parts.push({k:'txt',g:'habla',s:'¡GRACIAS!',x:pr.x+5,y:pr.y-2,life:50,maxl:50});}
+    setBanner('¡PRISIONERO LIBERADO!',60);parts.push({k:'txt',g:'habla',s:typeof HIS_prisionero==='function'?HIS_prisionero('¡GRACIAS!'):'¡GRACIAS!',x:pr.x+5,y:pr.y-2,life:50,maxl:50});}
 }
 function updPrisoners(){
   for(const pr of prisoners){
     pr.t++;
     if(pr.state==='tied'){
-      if(!prisHint&&onScreen(pr,-20)){prisHint=true;setBanner('¡PRISIONERO! TOCALO PARA LIBERARLO',110);}
+      if(!prisHint&&onScreen(pr,-20)){prisHint=true;setBanner('¡PRISIONERO! PASÁ POR DELANTE PARA LIBERARLO',110);}
       if(touchAny(pr))freePris(pr);
     }else if(pr.state==='freed'){
       if(pr.t>=45){if(pr.join){const a=mkAlly(pr.x,pr.y-4);a.onGround=true;allies.push(a);pr.gone=true;}else pr.state='leave';}
@@ -39,7 +39,7 @@ function updAllies(){
     if(t)a.face=t.x+t.w/2<a.x+4?-1:1;else if(a.vx)a.face=Math.sign(a.vx);
     const py=P.ride?P.ride.y+P.ride.h:P.y+P.h;
     if(a.onGround&&!P.dead&&py<a.y+a.h-20&&Math.abs(P.x-a.x)<50){a.vy=-6.1;a.onGround=false;}
-    a.x=clamp(a.x+a.vx,camX+2,camX+VW-10);
+    a.x=clamp(a.x+a.vx,camX+2,camX+VW-10+(typeof MC_margen==='function'?MC_margen():0));
     const pb=a.y+a.h,wasAir=!a.onGround;a.vy=Math.min(a.vy+0.32,6);a.y+=a.vy;const vyA=a.vy;land(a,pb,true);
     animStep(a,wasAir,vyA);
     if(a.vx&&a.onGround)a.anim++;
@@ -61,7 +61,7 @@ function drawPrisoner(pr){
     const tt=(T+ph)%200,strug=tt<26,bob=Math.floor((T+ph)/36)%2;
     const dx=strug?(((tt>>2)&1)?1:-1)*0.75:0,dy=strug?((tt>>3)&1):bob;
     ctx.drawImage(SPR.a.crouch[1],q(x-2+dx),q(y-1+dy));
-    ctx.fillStyle='#b08a4a';ctx.fillRect(x,y+7,10,1);ctx.fillRect(x+1,y+10,9,1);
+    if(typeof RS_atado==='function')RS_atado(x,y);else{ctx.fillStyle='#b08a4a';ctx.fillRect(x,y+7,10,1);ctx.fillRect(x+1,y+10,9,1);} // soga, esposas, lianas, vendas o cadena (rescate.js)
     // globo de grito (globos.js)
     // un pop al acercarse y queda a tamaño completo mientras estés cerca
     if(pr.glT0!==undefined)globo('¡AYUDA!',x+5,y-3,{grito:true,t:T-pr.glT0}); // desde cuándo se ve: globos.js (en cada paso)

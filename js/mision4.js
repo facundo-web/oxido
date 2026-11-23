@@ -1,5 +1,5 @@
 'use strict';
-// Óxido · Misión 4: Arenas del Rey (desierto, tumbas, arena movediza, momias, escarabajos y la tormenta con cara)
+// Óxido · Misión 4: Arenas del Rey (desierto, tumbas, arena movediza, momias, escarabajos y la tormenta del reloj de arena)
 // Todo lo de este archivo usa el prefijo M4_ para no chocar con otros nombres globales.
 
 // ================== datos de la misión ==================
@@ -46,7 +46,7 @@ const M4_LVL={name:'MISIÓN 4 · ARENAS DEL REY',short:'4 · ARENAS DEL REY',the
     {at:1820,spawn:[{t:'drone',x:'R'},{t:'soldier',x:2000,y:42,d:20},{t:'momia',x:'R',d:40},{t:'soldier',x:'R',d:70},{t:'shield',x:'R',d:120}]},
     {at:2260,spawn:[{t:'escarabajo',x:2580},{t:'escarabajo',x:2580,d:14},{t:'escarabajo',x:2580,d:30},{t:'soldier',x:2640,y:104},{t:'shield',x:'R',d:30}]},
     {at:2380,spawn:[{t:'soldier',x:2780,y:86},{t:'soldier',x:'R',d:20},{t:'drone',x:'R',d:80}]},
-    // la tormenta con cara arranca en 2560 (M4_LVL.upd): durante la tormenta vienen pocos y de a pie
+    // la tormenta del reloj de arena arranca en 2560 (M4_LVL.upd): durante la tormenta vienen pocos y de a pie
     {at:2520,spawn:[{t:'momia',x:'R'},{t:'soldier',x:'R',d:60}]},
     {at:2740,spawn:[{t:'momia',x:'R',d:20},{t:'grenadier',x:'R',d:70}]},
     {at:2860,spawn:[{t:'shield',x:'R'},{t:'escarabajo',x:2930,d:30},{t:'escarabajo',x:2930,d:44},{t:'drone',x:'R',d:90}]}],
@@ -97,7 +97,7 @@ function M4_glyph(x,y,id){
 
 // ================== estado que se reinicia en cada partida ==================
 const M4={feet:new Map(),sar:new Map(),cracks:[],piles:[],tf:null,stormDone:false};
-function M4_tfOff(){return{st:'off',t:0,k:0,adv:0,mouth:0,wind:0,boss:false,n:0,gap:50,tel:36,left:0,next:0,warns:[],row:0};}
+function M4_tfOff(){return{st:'off',t:0,k:0,adv:0,mouth:0,puff:0,wind:0,boss:false,n:0,gap:50,tel:36,left:0,next:0,warns:[],row:0};}
 M4.tf=M4_tfOff();
 function M4_reset(){
   M4.feet=new Map();M4.cracks=[];M4.piles=[];M4.tf=M4_tfOff();M4.stormDone=false;M4.sar=new Map();
@@ -351,10 +351,11 @@ function M4_drawSarco(d){
   ctx.save();ctx.translate(x+w,g-3);ctx.rotate(a*Math.PI/2);M4_sarLid(-w,-h,w,h,0);ctx.restore();
 }
 
-// ================== tormenta de arena con cara (la acción de la misión) ==================
-// Se arma una pared de arena al fondo que va tomando forma de cara gigante (ojos y boca oscuros).
+// ================== tormenta del reloj de arena (la acción de la misión) ==================
+// Se arma una pared de arena al fondo que va tomando forma de RELOJ DE ARENA gigante (el del REY POLVO): dos bulbos
+// oscuros y un cuello angosto por donde cae la arena. No tiene cara.
 // Aviso: viento, arenilla y la pantalla se oscurece (solo el fondo: las balas y los enemigos se siguen viendo).
-// Después la cara avanza y sopla ráfagas por la boca (a los amigos no les hacen nada): cada ráfaga avisa con flechas en el borde de la pantalla
+// Después el reloj avanza y las ráfagas salen por el cuello (a los amigos no les hacen nada): cada ráfaga avisa con flechas en el borde de la pantalla
 // en la fila por donde va a pasar (fila baja: saltá; fila alta: agachate). El viento empuja para atrás.
 // Las coberturas frenan la ráfaga baja. La usa la misión a mitad de camino y el villano en su arena.
 // o: {boss, n (ráfagas), gap (cuadros entre ráfagas), tel (aviso de cada ráfaga)}
@@ -368,6 +369,7 @@ function M4_stormUpd(){
   const tf=M4.tf;if(tf.st==='off')return;
   tf.t++;
   const brew=tf.boss?80:150,face=tf.boss?40:70;
+  // (el estado 'face' es "el reloj termina de formarse"; tf.mouth = cuánto se abre el cuello)
   if(tf.st==='brew'){tf.k=Math.min(1,tf.t/brew);tf.wind=tf.k*0.5;if(tf.t%45===0)M4_sfx('m4Viento');
     if(tf.t>=brew){tf.st='face';tf.t=0;M4_sfx('m4Rugido');shake=Math.max(shake,3);}}
   else if(tf.st==='face'){tf.mouth=Math.min(1,tf.t/face);tf.wind=0.6;
@@ -394,6 +396,7 @@ function M4_stormUpd(){
 function M4_gust(row){
   const y=row===0?GROUND-4:GROUND-17;
   eproj.push({kind:'m4Rafaga',x:camX+VW+16,y,vx:-2.6,row,hr:row===0?2.5:2,t:0,upd:M4_gustUpd,draw:M4_gustDraw});
+  M4.tf.puff=16;   // el reloj escupe la ráfaga por el cuello (se dibuja en M4_drawFace)
   M4_sfx('m4Rafaga');
 }
 function M4_gustUpd(b,hb){
@@ -429,7 +432,8 @@ function M4_drawWarns(){
     else{ctx.fillRect(ix-0.5,iy,2,4);ctx.fillRect(ix-3,iy+4,7,1);ctx.fillRect(ix-2,iy+5,5,1);ctx.fillRect(ix-1,iy+6,3,1);ctx.fillRect(ix,iy+7,1,1);}
   }
 }
-// cara en la pared de arena (genérica: cuencas, ceño, nariz chata y boca abierta)
+// reloj de arena en la pared de arena: bulbo de arriba y de abajo (oscuros), cuello angosto que brilla cuando sopla,
+// un hilo de arena que cae por adentro y el montoncito que crece abajo. Sin cara.
 function M4_drawFace(){
   const tf=M4.tf;if(tf.st==='off'||tf.k<=0.01)return;
   const k=tf.k,adv=tf.adv,form=tf.st==='brew'?Math.max(0,(tf.t/(tf.boss?80:150)-0.35)/0.65):1;
@@ -443,19 +447,24 @@ function M4_drawFace(){
   // remolinos claros
   ctx.strokeStyle='rgba(240,200,140,0.25)';ctx.lineWidth=1;
   for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(cx-40+i*22,cy-10+((i*7)%13),(10+i*3)*sc,T/40+i,T/40+i+2.2);ctx.stroke();}
-  // rasgos (aparecen de a poco)
+  // el reloj (aparece de a poco)
   if(form>0){ctx.globalAlpha=k*form;
-    const ex=20*sc,ey=cy-8*sc,m=tf.mouth;
-    ctx.fillStyle='rgba(30,14,8,0.85)';
-    for(const s of[-1,1]){ctx.beginPath();ctx.ellipse(cx+s*ex,ey,9*sc,6*sc,s*0.25,0,7);ctx.fill();}
-    ctx.fillStyle='rgba(70,36,20,0.8)';   // ceño
-    for(const s of[-1,1]){ctx.beginPath();ctx.moveTo(cx+s*4*sc,ey-8*sc);ctx.lineTo(cx+s*32*sc,ey-12*sc);ctx.lineTo(cx+s*30*sc,ey-6*sc);ctx.lineTo(cx+s*6*sc,ey-3*sc);ctx.closePath();ctx.fill();}
-    ctx.fillStyle='rgba(60,30,16,0.6)';ctx.beginPath();ctx.moveTo(cx,ey+1*sc);ctx.lineTo(cx-5*sc,ey+14*sc);ctx.lineTo(cx+5*sc,ey+14*sc);ctx.closePath();ctx.fill();
-    ctx.fillStyle='rgba(24,10,6,0.9)';ctx.beginPath();ctx.ellipse(cx,ey+25*sc,(13+m*5)*sc,(3+m*9)*sc,0,0,7);ctx.fill();
-    // brillo tenue en el fondo de los ojos cuando sopla
-    if(tf.st==='blow'&&(T>>3)%2){ctx.fillStyle='rgba(255,180,90,0.35)';for(const s of[-1,1])circle(cx+s*ex,ey,1.6*sc);}
-    // arena que se cae de los bordes de la boca
-    ctx.fillStyle='rgba(230,180,110,0.6)';for(let i=0;i<4;i++){const ph=(T*0.8+i*9)%26;ctx.fillRect(q(cx-10*sc+i*7*sc),q(ey+25*sc+(3+m*9)*sc*0.6+ph),1,2);}
+    const top=cy-34*sc,bot=cy+30*sc,ny=cy-2*sc,bw=26*sc,nw=(2.2+tf.mouth*1.6)*sc,sway=Math.sin(T/50)*1.5;
+    const bulbo=(y0,y1)=>{ctx.beginPath();ctx.moveTo(cx-bw+sway,y0);ctx.lineTo(cx+bw+sway,y0);
+      ctx.quadraticCurveTo(cx+bw*1.05,(y0+y1)/2,cx+nw,y1);ctx.lineTo(cx-nw,y1);ctx.quadraticCurveTo(cx-bw*1.05,(y0+y1)/2,cx-bw+sway,y0);ctx.closePath();ctx.fill();};
+    ctx.fillStyle='rgba(44,22,12,0.82)';bulbo(top,ny);bulbo(bot,ny);
+    // tapas de arriba y de abajo (franjas más oscuras, como un marco hecho de polvo)
+    ctx.fillStyle='rgba(30,14,8,0.85)';ctx.fillRect(cx-bw*1.15+sway,top-3*sc,bw*2.3,3.5*sc);ctx.fillRect(cx-bw*1.15,bot-0.5*sc,bw*2.3,3.5*sc);
+    // arena de adentro: lo que queda arriba, el hilo que cae y el montoncito de abajo
+    ctx.fillStyle='rgba(232,186,118,0.55)';
+    ctx.beginPath();ctx.moveTo(cx-bw*0.62,ny-14*sc);ctx.lineTo(cx+bw*0.62,ny-14*sc);ctx.lineTo(cx+nw*0.6,ny-1);ctx.lineTo(cx-nw*0.6,ny-1);ctx.closePath();ctx.fill();
+    for(let i=0;i<6;i++){const ph=(T*1.2+i*5)%30;ctx.fillRect(q(cx-0.5+((i%2)-0.5)*0.8),q(ny+ph*(bot-ny-8*sc)/30),1,2);}
+    ctx.beginPath();ctx.moveTo(cx-bw*0.85,bot);ctx.quadraticCurveTo(cx,bot-14*sc,cx+bw*0.85,bot);ctx.closePath();ctx.fill();
+    // el cuello brilla cuando sopla (de ahí salen las ráfagas)
+    if(tf.st==='blow'){ctx.fillStyle=`rgba(255,190,100,${(T>>3)%2?0.4:0.22})`;ctx.beginPath();ctx.ellipse(cx,ny,(4+tf.mouth*3)*sc,2.2*sc,0,0,7);ctx.fill();}
+    // ráfaga que sale del cuello: chorro de arena hacia adelante
+    if(tf.puff>0){const f=tf.puff/16;tf.puff--;ctx.fillStyle=`rgba(236,196,128,${0.55*f})`;
+      ctx.beginPath();ctx.moveTo(cx-nw,ny-2*sc);ctx.quadraticCurveTo(cx-30*sc*(1-f*0.5),ny-6*sc,cx-60*sc*(1.2-f),ny-3*sc);ctx.lineTo(cx-60*sc*(1.2-f),ny+4*sc);ctx.quadraticCurveTo(cx-30*sc*(1-f*0.5),ny+5*sc,cx-nw,ny+2*sc);ctx.closePath();ctx.fill();}
   }
   ctx.restore();
 }
@@ -537,7 +546,7 @@ M4_LVL.drawBG=function(){
     else{ctx.fillRect(x,b-r.h,5,r.h);ctx.fillRect(x+20,b-r.h,5,r.h);ctx.fillRect(x-1,b-r.h-3,18,3);}}
   ridge(M4_DUNE_MID,7,0.2,GROUND-4,'#b46a42');
   ridge(M4_DUNE_NEAR,8,0.42,GROUND+1,'#cf8a4e');
-  // tormenta: el fondo se oscurece y aparece la pared de arena con cara
+  // tormenta: el fondo se oscurece y aparece la pared de arena con el reloj
   if(dk>0){ctx.fillStyle=`rgba(46,20,14,${0.5*dk})`;ctx.fillRect(0,0,W,GROUND);M4_drawFace();}
 };
 
@@ -581,7 +590,8 @@ function M4_drawCrack(c){
 }
 
 // ================== capa de arriba: arena que tapa los pies, viento y avisos de la tormenta ==================
-M4_LVL.drawFx=function(){
+// arena movediza y ondas: detrás de los personajes (juego.js, drawWorld), sin tapar el contorno de los pies
+M4_LVL.drawFxFondo=function(){
   ctx.save();ctx.translate(q(-camX),0);
   for(const p of M4_LVL.quick){if(p.x>camX+VW||p.x+p.w<camX)continue;
     ctx.fillStyle='rgba(138,90,44,0.96)';ctx.fillRect(p.x,GROUND-3.6,p.w,3.8);
@@ -593,11 +603,16 @@ M4_LVL.drawFx=function(){
     if(!M4.feet.get(o))continue;const cx=o.x+(o.w||8)/2,r=((T+(cx|0))%34)/34;
     ctx.strokeStyle=`rgba(90,54,24,${0.7*(1-r)})`;ctx.beginPath();ctx.ellipse(cx,GROUND-2,(o.w||8)/2+2+r*6,0.8+r*0.8,0,0,7);ctx.stroke();}
   ctx.restore();
+  // el velo de la tormenta de arena, también detrás: los personajes se siguen leyendo (encima solo los granos, en drawFx)
+  const tf=M4.tf;if(tf.k>0){ctx.fillStyle=`rgba(120,70,30,${0.1*tf.k})`;ctx.fillRect(0,0,W,H);}
+};
+M4_LVL.drawFx=function(){
   // arenilla que corre con el viento (más cuando hay tormenta) y una veladura muy leve para no tapar las balas
   const tf=M4.tf,wn=tf.wind||0,n=8+Math.round(18*wn);
   for(let i=0;i<n;i++){const s=M4_DUST[i],sp=0.6+wn*3.2,x=((s.x*W-T*sp*s.v-camX*0.9)%W+W)%W,y=s.y*(GROUND-20)+20+Math.sin(T/30+i)*2;
-    ctx.fillStyle=`rgba(240,200,140,${0.18+0.3*wn})`;ctx.fillRect(x,y,s.l*(0.6+wn),0.7);}
-  if(tf.k>0){ctx.fillStyle=`rgba(120,70,30,${0.1*tf.k})`;ctx.fillRect(0,0,W,H);M4_drawWarns();}
+    // granos de 1 px entero (1×1 o 2×1) en 2 tonos de arena: no rompen la grilla (Dirección de Arte)
+    ctx.fillStyle=i%2?`rgba(240,200,140,${0.22+0.3*wn})`:`rgba(196,150,96,${0.22+0.3*wn})`;ctx.fillRect(Math.round(x),Math.round(y),s.l*(0.6+wn)>1.5?2:1,1);}
+  if(tf.k>0)M4_drawWarns();
 };
 
 // ================== decorado ==================

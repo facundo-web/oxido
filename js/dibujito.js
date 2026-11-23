@@ -24,20 +24,25 @@ const DIB_GRANO=[11,23,37].map(seed=>{
   for(let i=0;i<d.data.length;i+=4){if(r()<0.55)continue;const cl=r()<0.5;d.data[i]=cl?255:24;d.data[i+1]=cl?244:16;d.data[i+2]=cl?220:10;d.data[i+3]=40+Math.floor(r()*120);}
   g.putImageData(d,0,0);return c;});
 const DIB_VIN=(()=>{const c=document.createElement('canvas');c.width=128;c.height=96;const g=c.getContext('2d');
-  const v=g.createRadialGradient(64,48,26,64,48,82);v.addColorStop(0,'rgba(20,10,4,0)');v.addColorStop(0.7,'rgba(20,10,4,0.16)');v.addColorStop(1,'rgba(14,6,2,0.5)');
+  const v=g.createRadialGradient(64,48,26,64,48,82);v.addColorStop(0,'rgba(10,8,14,0)');v.addColorStop(0.7,'rgba(10,8,14,0.10)');v.addColorStop(1,'rgba(10,8,14,0.35)'); // Hondo: muy suave, máx. 35 %, sin tinte sepia
   g.fillStyle=v;g.fillRect(0,0,128,96);return c;})();
 let DIB_raya=null,DIB_brillo=0;
 function DIB_pelicula(){
   DIB_f++;
-  const ahora=performance.now();if(DIB_tAnt){const dt=Math.min(100,ahora-DIB_tAnt);DIB_dtProm+=(dt-DIB_dtProm)*0.02;if(DIB_dtProm>22)DIB_lento=true;}DIB_tAnt=ahora;
+  const ahora=performance.now();if(DIB_tAnt&&state==='play'&&!(typeof COMIC_deADos==='function'&&COMIC_deADos())){ // "de a dos" (comic.js) dibuja uno de cada dos cuadros a propósito: no es lentitud
+    const dt=ahora-DIB_tAnt; // un tirón suelto (cambio de pestaña, carga) no cuenta
+    if(dt<60){DIB_dtProm+=(dt-DIB_dtProm)*0.02;if(DIB_dtProm>22)DIB_lento=true;else if(DIB_dtProm<18)DIB_lento=false;}}DIB_tAnt=ahora;
   const cw=cv.width,ch=cv.height,u=cw/W; // u = píxeles de pantalla por unidad del juego
   ctx.save();ctx.setTransform(1,0,0,1,0,0);
   // viñeta (suavizada: es un degradé chico estirado)
   ctx.imageSmoothingEnabled=true;ctx.drawImage(DIB_VIN,0,0,cw,ch);ctx.imageSmoothingEnabled=false;
+  ctx.restore();return; // estilo Hondo (23 nov, Dirección de Arte): sin grano, parpadeo, rayas ni motas; queda solo la viñeta suave
   // grano: cambia cada 3 cuadros y se corre un poco, así no se ve como una textura quieta
-  const gi=Math.floor(DIB_f/3),gr=DIB_GRANO[gi%3],ox=(gi*37)%7,oy=(gi*53)%5;
+  const red=typeof MOV_reducido==='function'&&MOV_reducido(); // movimiento reducido: el grano queda quieto (accesible.js)
+  const gi=red?0:Math.floor(DIB_f/3),gr=DIB_GRANO[gi%3],ox=(gi*37)%7,oy=(gi*53)%5;
   ctx.globalAlpha=DIB_LIVIANO_()?0.07:0.11;ctx.drawImage(gr,ox,oy,gr.width-8,gr.height-6,0,0,cw,ch*(gr.height-6)/(HC*2));
   // parpadeo de brillo (muy leve)
+  if(red){ctx.restore();return;} // ni parpadeo de brillo, ni rayas, ni motas
   if(DIB_f%2===0)DIB_brillo=Math.random();
   ctx.globalAlpha=1;ctx.fillStyle=DIB_brillo<0.5?`rgba(255,238,205,${0.025*DIB_brillo})`:`rgba(12,6,2,${0.035*(DIB_brillo-0.5)})`;ctx.fillRect(0,0,cw,ch);
   // raya vertical de vez en cuando
@@ -51,34 +56,14 @@ function DIB_pelicula(){
 // ---------- tinta que tiembla ----------
 const DIB_DIRS=[[1,0],[0,1],[-1,1],[1,1],[-1,0],[1,-1],[0,-1]];
 function DIB_tinta(fuerte){
+  return; // estilo Hondo: sin la tinta que tiembla (los bordes los da arte-luz.js)
   if(DIB_LIVIANO_()&&fuerte===0)return;
   const d=DIB_DIRS[Math.floor(T/5)%DIB_DIRS.length],k=Math.max(1,Math.round(SQ*(fuerte===2?0.5:0.35)));
   ctx.shadowColor='rgba(18,12,24,0.85)';ctx.shadowBlur=0;ctx.shadowOffsetX=d[0]*k;ctx.shadowOffsetY=d[1]*k;
 }
 function DIB_sinTinta(){ctx.shadowColor='rgba(0,0,0,0)';ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;}
-// ---------- rebote ----------
-// estirar (+) y aplastar (−) del jugador, desde los pies
-function DIB_estira(p){
-  if(p.crouch)return 0;
-  if(!p.onGround)return Math.min(0.14,Math.abs(p.vy||0)*0.03);
-  if(p.landT>0)return -0.17*(p.landT/7);
-  return 0;
-}
-const DIB_drawPlayer0=drawPlayer;
-drawPlayer=function(){
-  const p=P;if(p.dead||p.ride)return DIB_drawPlayer0();
-  const s=DIB_estira(p);if(Math.abs(s)<0.01)return DIB_drawPlayer0();
-  const fx=p.x+4,fy=p.y+18;ctx.save();ctx.translate(fx,fy);ctx.scale(1-s*0.5,1+s);ctx.translate(-fx,-fy);
-  try{DIB_drawPlayer0();}finally{ctx.restore();}
-};
-// soldados: se hamacan al caminar, todos al mismo compás (~2 por segundo)
-const DIB_drawSoldier0=drawSoldier;
-drawSoldier=function(e){
-  if(e.dying||!e.onGround||Math.abs(e.vx||0)<0.05)return DIB_drawSoldier0(e);
-  const a=Math.sin(T*Math.PI*2/30)*0.07,fx=e.x+e.w/2,fy=e.y+e.h;
-  ctx.save();ctx.translate(fx,fy);ctx.rotate(a);ctx.translate(-fx,-fy);
-  try{DIB_drawSoldier0(e);}finally{ctx.restore();}
-};
+// (23 nov: estirar y aplastar del jugador y vaivén de los soldados ahora van en cuadros: arte-fx.js FX_deformar y pieles.js;
+// los envoltorios de acá ya no hacían nada y se sacaron)
 // ---------- cartel de jefe ----------
 let DIB_jefe=null,DIB_jefeRef=null;
 const DIB_jefeVisible=b=>onScreen(b,-8)&&b.y+b.h>camY+20&&b.y<camY+VH;
@@ -94,19 +79,18 @@ ON_STEP.push(()=>{
 // rebote de caída (0→1, pasándose y volviendo)
 function DIB_rebote(k){const n=7.5625,d=2.75;
   if(k<1/d)return n*k*k;if(k<2/d){k-=1.5/d;return n*k*k+0.75;}if(k<2.5/d){k-=2.25/d;return n*k*k+0.9375;}k-=2.625/d;return n*k*k+0.984375;}
+// cartel simple (23 nov, sin cómic): entra con un desliz corto desde arriba y se va igual; con MOVIMIENTO REDUCIDO
+// aparece y desaparece quieto. El juego no se frena. (La entrada moderna la diseña Dirección de Arte.)
 ON_HUD.push(()=>{
-  const j=DIB_jefe;if(!j||state!=='play')return;
-  const t=j.t,cx=W/2,y0=40,nm=j.name,w=Math.max(hudTW(nm,12)+34,110),h=30;
-  let y=t<26?-h+(y0+h)*DIB_rebote(t/26):t<140?y0:y0-(y0+h+4)*Math.pow((t-140)/30,2);
-  // al tocar fondo se aplasta un poquito (como una chapa de goma)
-  const sq=t>=8&&t<34?Math.sin((t-8)/26*Math.PI)*0.08:0;
-  ctx.save();ctx.translate(cx,y+h);ctx.scale(1+sq,1-sq);ctx.translate(-cx,-(y+h));
-  const x=cx-w/2;
-  // recuadro de texto de cómic (comic.js): amarillo, borde grueso de tinta y sombra dura corrida
-  ctx.fillStyle='#120c18';ctx.fillRect(x+2.5,y+2.5,w+1,h+1);ctx.fillRect(x-1.5,y-1.5,w+3,h+3);
-  ctx.fillStyle='#ffe066';ctx.fillRect(x,y,w,h);
-  ctx.fillStyle='rgba(224,86,58,0.35)';for(let yy=y+2;yy<y+h-1;yy+=3)for(let xx=x+2+((yy-y)%2);xx<x+w-1;xx+=3)ctx.fillRect(xx,yy,0.9,0.9);
-  txt(j.guardian?'¡GUARDIÁN DEL MUNDO '+j.guardian+'!':j.mini?'¡CUIDADO!':'¡EL JEFE!',cx,y+3.5,5,'#120c18','center',false);
+  if(window.JEFE_ENTRADA_NUEVA)return; // la entrada nueva de jefe (arte-jefe.js) reemplaza a este cartel
+  const j=DIB_jefe;if(!j||state!=='play'||(banner&&banner.t>0&&banner.prio>=4))return; // un aviso de ataque tiene prioridad
+  const t=j.t,cx=W/2,y0=40,nm=j.name,w=Math.max(hudTW(nm,12)+34,110),h=30,red=typeof MOV_reducido==='function'&&MOV_reducido();
+  const e=k=>1-(1-k)*(1-k),entra=t<12?e(t/12):1,sale=t>150?(t-150)/20:0;
+  const y=red?y0:y0-14*(1-entra)-14*sale,a=red?(t<4?t/4:t>160?(170-t)/10:1):Math.min(entra,1-sale);
+  if(a<=0)return;ctx.save();ctx.globalAlpha=a;
+  const x=cx-w/2,col=j.guardian?'#ff8a5a':j.mini?'#f3c969':'#ff6b5b';
+  ctx.fillStyle='rgba(18,12,24,0.9)';ctx.fillRect(x,y,w,h);ctx.fillStyle=col;ctx.fillRect(x,y,w,1.2);ctx.fillRect(x,y+h-1.2,w,1.2);
+  txt(j.guardian?'GUARDIÁN DEL MUNDO '+j.guardian:j.mini?'¡CUIDADO!':'EL JEFE',cx,y+3.5,5,col,'center',false);
   txt(nm,cx,y+11,12,'#ffffff','center');
   ctx.restore();
 });

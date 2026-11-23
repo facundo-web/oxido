@@ -3,6 +3,7 @@
 // ================== física compartida ==================
 function land(o,prevBottom,allowPlat){
   if(o.vy<0){o.onGround=false;return;}
+  if(typeof CA_land==='function'&&CA_land(o,prevBottom))return; // caminos en capas: huecos del piso y fondo del agua (caminos.js)
   const b=o.y+o.h;
   if(b>=GROUND){if(typeof MO_enPozo==='function'&&MO_enPozo(o)){o.onGround=false;o.plat=null;return;} // hueco del muelle (momentos.js)
     o.y=GROUND-o.h;o.vy=0;o.onGround=true;o.plat=null;return;}
@@ -141,10 +142,14 @@ function drawPlatforms(){
   }
 }
 function drawRain(){
+  // caminos en capas (caminos.js): debajo del muelle no llueve (se recorta la zona del agua)
+  const bj=typeof CA_on==='function'&&CA_on()?(L.caminos.bajos||[]).filter(b=>b.x1>camX&&b.x0<camX+VW):[];
+  if(bj.length){ctx.save();ctx.beginPath();ctx.rect(-20,-400,W+40,H+800);for(const b of bj)ctx.rect(b.x0-camX,GROUND+2,b.x1-b.x0,400);ctx.clip('evenodd');}
   ctx.strokeStyle='rgba(170,200,235,0.32)';ctx.lineWidth=0.6;ctx.beginPath();
   for(let i=0;i<90;i++){const x=((i*53.7+T*1.6-camX*0.3)%(W+30)+W+30)%(W+30)-15,y=((i*97.3+T*6.5)%(H+20))-10;ctx.moveTo(x,y);ctx.lineTo(x-1.6,y+6);}
   ctx.stroke();
-  if(lightning>0){ctx.fillStyle=`rgba(210,225,255,${(lightning%4<2?0.35:0.15)*lightning/12})`;ctx.fillRect(0,0,W,H);}
+  if(bj.length)ctx.restore();
+  if(lightning>0){ctx.fillStyle=`rgba(210,225,255,${0.3*FL_k()*lightning/12})`;ctx.fillRect(0,0,W,H);} // un destello que se apaga, sin parpadear (accesible.js)
 }
 
 // ================== estructuras: túneles, pirámides y plataformas altas ==================

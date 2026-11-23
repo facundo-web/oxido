@@ -656,10 +656,13 @@ M9_LVL.drawGround=function(){
 };
 
 // ================== capa de arriba: niebla baja y flechitas de fantasmas que se acercan ==================
-M9_LVL.drawFx=function(){
+// niebla baja: detrás de los personajes (juego.js, drawWorld), para no aclarar el contorno de tinta
+M9_LVL.drawFxFondo=function(){
   for(let i=0;i<5;i++){const x=((i*97-T*0.25*(i%2?1:-0.6)-camX*0.6)%460+460)%460-70,y=150+(i%3)*6+Math.sin(T/60+i)*2;
     ctx.fillStyle='rgba(190,180,220,0.07)';ctx.beginPath();ctx.ellipse(x,y,60,6,0,0,7);ctx.fill();}
   ctx.fillStyle='rgba(170,160,210,0.05)';ctx.fillRect(0,GROUND-6,W,H-GROUND+6);
+};
+M9_LVL.drawFx=function(){
   // viñeta lila apenas
   ctx.fillStyle='rgba(40,20,70,0.10)';ctx.fillRect(0,0,6,H);ctx.fillRect(W-6,0,6,H);
   for(const e of enemies){if(!M9_isGhost(e)||e.gone||e.st==='hide'||e.st==='rattle'||e.st==='under'||e.st==='leave')continue;

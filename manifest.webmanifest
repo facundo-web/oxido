@@ -1,7 +1,7 @@
 {
   "name": "Óxido",
   "short_name": "Óxido",
-  "description": "Run & gun en pixel art: corré, saltá y disparale a todo. Se juega con teclado o joystick, solo o de a dos.",
+  "description": "Run & gun en pixel art: corré, saltá y disparale a todo. Se juega con teclado, joystick o la pantalla táctil, solo o de a dos.",
   "lang": "es-AR",
   "dir": "ltr",
   "id": "./",

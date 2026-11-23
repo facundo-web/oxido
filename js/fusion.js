@@ -77,8 +77,8 @@ drawMech=function(m){
   if(esc!==1){const fx=m.x+m.w/2,fy=m.y+m.h;ctx.save();ctx.translate(fx,fy);ctx.scale(esc,esc);ctx.translate(-fx,-fy);}
   FU_drawMech0(m);
   if(esc!==1){
-    // nivel 3: placas gruesas con luces que titilan
-    if(nv>=3&&!m.dying){const x=m.x,y=m.y+(m.ride?0:4);ctx.fillStyle='#3a3f48';ctx.fillRect(q(x+3),q(y+5),16,2);ctx.fillStyle='#5a616c';ctx.fillRect(q(x+3),q(y+5),16,0.8);
+    // nivel 3: placas gruesas con luces que titilan (solo si no está el arte de Arte, que ya las dibuja con el vaivén)
+    if(nv>=3&&!m.dying&&typeof AV_dibujar!=='function'){const x=m.x,y=m.y+(m.ride?0:4);ctx.fillStyle='#3a3f48';ctx.fillRect(q(x+3),q(y+5),16,2);ctx.fillStyle='#5a616c';ctx.fillRect(q(x+3),q(y+5),16,0.8);
       for(let i=0;i<3;i++){ctx.fillStyle=((T>>3)+i)%3===0?'#ff5a3c':(((T>>3)+i)%3===1?'#ffd25a':'#6fd0ff');ctx.fillRect(q(x+5+i*5),q(y+5.4),1.4,1.2);}}
     // nivel 2 y 3: estrellitas de nivel en el lomo
     if(!m.dying){ctx.fillStyle='#ffd25a';for(let i=0;i<nv-1;i++)ctx.fillRect(q(m.x+8+i*4),q(m.y+(m.ride?1:5)),2,2);}

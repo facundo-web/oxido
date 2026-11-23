@@ -96,7 +96,8 @@ ON_START.push(M7_reset);
 // Aviso: bulto que avanza por el ducto + polvo que cae + raspado metálico (y una flechita en el borde si viene de afuera).
 // Después se para en una rejilla: la rejilla vibra, caen chispas, sale luz violeta y el piso se marca abajo. Recién ahí cae.
 // En el piso corre rápido y muerde; de cerca se agacha (brilla naranja y chilla) y salta en arco: se esquiva saltando o yéndose.
-// También salen de las rejillas de las paredes (la rejilla tiembla y se ven ojitos antes) y de los capullos de cables.
+// También salen de las rejillas de las paredes (la rejilla tiembla y se ven ojitos antes) y de los capullos de cables
+// (que revientan). No tiene boca adentro de la boca ni cola larga: es un bicho chato de muchas patas.
 // Escondido, su caja se corre lejos (x=-9999). La caja de balas es más alta que el dibujo (10 px) para pegarle parado.
 const M7_MAX=6;
 function M7_nBichos(){let n=0;for(const e of enemies)if(e.type==='m7Bicho'&&!e.gone)n++;return n;}
@@ -242,7 +243,8 @@ ENEMY_MAKERS.m7Bicho=M7_mkBicho;
 
 // ================== capullos de cables (bulbos de luz) ==================
 // Decorado: un capullo de cables enrollados con una luz naranja adentro que late. Algunos, si te acercás,
-// se ponen a chisporrotear y a latir rápido (aviso), los cables se abren de costado y sale un raspador chico.
+// se ponen a chisporrotear y a latir rápido (aviso) y REVIENTAN: chispazo, pedazos de cable y humo, y del
+// medio sale un raspador chico. No se abren en pétalos: queda un muñón de cables quemados que echa chispitas.
 function M7_bulbUpd(){
   for(const [d,s] of M7.bulbs){
     if(s.st==='closed'){
@@ -252,6 +254,11 @@ function M7_bulbUpd(){
       if(s.t%6===0)M7_spark(d.x+6+rand(-4,4),GROUND-20,1,'#ffb050');
       if(s.t%12===0)M7_sfx('m7Bulbo');
       if(--s.t<=0){s.st='open';s.k=0;M7_sfx('m7Cae');dust(d.x+6,GROUND,5);
+        // revienta: chispazo, pedazos de cable y humo
+        M7_spark(d.x+6,GROUND-12,10,'#fff0b0');M7_spark(d.x+6,GROUND-12,6,'#ffb050');
+        for(let i=0;i<8;i++)parts.push({k:'p',x:d.x+6+rand(-3,3),y:GROUND-12+rand(-6,6),vx:rand(-1.8,1.8),vy:rand(-2.6,-0.6),g:0.15,life:rand(20,34),maxl:34,size:i%3?1:2,col:i%2?'#3a3446':'#6a6478'});
+        for(let i=0;i<5;i++)parts.push({k:'smoke',col:'90,86,100',rise:1,x:d.x+6+rand(-4,4),y:GROUND-12+rand(-6,4),vx:rand(-0.3,0.3),vy:rand(-0.6,-0.2),life:rand(30,46),maxl:46,size:rand(2,3.5)});
+        parts.push({k:'ring',x:d.x+6,y:GROUND-12,r:2,max:14,life:8,maxl:8,col:'255,220,150'});
         const e=M7_newBicho({st:'stun',t:16,small:true,x:d.x+2,y:GROUND-10,hx:d.x+2});if(e){e.face=P.x<d.x?-1:1;enemies.push(e);}}
     }else if(s.st==='open'&&s.k<1)s.k=Math.min(1,s.k+0.07);
   }
@@ -264,21 +271,25 @@ function M7_drawBulbo(d){
   for(let i=0;i<3;i++){const ox=cx-3+i*3;ctx.moveTo(ox,g-22);ctx.quadraticCurveTo(ox+sw*3+(i-1)*4,(g-22+M7_CEIL)/2,ox+(i-1)*6,M7_CEIL);}ctx.stroke();
   // base
   ctx.fillStyle='#2a2d36';ctx.fillRect(x-1,g-3,14,3);ctx.fillStyle='#4a4e5a';ctx.fillRect(x-1,g-3,14,0.8);
-  // luz de adentro
-  const pulse=sp?(0.6+0.4*((T>>1)%2)):op?0:0.5+0.3*Math.sin(T/22+s.ph);
-  if(pulse>0){ctx.fillStyle=`rgba(255,150,60,${0.16*pulse})`;circle(cx,g-12,11+pulse*2);
-    ctx.fillStyle=sp?'#fff0b0':'#ffa040';ctx.beginPath();ctx.ellipse(cx,g-12,3.4,6,0,0,7);ctx.fill();
-    ctx.fillStyle=`rgba(190,90,220,${0.5*pulse})`;ctx.beginPath();ctx.ellipse(cx,g-12,4.6,7.4,0,0,7);ctx.fill();}
-  // dos mitades de cables enrollados (abiertas: se van de costado)
-  for(const side of[-1,1]){
-    ctx.save();ctx.translate(cx,g-3);ctx.rotate(side*k*0.75+(sp?Math.sin(T*1.7)*0.05:0));
-    ctx.fillStyle=op?'#2a2434':'#3a3446';ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(side*8,-6,side*5.5,-15);ctx.quadraticCurveTo(side*2,-21,0,-20);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='#14121c';ctx.lineWidth=0.6;ctx.beginPath();
-    for(let j=0;j<5;j++){const yy=-3-j*3.4;ctx.moveTo(0,yy);ctx.lineTo(side*(5.4-Math.abs(j-2)*0.9),yy-1.6);}ctx.stroke();
-    ctx.fillStyle='#6a6478';ctx.fillRect(side>0?2:-3,-14,1,6);
-    ctx.restore();}
-  if(!op){const sg=sp?1:0.4+0.3*Math.sin(T/22+s.ph);ctx.fillStyle=sp&&(T>>1)%2?'#fff3c0':`rgba(255,170,80,${sg})`;ctx.beginPath();ctx.ellipse(cx,g-11,sp?1.4:0.9,7,0,0,7);ctx.fill();}
-  if(op&&(T+x)%50<3){ctx.fillStyle='#fff3c0';ctx.fillRect(cx-1,g-19,1,1);}
+  // ovillo de cables (2ª ronda de Investigación: sin forma de huevo, sin ranura que brille ni halo): bulto redondo de
+  // cables enrollados en varias direcciones, atado con dos zunchos, con lucecitas chicas de cables pelados
+  if(!op){
+    const sh=sp?Math.sin(T*1.7)*0.6:0,oy=g-11,r=8.5;
+    ctx.fillStyle='#2e2a3a';circle(cx+sh,oy,r);
+    ctx.strokeStyle='#4a4458';ctx.lineWidth=0.8;
+    for(let i=0;i<6;i++){const a0=i*0.52+(s.ph||0);ctx.beginPath();ctx.ellipse(cx+sh,oy,r-1-(i%3)*1.6,r*0.45,a0,0,Math.PI*2);ctx.stroke();}
+    ctx.strokeStyle='#16141c';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(cx-r+sh,oy-1);ctx.lineTo(cx+r+sh,oy+1);ctx.moveTo(cx-1+sh,oy-r);ctx.lineTo(cx+1+sh,oy+r);ctx.stroke(); // zunchos
+    ctx.fillStyle='#6a6478';ctx.fillRect(cx-1+sh,oy-1,2,2);
+    const on=sp?(T>>1)%2:((T+((s.ph||0)*40|0))%90<6);
+    if(on){ctx.fillStyle=sp?'#fff0b0':'#ffb050';ctx.fillRect(q(cx-4+sh),q(oy-3),1,1);ctx.fillRect(q(cx+3+sh),q(oy+2),1,1);if(sp)ctx.fillRect(q(cx+sh),q(oy-6),1,1);}
+  }else{
+    ctx.fillStyle='rgba(20,16,24,0.7)';ctx.beginPath();ctx.ellipse(cx,g-1,9,1.6,0,0,7);ctx.fill();   // mancha de quemado
+    ctx.fillStyle='#2a2434';ctx.beginPath();ctx.moveTo(cx-5,g-3);ctx.lineTo(cx-4,g-8);ctx.lineTo(cx-2,g-6);ctx.lineTo(cx,g-10);ctx.lineTo(cx+2,g-6.5);ctx.lineTo(cx+4,g-9);ctx.lineTo(cx+5,g-3);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#4a4458';ctx.lineWidth=0.6;ctx.beginPath();   // puntas de cable deshilachadas
+    for(let i=0;i<4;i++){const bx=cx-3+i*2;ctx.moveTo(bx,g-6);ctx.lineTo(bx+(i-1.5)*1.2,g-10-(i%2)*2);}ctx.stroke();
+    ctx.fillStyle='#ffb050';ctx.fillRect(cx-2.5,g-10.5,0.8,0.8);ctx.fillRect(cx+2.2,g-11.5,0.8,0.8);
+  }
+  if(op&&(T+x)%50<3){ctx.fillStyle='#fff3c0';ctx.fillRect(cx-1,g-11,1,1);}
 }
 
 // ================== ganchos por cuadro ==================
@@ -361,7 +372,7 @@ M7_LVL.drawBG=function(){
   for(let x=-po;x<W+20;x+=140){ctx.fillStyle='#14171e';ctx.fillRect(x,34,9,GROUND-34);ctx.fillStyle='#2a303c';ctx.fillRect(x+1,34,2,GROUND-34);
     ctx.fillStyle='#3a404e';ctx.fillRect(x-2,110,13,8);
     const on=(T>>3)%5!==0;ctx.fillStyle=on?'#5af07a':'#1a4a24';ctx.fillRect(x+3,80,2,1.5);ctx.fillStyle=(T>>4)%3?'#ffb040':'#4a3010';ctx.fillRect(x+3,84,2,1.5);}
-  if(M7.flick>0&&(M7.flick>>1)%2){ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(0,0,W,GROUND);}
+  if(M7.flick>0&&(MOV_reducido()||Math.floor(M7.flick/10)%2)){ctx.fillStyle=MOV_reducido()?'rgba(0,0,0,0.2)':'rgba(0,0,0,0.35)';ctx.fillRect(0,0,W,GROUND);} // ≤ 3 cambios por segundo
 };
 
 // ================== techo con ducto, piso y avisos de caída (en el mundo) ==================
@@ -420,9 +431,13 @@ M7_LVL.drawGround=function(){
 };
 
 // ================== capa de arriba: pulso rojo y flechitas en el borde ==================
+// luz de emergencia: ámbar (#ffa040, la luz de M7 en la guía de arte), detrás de los personajes (juego.js, drawWorld).
+// Pulsa lento; con MOVIMIENTO REDUCIDO queda quieta. El rojo queda solo para peligro (Dirección de Arte).
+M7_LVL.drawFxFondo=function(){
+  const a=typeof MOV_reducido==='function'&&MOV_reducido()?0.5:0.5+0.5*Math.sin(T*0.035);
+  ctx.fillStyle=`rgba(255,160,64,${0.03+0.035*a})`;ctx.fillRect(0,0,W,H);
+};
 M7_LVL.drawFx=function(){
-  const a=Math.max(0,Math.sin(T*0.07));
-  ctx.fillStyle=`rgba(255,30,20,${0.025+0.04*a})`;ctx.fillRect(0,0,W,H);
   // un raspador que viene por el ducto desde afuera de la pantalla: flechita violeta en el borde, a la altura del techo
   for(const e of enemies){if(e.type!=='m7Bicho'||e.st!=='duct')continue;
     const sx=e.hx-camX;if(sx>=-4&&sx<=VW+4)continue;

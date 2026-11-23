@@ -15,7 +15,7 @@ const PF={
   I:["###",".#.",".#.",".#.","###"],J:["..#","..#","..#","#.#",".#."],K:["#.#","#.#","##.","#.#","#.#"],L:["#..","#..","#..","#..","###"],
   M:["#...#","##.##","#.#.#","#...#","#...#"],N:["#..#","##.#","#.##","#..#","#..#"],O:[".#.","#.#","#.#","#.#",".#."],P:["##.","#.#","##.","#..","#.."],
   Q:[".#.","#.#","#.#","##.",".##"],R:["##.","#.#","##.","#.#","#.#"],S:[".##","#..",".#.","..#","##."],T:["###",".#.",".#.",".#.",".#."],
-  U:["#.#","#.#","#.#","#.#","###"],V:["#.#","#.#","#.#","#.#",".#."],W:["#...#","#...#","#.#.#","##.##","#...#"],X:["#.#","#.#",".#.","#.#","#.#"],
+  U:["#.#","#.#","#.#","#.#","###"],V:["#...#","#...#",".#.#.",".#.#.","..#.."] /* ancha, como M y W: la de 3 se leía J al lado de la L ("VUELJO"), Textos */,W:["#...#","#...#","#.#.#","##.##","#...#"],X:["#.#","#.#",".#.","#.#","#.#"],
   Y:["#.#","#.#",".#.",".#.",".#."],Z:["###","..#",".#.","#..","###"],
   0:["###","#.#","#.#","#.#","###"],1:[".#.","##.",".#.",".#.","###"],2:["##.","..#",".#.","#..","###"],3:["##.","..#",".#.","..#","##."],
   4:["#.#","#.#","###","..#","..#"],5:["###","#..","##.","..#","##."],6:[".##","#..","###","#.#","###"],7:["###","..#",".#.",".#.",".#."],
@@ -24,7 +24,9 @@ const PF={
   '+':["...",".#.","###",".#.","..."],'−':["...","...","###","...","..."],'-':["...","...","###","...","..."],'×':["...","#.#",".#.","#.#","..."],
   '♥':[".#.#.","#####","#####",".###.","..#.."],'.':[".",".",".",".","#"],',':[".",".",".","#","#"],':':[".","#",".","#","."],
   '·':[".",".","#",".","."],"'":["#","#",".",".","."],'/':["..#","..#",".#.","#..","#.."],'%':["#.#","..#",".#.","#..","#.#"],
-  '(':[".#","#.","#.","#.",".#"],')':["#.",".#",".#",".#","#."],'∞':[".....","##.##","#.#.#","##.##","....."]};
+  '(':[".#","#.","#.","#.",".#"],')':["#.",".#",".#",".#","#."],'∞':[".......",".##.##.","#..#..#",".##.##.","......."],
+  '→':["..#..","...#.","#####","...#.","..#.."],'←':["..#..",".#...","#####",".#...","..#.."],'↑':[".#.","###",".#.",".#.",".#."],'↓':[".#.",".#.",".#.","###",".#."],
+  '▶':["#..","##.","###","##.","#.."],'◀':["..#",".##","###",".##","..#"]};
 // con acento o tilde: la letra de base y una marquita en la fila de arriba (-1)
 const PF_ACENTO={Á:['A',[2]],É:['E',[2]],Í:['I',[2]],Ó:['O',[2]],Ú:['U',[2]],Ñ:['N',[1,2]],Ü:['U',[0,2]]};
 function pfGlifo(ch){
@@ -55,9 +57,11 @@ function pfTxt(s,x,y,col='#fff',align='left',borde){
 const GL_TINTA='#120c18',GL_CREMA='#f4e7c6',GL_CREMA_GRITO='#fff0b4',GL_SOMBRA='rgba(18,12,24,0.45)';
 const GL_CACHE=new Map();
 // arma el globo en un lienzo de 1 px por unidad. Devuelve {c, tx, ty}: la punta de la colita está en (tx, ty)
+// medida de un globo: hasta 2 renglones (separados por '\n', así vienen los de textos.js: TX.historia), centrados
+function glMedir(s){const ls=String(s).split('\n').slice(0,2),tw=Math.max(...ls.map(pfW));return{ls,tw,w:tw+6,h:10+7*(ls.length-1)};}
 function glLienzo(s,grito,lado){
   const k=s+'|'+(grito?1:0)+'|'+lado;let o=GL_CACHE.get(k);if(o)return o;
-  const tw=pfW(s),w=tw+6,h=10,M=2;                    // M: margen para los picos del grito
+  const{ls,tw,w,h}=glMedir(s),M=3;                    // M: margen para los picos del grito
   const c=document.createElement('canvas');c.width=w+2*M;c.height=h+4+2*M;const g=c.getContext('2d');
   const px=(x,y,col)=>{g.fillStyle=col;g.fillRect(x+M,y+M,1,1);};
   // sombra abajo (1 px)
@@ -66,11 +70,13 @@ function glLienzo(s,grito,lado){
   g.fillStyle=grito?GL_CREMA_GRITO:GL_CREMA;g.fillRect(M+1,M+1,w-2,h-2);
   g.fillStyle=GL_TINTA;g.fillRect(M+2,M,w-4,1);g.fillRect(M+2,M+h-1,w-4,1);g.fillRect(M,M+2,1,h-4);g.fillRect(M+w-1,M+2,1,h-4);
   px(1,1,GL_TINTA);px(w-2,1,GL_TINTA);px(1,h-2,GL_TINTA);px(w-2,h-2,GL_TINTA);
-  if(grito){ // picos: cada 4 px arriba y abajo, y uno en cada costado
-    for(let x=3;x<w-3;x+=4){px(x,-1,GL_TINTA);px(x+1,-1,GL_TINTA);px(x,-2,GL_TINTA);}
-    for(let x=5;x<w-3;x+=4){if(Math.abs(x-(lado<0?3:lado>0?w-4:w>>1))<4)continue;px(x,h,GL_TINTA);px(x+1,h,GL_TINTA);px(x,h+1,GL_TINTA);}
-    for(const x of[-1,w]){px(x,4,GL_TINTA);px(x,5,GL_TINTA);px(x<0?-2:w+1,4,GL_TINTA);}
-    px(-1,1,GL_TINTA);px(w,1,GL_TINTA);px(-1,h-2,GL_TINTA);px(w,h-2,GL_TINTA);
+  if(grito){ // 4 a 6 picos de 2–3 px (Dirección de Arte: el serrucho de 1 px se veía como trama): esquinas, arriba al centro
+    // y, si el globo es ancho, uno en cada costado. La esquina de abajo del lado de la colita no lleva.
+    const c=w>>1,pk=[[[0,0],[-1,0],[0,-1],[-1,-1],[-2,-2]],[[w-1,0],[w,0],[w-1,-1],[w,-1],[w+1,-2]],[[c-1,-1],[c,-1],[c,-2],[c,-3]]];
+    if(lado>=0)pk.push([[0,h-1],[-1,h-1],[0,h],[-1,h],[-2,h+1]]);
+    if(lado<=0)pk.push([[w-1,h-1],[w,h-1],[w-1,h],[w,h],[w+1,h+1]]);
+    if(w>=22)pk.push([[-1,4],[-1,5],[-2,4],[-3,4]],[[w,4],[w,5],[w+1,4],[w+2,4]]);
+    for(const p of pk.slice(0,6))for(const[x,y]of p)px(x,y,GL_TINTA);
   }
   // colita escalonada: al centro, o corrida a un lado si el globo se tuvo que mover
   const tx=lado<0?3:lado>0?w-4:w>>1,fill=grito?GL_CREMA_GRITO:GL_CREMA;
@@ -79,17 +85,22 @@ function glLienzo(s,grito,lado){
   px(tx-1,h,GL_TINTA);g.fillStyle=fill;g.fillRect(M+tx,M+h,2,1);px(tx+2,h,GL_TINTA);
   px(tx,h+1,GL_TINTA);px(tx+1,h+1,GL_TINTA);px(tx+1,h+2,GL_TINTA);
   // texto
-  g.fillStyle=GL_TINTA;pfPixeles(s,(x,y)=>g.fillRect(x+M+3,y+M+1,1,1));
+  g.fillStyle=GL_TINTA;ls.forEach((l,i)=>{const ox=3+((tw-pfW(l))>>1);pfPixeles(l,(x,y)=>g.fillRect(x+M+ox,y+M+1+i*7,1,1));});
   o={c,tx:tx+M+1.5,ty:h+M+3,w,h,M};if(GL_CACHE.size>80)GL_CACHE.clear();GL_CACHE.set(k,o);return o;
 }
 let GL_rects=[];
-function GL_reset(){GL_rects=[];}
+// los globos van encima de todo el mundo (primer plano, techos, cornisas): mientras se dibuja el mundo, globo() los anota con
+// su transformación y GL_vaciar() (juego.js, al terminar el mundo y sus efectos) los dibuja todos juntos (Guion)
+let GL_diferir=false,GL_cola=[];
+function GL_reset(){GL_rects=[];GL_diferir=true;GL_cola.length=0;}
+function GL_vaciar(){GL_diferir=false;const q=GL_cola.splice(0);for(const[s,ax,ay,o,m]of q){ctx.save();try{ctx.setTransform(m);globo(s,ax,ay,o);}catch(e){}ctx.restore();}}
 // escala del pop: 0 → 1,2 → 1 en 6 cuadros; al final se achica en 5
 function glEscala(t,dur){if(t<3)return 1.2*t/3;if(t<6)return 1.2-0.2*(t-3)/3;if(dur&&t>dur-5)return Math.max(0,(dur-t)/5);return 1;}
 // dibuja un globo con la colita en (ax, ay), en coordenadas del mundo
 function globo(s,ax,ay,o={}){
+  if(GL_diferir){GL_cola.push([s,ax,ay,o,ctx.getTransform()]);return;}
   const t=o.t??99,dur=o.dur??0,sc=glEscala(t,dur);if(sc<=0.02)return;
-  let w=pfW(s)+6,h=10;
+  let{w,h}=glMedir(s);
   // dónde va el globo: arriba de la cabeza, sin salirse de la pantalla ni pisar el HUD, y sin encimarse con otro
   const xMin=camX+2,xMax=camX+VW-2,yMin=camY+28/ZOOM;
   let bx=Math.round(ax)-(w>>1),by=Math.round(ay)-h-3;

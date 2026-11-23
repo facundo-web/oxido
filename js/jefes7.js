@@ -131,12 +131,12 @@ function J7_drawDron(b){
 }
 
 // =====================================================================
-// VILLANO · LA MARAÑA — una masa viva de cables y carne violeta pegada a la pared del reactor
+// VILLANO · LA MARAÑA — una masa de cables (vivos, violeta) enredada en la pared del reactor. Nunca "reina" ni "nido".
 // Sin cabeza: un bulto enorme lleno de bulbos naranjas que laten y un núcleo de anillos que se hincha.
 // · Latigazo: un tentáculo de cables se levanta sobre una zona marcada en el piso (franjas naranjas) y la golpea.
 // · Esporas: el núcleo se hincha y escupe bolas de luz en arco (sombra donde caen); se pueden reventar a tiros.
-// · Crías: la masa se sacude y manda raspadores por el ducto del techo (con todo su aviso).
-// Rabia al 50 %: dos latigazos seguidos, más esporas y más crías.
+// · Raspadores: la masa se sacude y manda raspadores por el ducto del techo (con todo su aviso).
+// Rabia al 50 %: dos latigazos seguidos, más esporas y más raspadores.
 // =====================================================================
 function J7_mkMar(A){return{type:'j7Mar',isBoss:true,A,x:A+262,y:GROUND-56,w:46,h:56,hp:0,max:320,state:'enter',t:0,mt:0,face:-1,flash:0,score:12000,
   mode:'idle',cd:60,seq:0,phase:0,grow:0,swell:0,shud:0,tents:[],dim:0,touch:1,noPush:true,upd:J7_updMar,draw:J7_drawMar};}
@@ -227,7 +227,7 @@ function J7_updMar(b){
     break;}
   case 'criasT':b.shud=1;
     if(b.mt%8===0){for(const g of M7_gratesIn(camX+10,camX+VW-10))M7.shk.set(g,6);J7_sfx('m7Reja');}
-    if(b.mt===36){const n=ph?3:2;for(let i=0;i<n;i++)M7_ductBicho(i===0?A-30:A+250+i*6,i>0);setBanner('¡CRÍAS EN EL DUCTO!',60);}
+    if(b.mt===36){const n=ph?3:2;for(let i=0;i<n;i++)M7_ductBicho(i===0?A-30:A+250+i*6,i>0);setBanner('¡RASPADORES EN EL DUCTO!',60);}
     if(b.mt>=50){b.mode='idle';b.cd=ph?40:56;}
     break;
   }
@@ -254,7 +254,7 @@ function J7_drawTent(b,t){
   const tipX=hit||t.st==='back'?t.tx:t.tx+Math.sin(T/5)*3,tipY=hit?GROUND-2:t.st==='back'?GROUND-2-(1-k)*60:GROUND-58-Math.sin(T/7)*4;
   const ex=r.x+(tipX-r.x)*k,ey=r.y+(tipY-r.y)*k;
   const mx=(r.x+ex)/2,my=Math.min(r.y,ey)-30*k-(hit?0:20);
-  // cuerpo: dos trazos (cables + carne) con nudos que brillan
+  // cuerpo: dos trazos de cables (uno grueso y uno fino) con nudos que brillan
   ctx.strokeStyle='#2a1438';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(r.x,r.y);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();
   ctx.strokeStyle='#6a3290';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(r.x,r.y);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();
   ctx.strokeStyle='#22202c';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(r.x,r.y-1);ctx.quadraticCurveTo(mx,my-1.5,ex,ey-1);ctx.stroke();

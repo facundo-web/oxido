@@ -6,7 +6,7 @@ function mkMech(x){return{x,y:GROUND-28,w:22,h:28,vx:0,vy:0,face:1,onGround:true
   canAng:0,recoil:0,fuel:600,fmax:600,jet:false,jetLock:false};}
 // ================== vehículo: CHATARRA (en el código, "grillo" / mech) ==================
 // nombre que ve el jugador: CHATARRA, y CHATARRA II / III después de una fusión (fusion.js)
-const mechNombre=m=>'CHATARRA'+['',' II',' III'][Math.max(0,Math.min(2,((m&&m.lvl)||1)-1))];
+const mechNombre=m=>typeof VH_nombre==='function'&&m&&m.tipo?VH_nombre(m):'CHATARRA'+['',' II',' III'][Math.max(0,Math.min(2,((m&&m.lvl)||1)-1))]; // el vehículo de cada misión (vehiculos.js)
 function enterMech(m){P.ride=m;m.ride=true;m.by=P;m.face=P.face;m.aim=0;m.inv=30;setBanner('¡A BORDO DE LA '+mechNombre(m)+'!',70);SFX.pick();}
 function ejectMech(m,broken){
   m.ride=false;m.by=null;m.cool=45;m.jet=false;P.ride=null;
@@ -115,7 +115,7 @@ function updMech(m){
   if(tapped('jump')&&m.onGround){m.vy=-6.6;m.onGround=false;m.plat=null;SFX.jump();dust(m.x+11,m.y+m.h,8);}
   // un toque de X es un salto normal; si se mantiene, el jetpack prende cerca de la cima del salto
   mechJet(m,held('jump')&&!D&&!m.onGround&&(m.jet||m.vy>-2.2));
-  m.x=clamp(m.x+m.vx,camX+2,camX+VW-24);
+  m.x=clamp(m.x+m.vx,camX+2-(typeof MC_margenIzq==='function'?MC_margenIzq():0),camX+VW-24+(typeof MC_margen==='function'?MC_margen():0));
   const pb=m.y+m.h,wasAir=!m.onGround,fall=m.vy;
   m.vy=Math.min(m.vy+0.28,6.5);m.y+=m.vy;
   if(m.y<8){m.y=8;if(m.vy<0)m.vy=0;} // techo de vuelo
@@ -134,7 +134,7 @@ function updMech(m){
 }
 function updMechs(){
   for(const m of mechs){
-    if(!m.announced&&!m.dying&&onScreen(m,-30)&&!players.some(p=>p.ride)){m.announced=true;setBanner('¡VEHÍCULO A LA VISTA!',80);}
+    if(!m.announced&&!m.dying&&onScreen(m,-30)&&!players.some(p=>p.ride)&&!(typeof PC_cartel!=='undefined'&&PC_cartel)&&T>=(typeof AY_OBJ_T!=='undefined'?AY_OBJ_T:0)){ /* después del objetivo y del cartel de continuación (Pruebas, Y) */m.announced=true;setBanner('¡VEHÍCULO A LA VISTA!',80);}
     if(m.dying>0){
       m.dying--;if(T%5===0)parts.push({k:'smoke',x:m.x+rand(4,18),y:m.y+rand(0,10),vx:rand(-0.3,0.3),vy:rand(-0.8,-0.3),life:40,maxl:40,size:rand(2,4)});
       if(T%7===0)spark(m.x+rand(2,20),m.y+rand(2,16));
@@ -203,7 +203,7 @@ function drawMech(m){
   ctx.strokeStyle=C('#2a2a30');ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(4,4+by);ctx.lineTo(3,-4+by);ctx.stroke();
   ctx.fillStyle=(T>>4)%2?'#7dff9a':'#2a5a34';ctx.fillRect(2.4,-5+by,1.5,1.5);
   ctx.restore();
-  if(parked&&m.cool<=0&&players.some(p=>!p.ride&&!p.dead&&Math.abs(p.x+4-(m.x+11))<44))txt('↑ SUBIR A LA CHATARRA',m.x+11,m.y-10+Math.sin(T/8)*1.5,6,'#ffe08a','center');
+  if(parked&&m.cool<=0&&players.some(p=>!p.ride&&!p.dead&&Math.abs(p.x+4-(m.x+11))<44))txt(btn('up')+' SUBIR A LA CHATARRA',m.x+11,m.y-10+Math.sin(T/8)*1.5,6,'#ffe08a','center');
 }
 // HUD del Grillo (arriba a la derecha) mientras vas a bordo
 function drawMechHUD(m){

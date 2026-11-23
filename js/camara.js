@@ -18,8 +18,13 @@ function altoMax(){return tamano==='grande'&&!(navigator.maxTouchPoints>0)?Math.
 const camOY=()=>Math.max(0,(HC-H*ZOOM)/2);
 const zoomBase=()=>tamano==='grande'?ZOOM_GRANDE:1;
 // de coordenadas del mundo a coordenadas del HUD (para lo que vuela al marcador)
-const HX=x=>(x-camX)*ZOOM,HY=y=>(y-camY)*ZOOM+camOY();
+// del mundo al HUD. Con la grilla nítida entera (base.js, GN) el mundo va a N px de pantalla por unidad, no a S×ZOOM:
+// HZ() es la escala que de verdad se ve (lo que se ubica sobre el mundo no se corre)
+const HZ=()=>typeof GN!=='undefined'&&GN.zEf?GN.zEf:ZOOM;
+const HX=x=>(x-camX)*HZ(),HY=y=>(y-camY)*HZ()+camOY();
 // borde de arriba "en reposo": el piso queda abajo con un poquito de tierra; cada misión puede pedir ver más arriba (L.camTop)
+// en una misión con caminos en capas (caminos.js) el mundo es más alto: de CA_yMin() a CA_yMax()
+const camYMin=()=>typeof CA_yMin==='function'?CA_yMin():0,camYMax=()=>(typeof CA_yMax==='function'?CA_yMax():H)-VH;
 function camReposo(){const r=GROUND+6-VH;return clamp(L&&L.camTop!==undefined?Math.min(r,L.camTop):r,0,H-VH);}
 // lo más abajo que puede ir la cámara sin cortarle los pies a quien está en el piso
 const camPisoMin=()=>clamp(GROUND+3-VH,0,H-VH);
@@ -32,30 +37,36 @@ function camZoomStep(){
   // jugadores que cuentan para encuadrar en vertical: vivos y ya dentro del mundo
   // (el que revive cayendo desde arriba de todo aparece desde afuera, como siempre, y no arrastra la cámara)
   let top=1e9,bot=-1e9,n=0;
-  for(const p of players)if(!p.dead){const o=p.ride||p;if(o.y<-2)continue;n++;top=Math.min(top,o.y);bot=Math.max(bot,o.y+(o.h||18));}
+  for(const p of players)if(!p.dead&&!p.burbuja){const o=p.ride||p;if((o.y<-2&&!(typeof CA_on==='function'&&CA_on()))||p.reaparece)continue;n++;top=Math.min(top,o.y);bot=Math.max(bot,o.y+(o.h||18));}
   const arenaJefe=lock&&(lock.a.boss||lock.a.mini);
   let meta=arenaJefe?1:zoomBase();
   // de a 2, si uno está muy arriba (jetpack, plataforma alta) y el otro abajo, el zoom se abre lo justo para que entren los dos
   if(n>1)meta=Math.min(meta,Math.max(1,HC/(bot-top+34)));
+  if(typeof CA_separados==='function'&&CA_separados())meta=1; // caminos distintos o pantalla partida: zoom abierto (caminos.js)
   // abrir es más rápido que cerrar: que nadie quede afuera mientras se abre
   if(Math.abs(meta-ZOOM)>0.002)setZoom(ZOOM+(meta-ZOOM)*(meta<ZOOM?0.1:0.06));else if(ZOOM!==meta)setZoom(meta);
   // de a 2, si ya no entran los dos (uno arriba de todo y otro en el piso), el zoom se abre de golpe: nadie queda cortado
-  if(n>1&&bot-top+6>VH&&meta<ZOOM)setZoom(meta);
+  if(n>1&&bot-top+6>VH&&meta<ZOOM&&!(typeof CA_partida!=='undefined'&&CA_partida))setZoom(meta);
   // al acercar (salida de una arena) la cámara corre lo justo para que nadie quede afuera por la derecha
   if(!lock){let right=-1e9;for(const p of players)if(!p.dead){const o=p.ride||p;right=Math.max(right,o.x+(o.w||10));}
-    if(right>-1e9){const need=Math.min(right+18-VW,LEVEL_END-VW);if(need>camX)camX=need;}}
+    if(right>-1e9){const need=Math.min(right+18-VW,LEVEL_END-VW,typeof CA_camLimite==='function'?CA_camLimite():1e9);if(need>camX)camX=need;}}
   // vertical: en reposo el piso queda abajo; si alguien sube, arriba queda al menos un 30 % de la vista libre
   let meta_y=camReposo();
   // voladores a la vista (en x): sube lo justo para verlos, sin cortar el piso
   let fly=1e9;for(const e of enemies)if(!e.gone&&(e.type==='drone'||e.air)&&e.x+e.w>camX-20&&e.x<camX+VW+20)fly=Math.min(fly,e.y);
   if(fly<1e9)meta_y=Math.min(meta_y,Math.max(camPisoMin(),fly-16));
   if(n){meta_y=Math.min(meta_y,top-VH*0.3);meta_y=Math.max(meta_y,bot-VH+4);}
-  meta_y=clamp(meta_y,0,H-VH);
+  meta_y=clamp(meta_y,camYMin(),camYMax());
   camY+=(meta_y-camY)*(meta_y<camY?0.12:0.07);
   if(Math.abs(meta_y-camY)<0.05)camY=meta_y;
   // nunca se le cortan los pies ni la cabeza a nadie (si no entran los dos, mandan los pies: el zoom ya se está abriendo)
-  if(n){camY=Math.min(camY,top-2);camY=Math.max(camY,bot-VH+2);}
-  camY=clamp(camY,0,H-VH);
+  if(n&&!(typeof CA_partida!=='undefined'&&CA_partida)){
+    // con caminos en capas (foco en un jugador): si no entran los dos, manda el jugador 1 entero; el 2 tiene el conteo y la
+    // burbuja (caminos.js). Antes mandaban los pies y al 1, arriba en la grúa, se le cortaba la cabeza (bot --2j, M2)
+    let t=top,b=bot;const p1=players[0];
+    if(n>1&&b-t+4>VH&&typeof CA_on==='function'&&CA_on()&&p1&&!p1.dead&&!p1.burbuja){const o=p1.ride||p1;t=o.y;b=o.y+(o.h||18);}
+    camY=Math.min(camY,t-2);camY=Math.max(camY,b-VH+2);}
+  camY=clamp(camY,camYMin(),camYMax());
 }
 // en táctil, que nadie aparezca debajo del dibujo de la palanca (OXIDO_TACTIL_LIBRE de publicar/web/tactil.js)
 function xLibre(x,z){const lb=typeof onTouch==='function'&&onTouch()&&window.OXIDO_TACTIL_LIBRE;return lb?Math.max(x,(lb.x0+6)/(z||ZOOM)):x;}

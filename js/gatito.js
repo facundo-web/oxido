@@ -1,17 +1,20 @@
 'use strict';
 // Óxido · Gatito amigo
 // En cada misión hay un gatito encerrado en una jaulita. Se libera tocándola o disparándole.
-// Se suma al grupo: te sigue, no dispara; se lanza sobre los enemigos que te disparan y los araña
-// (de a poco: a los jefes les saca como mucho un 12 % por pelea y nunca les da el golpe final).
+// Se suma al grupo: te sigue, no dispara; se lanza sobre los enemigos que te disparan y los araña. NO HACE DAÑO:
+// los MOLESTA. Mientras lo araña, ese enemigo no puede disparar (lo que tira se le cae) y sigue molestado 1,25 s
+// después de que el gato se va: se sacude y manotea. A un jefe le corta UN ataque como mucho por pelea.
 // Tiene una barrita de vida arriba: cada cosa le saca distinto (bala poco; fuego, explosión o jefe mucho).
 // Se cura con comida para gato (latita o pescadito) que cae de cajas, de algunos enemigos o aparece cada tanto.
-// Si se queda sin vida se vuelve un gatito ángel: flota cerca de quien lo rescató y araña drones (nunca los mata
-// solo). El ángel dura hasta el final de la misión. El gato vivo pasa de misión con vos.
+// Si se queda sin vida se vuelve un angelito que SUBE despacio hasta salir por arriba de la pantalla, una sola vez.
+// Si en la subida pasa al lado de un dron, lo araña al pasar (el dron se sacude y no dispara un rato, sin daño) y sigue
+// subiendo. Después no hay gato hasta que rescates otro. El gato vivo pasa de misión con vos.
 
 let gato=null,gatoJaula=null,gatoMarcas=[],gatoVigila=[],gatoHint=false,gatoComida=[],gatoComidaT=0,gatoReserva=0;
 const CAT_MAXHP=100;
-// contadores para las pruebas (rasguños y daño hecho)
-const gatoStats={rasg:0,rasgJefe:0,dmgSold:0,dmgJefe:0,golpes:0,bajas:0,comidas:0,angel:0,angelRasg:0,angelDmg:0};
+// contadores para las pruebas (rasguños, enemigos molestados, ataques de jefe cortados, el angelito)
+const gatoStats={rasg:0,rasgJefe:0,molestados:0,cortesJefe:0,golpes:0,comidas:0,angel:0,angelRasg:0,angelSalio:0};
+const CAT_MOLESTO=75,CAT_MOLESTO_JEFE=40; // cuadros que sigue molestado después del último arañazo; al jefe, una vez
 const CAT_G=0.34,CAT_W=12,CAT_H=8;
 const CAT_COL={k:'#17141f',g:'#9aa0ad',G:'#5f6472',c:'#f1e4c6',o:'#e08a3c',e:'#a6f05a',n:'#ff8fa8',b:'#4fa84a',w:'#ffffff'};
 // dónde está la jaulita en cada misión (y: piso sobre el que apoya). Si falta, se elige sola.
@@ -56,8 +59,8 @@ ON_START.push(function(carry){
 // ---------- ayudas ----------
 // vivo = rescatado y con vida (ni ángel ni subiendo); lo usan partida.js (logro MICHI A SALVO) y el bot
 const CAT_vivo=()=>!!gato&&gato.st!=='angel'&&gato.st!=='ascend';
-// el ángel sigue a quien rescató al gato (si no está, al que va adelante)
-const CAT_lead=()=>{const o=gato&&gato.st==='angel'?players[gato.owner]:null;if(o&&!o.dead)return o;const p=typeof leadP==='function'?leadP():P;return p;};
+// el gato sigue al que va adelante
+const CAT_lead=()=>typeof leadP==='function'?leadP():P;
 function CAT_leadPos(){
   const p=CAT_lead();if(!p||p.dead)return null;
   if(p.ride){const m=p.ride;return{x:m.x+m.w/2,feet:m.y+m.h,face:p.face||1};}
@@ -77,12 +80,12 @@ function CAT_reach(e,g){
   return onFloor&&Math.abs(g.y+g.h-feet)<=74;
 }
 const CAT_alive=e=>e&&!e.gone&&hittable(e)&&!(isBoss(e)&&e.air)&&e.type!=='drone'&&onScreen(e,0);
-const CAT_bossCap=e=>isBoss(e)&&(e.gatoDmg||0)>=(e.max||e.hp)*0.12;
+const CAT_bossCap=e=>isBoss(e)&&!!e.gatoCorte; // a un jefe lo molesta una sola vez por pelea
 // prioridad: el que está apuntando o disparando ahora; si no, el más cercano por tierra
 function CAT_pick(g){
   let best=null,bs=1e9;const cx=g.x+6;
   for(const e of enemies){
-    if(!hittable(e)||!onScreen(e,-4)||!CAT_reach(e,g)||CAT_bossCap(e))continue;
+    if(!hittable(e)||!onScreen(e,-4)||!CAT_reach(e,g)||CAT_bossCap(e)||e.molesto>30)continue; // al que ya está molesto, después
     const d=Math.abs(e.x+e.w/2-cx);if(d>230)continue;
     const busy=e.state==='aim'||(e.type==='turret'&&e.burst>0)||(isBoss(e)&&e.state==='fight');
     const sc=d-(busy?400:0);if(sc<bs){bs=sc;best=e;}
@@ -118,7 +121,7 @@ function CAT_hurt(g,amt){
   g.vy=-2.6;g.vx=-g.face*1.4;g.onGround=false;
 }
 function CAT_mark(x,y,big,oro){
-  gatoMarcas.push({oro:!!oro,x,y,a:rand(-1.15,-0.55)*(Math.random()<0.5?1:-1),len:big?rand(12,17):rand(6,9),lw:big?1.5:1,life:big?40:26,max:big?40:26});
+  gatoMarcas.push({x,y,a:rand(-1.15,-0.55)*(Math.random()<0.5?1:-1),len:big?rand(11,15):rand(6,9),lw:big?1.1:0.8,life:big?22:16,max:big?22:16}); // se van rápido
   if(gatoMarcas.length>40)gatoMarcas.shift();
 }
 function CAT_scratch(g,e){
@@ -126,55 +129,67 @@ function CAT_scratch(g,e){
   const mx=clamp(g.x+6+g.face*5+rand(-3,3),e.x+1,e.x+e.w-1),my=clamp(g.y+4+rand(-3,5),e.y+1,e.y+e.h-2);
   CAT_mark(mx,my,big);
   if(big&&Math.random()<0.7)CAT_mark(e.x+rand(3,e.w-3),e.y+rand(3,Math.max(4,e.h-6)),true);
-  for(let i=0;i<3;i++)parts.push({k:'p',x:mx,y:my,vx:rand(-1.4,1.4),vy:rand(-1.6,0),g:0.12,life:rand(8,14),maxl:14,size:1,col:i%2?'#ffffff':'#ffb3c6'});
+  for(let i=0;i<3;i++)parts.push({k:'p',x:mx,y:my,vx:rand(-1.4,1.4),vy:rand(-1.6,0),g:0.12,life:rand(8,14),maxl:14,size:1,col:i%2?'#ffffff':'#c9ccd6'});
   CAT_scratchSfx(big);
-  let d;
-  if(isBoss(e)){
-    const cap=(e.max||e.hp)*0.12,done=e.gatoDmg||0;
-    d=Math.min(Math.max(0.05,(e.max||e.hp)*0.0015),cap-done);
-    if(e.hp-d<1)d=0; // el golpe final al villano es del jugador
-    if(d>0){e.gatoDmg=done+d;gatoStats.dmgJefe+=d;gatoStats.rasgJefe++;}
-  }else{d=0.3;gatoStats.dmgSold+=Math.min(d,Math.max(0,e.hp));}
-  if(d>0){const wasHp=e.hp;killSrc='cat';dmg(e,d);killSrc=null;if(e.gone&&wasHp>0)gatoStats.bajas++;}
+  CAT_molestar(e);
   if(g.n%5===1)tone('triangle',1500,1100,0.04,0.012);
   // a veces el jefe se lo saca de encima de un manotazo (saca mucho)
   if(isBoss(e)&&!e.air&&Math.random()<0.08){CAT_hurt(g,CAT_DMG.jefe);if(CAT_vivo()){g.st='hop';g.tgt=null;g.t=0;g.vy=-3.4;g.vx=-g.face*2.2;g.onGround=false;g.cd=200;}}
 }
 
+// MOLESTAR: sin daño. Mientras dura, lo que el enemigo tira no sale (se le cae de las manos). Al jefe, una vez por pelea
+// y corto: le corta el ataque que estaba haciendo y nada más.
+function CAT_molestar(e){
+  if(isBoss(e)){if(e.gatoCorte)return;e.gatoCorte=true;e.molesto=CAT_MOLESTO_JEFE;gatoStats.cortesJefe++;gatoStats.rasgJefe++;return;}
+  if(!e.gatoMolesto){e.gatoMolesto=true;gatoStats.molestados++;}
+  e.molesto=CAT_MOLESTO;
+}
+{const ue0=updEnemy;updEnemy=function(e){
+  if(!(e.molesto>0)){ue0(e);return;}
+  e.molesto--;const np=eproj.length;ue0(e);
+  for(let i=eproj.length-1;i>=np;i--){const b=eproj[i];eproj.splice(i,1);   // se le cae: un poquito de polvo y nada más
+    if(b&&typeof b.x==='number')parts.push({k:'smoke',col:'200,190,170',x:b.x,y:b.y,vx:0,vy:-0.2,life:10,maxl:10,size:1.2});}
+};}
+// molestado: se sacude y manotea (lo llama el dibujo de enemigos de juego.js antes y después de dibujarlo)
+function CAT_molestoAntes(e){ctx.save();const k=(T>>1)%2?1:-1;ctx.translate(k*0.8,0);}
+function CAT_molestoDespues(e){
+  ctx.restore();
+  const cx=e.x+e.w/2,hy=e.y+2,f=(T>>2)%2;
+  // manotazos al aire (dos rayitas que cambian de lado) y una gotita de fastidio
+  ctx.strokeStyle='#17141f';ctx.lineWidth=0.8;
+  for(const s of[-1,1]){const x0=cx+s*(e.w/2+1),y0=hy+3+(f?s:-s);ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0+s*2.5,y0-2.5+f*2);ctx.stroke();}
+  if((T>>3)%2){ctx.fillStyle='#bfe6ff';ctx.fillRect(q(cx+e.w/2-1),q(hy-3),1,2);ctx.fillStyle='#17141f';ctx.fillRect(q(cx+e.w/2-1),q(hy-1),1,0.6);}
+  // un garabato de fastidio arriba de la cabeza (como en las historietas), que cambia de forma de a dos cuadros
+  const sx=cx,sy=e.y-5,sem=(T>>2)%4;ctx.strokeStyle='#17141f';ctx.lineWidth=0.7;ctx.beginPath();
+  for(let i=0;i<=9;i++){const a=i*2.3+sem,r=1.6+((i*7+sem)%3)*0.7;ctx.lineTo(sx+Math.cos(a)*r*1.4,sy+Math.sin(a)*r*0.8);}ctx.stroke();
+}
 
-// ---------- muerte: gatito ángel ----------
+
+// ---------- muerte: el angelito sube y se va ----------
 function CAT_alAngel(g){
-  g.hp=0;g.shown=0;g.st='ascend';g.t=0;g.tgt=null;g.trail=[];g.vy=0;g.vx=0;g.inv=0;g.heartT=0;gatoStats.angel++;
+  g.hp=0;g.shown=0;g.st='ascend';g.t=0;g.tgt=null;g.trail=[];g.vy=0;g.vx=0;g.inv=0;g.heartT=0;gatoStats.angel++;g.yaAranio=new Set();
   // sonido corto y dulce, no triste: tres notas que suben
   tone('triangle',880,880,0.09,0.03);later(90,()=>tone('triangle',1175,1175,0.09,0.03));later(180,()=>tone('sine',1568,1760,0.28,0.03));
   for(const f of gatoComida)f.fade=f.fade||20; // la comida que quedaba se va
   gatoReserva=0;
 }
-// el ángel solo va contra lo que vuela (lo que el gato vivo no alcanzaba)
+// lo que el angelito araña al pasar: lo que vuela (drones y voladores), nunca un jefe
 const CAT_volador=e=>e&&!e.gone&&hittable(e)&&!isBoss(e)&&(e.type==='drone'||e.air)&&onScreen(e,-4);
-function CAT_updAngel(g,lp){
-  if(g.cd>0)g.cd--;
-  const bob=Math.sin(g.t*0.07)*3;
-  if(g.tgt){ // vuela hasta el dron y lo araña una vez
-    const e=g.tgt;
-    if(!CAT_volador(e)){g.tgt=null;g.cd=60;return;}
-    const tx=e.x+e.w/2-6,ty=e.y-2,dx=tx-g.x,dy=ty-g.y;
-    g.x+=clamp(dx*0.18,-3,3);g.y+=clamp(dy*0.18,-3,3);g.face=Math.sign(e.x+e.w/2-g.x-6)||g.face;
-    if(Math.abs(dx)<4&&Math.abs(dy)<5){
-      // araña poquito: como mucho el 45 % de lo que le queda, así nunca lo mata solo
-      const d=Math.min(e.hp*0.45,Math.max(0.3,(e.max||e.hp)*0.3));
-      if(d>0.01){killSrc='cat';dmg(e,d);killSrc=null;gatoStats.angelRasg++;gatoStats.angelDmg+=d;}
-      CAT_mark(e.x+e.w/2+rand(-2,2),e.y+e.h/2+rand(-2,2),false,'oro');CAT_mark(e.x+e.w/2+rand(-3,3),e.y+e.h/2,false,'oro');
-      tone('triangle',1400,1900,0.05,0.016);
-      g.tgt=null;g.cd=rand(150,210)|0; // espera un rato entre arañazos
-    }
-    return;
-  }
-  // flota cerca del jugador, detrás y un poco arriba, con vaivén suave
-  if(lp){const tx=lp.x-lp.face*16-6,ty=lp.feet-30+bob;g.x+=(tx-g.x)*0.06;g.y+=(ty-g.y)*0.08;
-    if(Math.abs(tx-g.x)>2)g.face=Math.sign(tx-g.x);}
-  if(g.cd<=0){let best=null,bd=90;for(const e of enemies){if(!CAT_volador(e))continue;const d=Math.hypot(e.x+e.w/2-g.x-6,e.y+e.h/2-g.y-4);if(d<bd){bd=d;best=e;}}
-    if(best){g.tgt=best;tone('sine',1200,1600,0.06,0.012);}}
+function CAT_updAngel(g){
+  // sube despacio, con un vaivén; si hay un dron arriba cerca se arrima un poquito (pasa al lado), sin frenarse
+  g.y-=0.62;let near=null,bd=80;
+  for(const e of enemies){if(!CAT_volador(e)||g.yaAranio.has(e))continue;const dy=g.y-(e.y+e.h/2),dx=e.x+e.w/2-g.x-6;
+    if(dy>-6&&dy<150&&Math.abs(dx)<bd){bd=Math.abs(dx);near=e;}}
+  const meta=near?clamp(near.x+near.w/2-6-g.x,-1.1,1.1):0;g.vx+=(meta-g.vx)*0.15;g.x+=g.vx+Math.sin(g.t*0.07)*0.25;
+  if(Math.abs(g.vx)>0.1)g.face=Math.sign(g.vx);
+  if(g.t%5===0)parts.push({k:'p',x:g.x+rand(0,12),y:g.y+rand(2,10),vx:rand(-0.3,0.3),vy:rand(0.1,0.5),g:0,life:rand(18,30),maxl:30,size:1,col:g.t%10<5?'#fff6c8':'#ffffff'});
+  // araña al pasar: el dron se sacude y no dispara un rato (sin daño)
+  for(const e of enemies){if(!CAT_volador(e)||g.yaAranio.has(e))continue;
+    if(Math.abs(e.x+e.w/2-g.x-6)<e.w/2+8&&Math.abs(e.y+e.h/2-g.y-4)<e.h/2+8){g.yaAranio.add(e);gatoStats.angelRasg++;
+      e.molesto=Math.max(e.molesto||0,CAT_MOLESTO);CAT_mark(e.x+e.w/2+rand(-2,2),e.y+e.h/2+rand(-2,2),false);CAT_mark(e.x+e.w/2+rand(-3,3),e.y+e.h/2,false);
+      CAT_scratchSfx(false);tone('triangle',1400,1900,0.05,0.016);}}
+  // salió por arriba: se terminó el gato
+  if(g.y+g.h<camY-6){gatoStats.angelSalio++;gato=null;}
 }
 
 // ---------- comida para gato ----------
@@ -285,13 +300,8 @@ function CAT_free(){
 function CAT_updCage(){
   const c=gatoJaula;if(!c)return;c.t++;
   if(c.st==='shut'){
-    if(!gatoHint&&onScreen(c,-30)){gatoHint=true;if(!banner||banner.t<=0)setBanner('¡UN GATITO! LLEGÁ O DISPARALE A LA JAULA',110);}
-    if(touchAny(c)){CAT_free();return;}
-    for(const b of pbul){
-      if(b.gone||b.ally)continue;
-      const r=b.k==='flame'?(b.r||2):1.5;
-      if(overlapPt(c,b.x,b.y,r)){if(b.k==='rocket')rocketBoom(b);else if(b.k!=='flame')b.gone=true;CAT_free();return;}
-    }
+    if(!gatoHint&&onScreen(c,-30)){gatoHint=true;if(!banner||banner.t<=0)setBanner('¡UN GATITO! PASÁ POR LA JAULA',110);}
+    if(touchAny(c)){CAT_free();return;} // pasando por la jaula (rescate.js): los tiros ya no la abren
   }else if(c.t>90)gatoJaula=null;
 }
 
@@ -325,11 +335,7 @@ ON_STEP.push(function(){
     CAT_phys(g,true);
     if(g.t>34&&g.onGround){g.st='follow';g.cd=50;setBanner('¡UN GATITO SE SUMA!',70);}
     break;
-  case 'ascend':{ // sube despacito con brillo y se vuelve ángel
-    g.y-=0.55;g.vx=0;if(g.t%4===0)parts.push({k:'p',x:g.x+rand(0,12),y:g.y+rand(0,8),vx:rand(-0.3,0.3),vy:rand(-0.8,-0.2),g:0,life:rand(18,30),maxl:30,size:1,col:g.t%8<4?'#fff6c8':'#ffffff'});
-    if(g.t>=56){g.st='angel';g.t=0;g.cd=60;setBanner('¡EL GATITO ES UN ÁNGEL! ARAÑA DRONES',90);}
-    break;}
-  case 'angel':CAT_updAngel(g,lp);break;
+  case 'ascend':CAT_updAngel(g);break; // el angelito sube hasta salir por arriba (y ahí gato=null)
   case 'follow':case 'hop':{
     if(g.st==='hop'&&g.onGround&&g.t>8)g.st='follow';
     if(g.cd>0)g.cd--;
@@ -394,7 +400,7 @@ ON_STEP.push(function(){
   }
   if(g.st!=='scratch'&&g.trail.length)g.trail.shift();
   // nunca se queda fuera de cuadro (salvo cuando huye)
-  if(gato&&CAT_vivo()&&g.st!=='pounce'&&g.st!=='scratch')g.x=clamp(g.x,camX+2,camX+VW-g.w-2);
+  if(gato&&CAT_vivo()&&g.st!=='pounce'&&g.st!=='scratch')g.x=clamp(g.x,camX+2,camX+VW-g.w-2+(typeof MC_margen==='function'?MC_margen():0));
   // la barrita persigue a la vida real: baja rápido y sube de a poco (así se ve sumar al comer)
   // mientras la comida vuela, lo que suma queda retenido; al llegar, sube de a poco
   const vuela=typeof RC_vuelos!=='undefined'?RC_vuelos.filter(f=>f.anc==='gato').reduce((a,f)=>a+f.amt,0):0,meta=Math.max(0,g.hp-vuela);
@@ -466,17 +472,15 @@ function CAT_drawCage(c){
 }
 function CAT_drawMarks(){
   for(const m of gatoMarcas){
-    // tres cortes "de dibujito": gruesos, con contorno de tinta; aparecen de golpe y se van achicándose
+    // tres rayas de lápiz: gris claro con borde oscuro; aparecen de golpe y se van achicándose
     const age=m.max-m.life,grow=clamp(age/3,0,1),shr=clamp(m.life/(m.max*0.45),0,1),a=clamp(m.life/(m.max*0.3),0,1);
     const ca=Math.cos(m.a),sa=Math.sin(m.a),nx=-sa,ny=ca,l=m.len*grow*shr,lw=m.lw+0.9;
     ctx.lineCap='round';
     for(let i=-1;i<=1;i++){
       const ox=m.x+nx*i*lw*2.1-ca*l/2,oy=m.y+ny*i*lw*2.1-sa*l/2;
-      ctx.strokeStyle=`rgba(23,20,31,${a*0.9})`;ctx.lineWidth=lw+1.4;
+      ctx.strokeStyle=`rgba(23,20,31,${a*0.9})`;ctx.lineWidth=lw+1;
       ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+ca*l,oy+sa*l);ctx.stroke();
-      ctx.strokeStyle=m.oro?`rgba(255,210,80,${a})`:`rgba(255,120,160,${a})`;ctx.lineWidth=lw;
-      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+ca*l,oy+sa*l);ctx.stroke();
-      ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=lw*0.4;
+      ctx.strokeStyle=`rgba(208,212,220,${a})`;ctx.lineWidth=lw;
       ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+ca*l,oy+sa*l);ctx.stroke();
     }
     ctx.lineCap='butt';
@@ -487,7 +491,7 @@ ON_DRAW.push(function(){
   CAT_drawMarks();
   for(const f of gatoComida)CAT_drawComida(f);
   const g=gato;if(!g)return;
-  if(g.st==='angel'||g.st==='ascend'){if(!(typeof REM_angel==='function'&&REM_angel(g)))CAT_drawAngel(g);return;}
+  if(g.st==='ascend'){CAT_drawAngel(g);return;} // el angelito que sube
   // arañando: en vez del gato, el remolino (remolino.js)
   if(typeof REM_dibuja==='function'&&REM_dibuja(g)){if(g.st!=='free')CAT_drawBar(g);return;}
   // rastro de velocidad mientras araña

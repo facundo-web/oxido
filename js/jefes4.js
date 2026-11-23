@@ -139,7 +139,7 @@ function J4_drawChacal(b){
 // VILLANO · REY POLVO — rey momia de las arenas
 // De la cintura para abajo es un remolino de arena; corona de sol partido que pierde arena por la grieta,
 // manto índigo con bordes dorados y un báculo con una gema verde.
-// · Tormenta: invoca la tormenta con cara de la misión (avisos de fila: baja saltá, alta agachate).
+// · Tormenta: invoca la tormenta del reloj de arena de la misión (avisos de fila: baja saltá, alta agachate).
 // · Escarabajos: los tira en arco; caen y corren.
 // · Sarcófago: se esconde (no se le puede pegar) y desde adentro tira maldiciones lentas que se pueden reventar.
 //   Al salir queda aturdido un rato y recibe mucho más daño. Afuera, su vendaje frena parte del daño.
@@ -285,8 +285,9 @@ function J4_bigSarco(b){
   const glow=b.state==='hide'||b.lidShk;
   const lidAt=(lx,ly)=>{
     ctx.fillStyle='#1a0e08';ctx.fillRect(lx-0.6,ly-0.6,w+1.2,h+1.2);
-    ctx.fillStyle='#c89838';ctx.fillRect(lx,ly+3,w,h-3);ctx.fillRect(lx+2,ly,w-4,3);
-    ctx.fillStyle='#2a4a8a';for(let i=0;i<5;i++){ctx.fillRect(lx+1,ly+3+i*2.6,4,1.3);ctx.fillRect(lx+w-5,ly+3+i*2.6,4,1.3);}
+    // ocre apagado con franjas azul gris (Dirección de Arte): el dorado queda solo para el diente de REY POLVO
+    ctx.fillStyle='#a07a48';ctx.fillRect(lx,ly+3,w,h-3);ctx.fillRect(lx+2,ly,w-4,3);
+    ctx.fillStyle='#4a5a72';for(let i=0;i<5;i++){ctx.fillRect(lx+1,ly+3+i*2.6,4,1.3);ctx.fillRect(lx+w-5,ly+3+i*2.6,4,1.3);}
     ctx.fillStyle='#d89a5a';ctx.fillRect(lx+7,ly+3,w-14,9);
     ctx.fillStyle=glow?((T>>2)%2?'#7affd0':'#3ac0a0'):'#1a120c';ctx.fillRect(lx+8.5,ly+6,3,1.2);ctx.fillRect(lx+w-11.5,ly+6,3,1.2);
     if(glow){ctx.fillStyle='rgba(122,255,208,0.3)';circle(lx+10,ly+6.6,2.6);circle(lx+w-10,ly+6.6,2.6);}

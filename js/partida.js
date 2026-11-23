@@ -13,6 +13,8 @@ let vuelta=1;                 // 1, 2, 3…
 let partida=null;             // datos de toda la partida (se arma en gameStart)
 let PC_mis=null;              // misión en curso: tramos cerrados y el tramo abierto
 let PC_aviso=null,PC_cartel=null,PC_cont=false;
+// uno por vez: la tarjeta de tramo espera a un aviso de arriba, a un logro que ya se está mostrando, a VUELTA y al objetivo
+const PC_espera=()=>!!((banner&&banner.t>0)||(typeof HIST_pops!=='undefined'&&HIST_pops.length&&HIST_pops[0].t0)||PC_cartel||(typeof AY_OBJ_T!=='undefined'&&T<AY_OBJ_T));
 let tituloSel=0;              // opción elegida en el menú del título
 const PC_MAX_CONT=3;
 // ---------- escalado por vuelta ----------
@@ -44,7 +46,8 @@ function PC_extra(){
 const PC_SOLD={soldier:1,grenadier:1,shield:1};
 ON_STEP.push(()=>{
   if(partida&&!winT)partida.frames++;
-  if(PC_aviso&&--PC_aviso.t<=0)PC_aviso=null;
+  if(PC_aviso&&!PC_espera()&&--PC_aviso.t<=0)PC_aviso=null; // espera a que se vaya el aviso de arriba (uno por vez)
+  if(PC_cartel&&banner&&banner.t>0)PC_cartel.t++; // VUELTA / CONTINUACIÓN se esconde bajo un aviso y sigue después
   if(PC_cartel&&--PC_cartel.t<=0)PC_cartel=null;
   if(winT&&PC_mis&&PC_mis.cur)tramoCerrar(); // el villano cayó: se cierra el último tramo
   if(vuelta<2)return;
@@ -55,7 +58,7 @@ ON_STEP.push(()=>{
   }
 });
 // ---------- partida y misión ----------
-function PC_nueva(){return{frames:0,resc:0,bosses:0,wins:0,cont:0,armas:{},d0:tirosDisp,p0:tirosPeg,ended:false};}
+function PC_nueva(){return{ayudas:typeof AYUDAS_on==='function'&&AYUDAS_on(),frames:0,resc:0,bosses:0,wins:0,cont:0,armas:{},d0:tirosDisp,p0:tirosPeg,ended:false};}
 ON_START.push(carry=>{
   if((!carry&&!PC_cont)||!partida){
     vuelta=1;partida=PC_nueva();PC_cartel=null;
@@ -92,7 +95,7 @@ function tramoCerrar(){
   if(t.disp>0&&t.pct===null)t.pct=Math.round(t.peg*100/t.disp);
   t.items=PC_bonus(t);t.bonus=t.items.reduce((s,i)=>s+i[1],0);score+=t.bonus;
   m.tramos.push(t);
-  PC_aviso={t:270,max:270,tr:t};if(t.bonus)later(380,SFX.medal);
+  PC_aviso={t:120,max:120,tr:t};if(t.bonus)later(380,SFX.medal);
   if(m.tramos.length<L.arenas.length)PC_abrirTramo();
 }
 const PC_mmss=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
@@ -125,19 +128,34 @@ function continuar(){
   partida.cont++;const half=Math.floor(score/2);
   for(const p of players)p.out=true; // todos vuelven nuevos (armas iniciales)
   allies=[];
+  const hechos=PC_mis?PC_mis.tramos.slice():[];   // los tramos ya cerrados: se vuelve después del último
   PC_cont=true;try{startLevel(levelIdx,true);}finally{PC_cont=false;}
+  if(hechos.length&&hechos.length<L.arenas.length)PC_alTramo(hechos);
   lives=DIFF().lives;score=half;PC_mis.score0=score;newRecord=false;
   PC_cartel={s:'CONTINUACIÓN '+partida.cont+' DE '+PC_MAX_CONT,sub:'MITAD DE LOS PUNTOS · VIDAS ×'+lives,col:'#7dff9a',t:200,max:200};
   SFX.pick();
+}
+// después de una continuación: arranca pasando la arena del último tramo cerrado (no se repite lo que ya se ganó).
+// Lo de antes (enemigos, eventos, prisioneros) queda atrás; los tramos cerrados se conservan en el resumen.
+function PC_alTramo(hechos){
+  const a=L.arenas[hechos.length-1],x0=a.at+Math.round(VW*0.6);
+  arenaIdx=hechos.length;camX=Math.min(x0,LEVEL_END-VW);lock=null;
+  while(evIdx<levelEvents.length&&levelEvents[evIdx].at<=camX)evIdx++;
+  for(const e of enemies)if(!isBoss(e)&&e.x<camX+VW*0.7)e.gone=true;spawnQ.length=0;
+  players.forEach((p,j)=>{const o=p.ride||p;o.x=camX+40-j*18;o.y=GROUND-(o.h||18);if(p.ride)P.x=o.x+7;});
+  for(const al of allies)al.x=camX+20;if(typeof gato!=='undefined'&&gato)gato.x=camX+26;
+  PC_mis.tramos=hechos;PC_abrirTramo();
 }
 // ---------- fin de partida ----------
 function resumenPartida(){
   return{score,chars:players.map(p=>CHARS[p.ci].name),twoP:players.length>1,loop:vuelta,level:levelIdx,kills,
     rescued:partida?partida.resc:rescued,time:partida?Math.round(partida.frames/60):0,bosses:partida?partida.bosses:0,
-    difficulty,continues:partida?partida.cont:0};
+    difficulty,continues:partida?partida.cont:0,ayudas:!!(partida&&partida.ayudas)};
 }
 // kind: 'gameOver' (fin del juego sin continuar) o 'gameQuit' (salir desde la pausa o al terminar una misión)
 function terminarPartida(kind){
+  // salir al menú en medio de la introducción (intro.js): se cierra sin darla por vista (vuelve la próxima vez)
+  if(typeof IN_cancelar==='function')IN_cancelar();else if(typeof IN!=='undefined'&&IN&&IN.activa){IN.activa=false;IN.o=null;IN.practica=false;}
   const sum=resumenPartida();saveRecord();
   if(partida&&!partida.ended){partida.ended=true;emit(kind,{summary:sum});}
   const salir=()=>{state='title';T=0;};
@@ -151,51 +169,85 @@ const tamanoTxt=()=>'TAMAÑO: '+(tamano==='grande'?'GRANDE':'NORMAL');
 // título limpio: logo y un menú corto. Las instrucciones van en CÓMO JUGAR (la tarjeta de controles, ayuda.js) y lo
 // que se configura en OPCIONES (tamaño, música, sonido y CONTROLES: COMPLETOS / SIMPLES; la dificultad va en la
 // elección de personaje).
-const tituloOps=()=>['COMENZAR','CÓMO JUGAR','OPCIONES'].concat(histOk()?['LOGROS','RÉCORDS']:[]);
+// la lógica compara ids (textos.js: TX.menu); tituloOps da lo que se ve (las pruebas la usan)
+const tituloIds=()=>['jugar','comoJugar','opciones'].concat(histOk()?['logros','records']:[]);
+const tituloOps=()=>tituloIds().map(k=>TX.menu[k]);
 function updTitulo(){
   const ops=tituloOps();tituloSel=clamp(tituloSel,0,ops.length-1);
   if(pressed.up){tituloSel=(tituloSel+ops.length-1)%ops.length;SFX.swap();}
   else if(pressed.down){tituloSel=(tituloSel+1)%ops.length;SFX.swap();}
   else if(pressed.start||pressed.shoot||pressed.jump){
-    audioInit();const o=ops[tituloSel];SFX.swap();
-    if(o==='COMENZAR'){state='select';selT=0;selLevel=Math.min(selLevel,unlocked);}
-    else if(o==='CÓMO JUGAR')ayudaAbrir();
-    else if(o==='OPCIONES'){state='opciones';opcSel=0;opcT=0;}
-    else histOpen(o==='LOGROS'?'logros':'records');
+    audioInit();const o=tituloIds()[tituloSel];SFX.swap();
+    if(o==='jugar'){state='select';selT=0;selLevel=Math.min(selLevel,unlocked);}
+    else if(o==='comoJugar')ayudaAbrir();
+    else if(o==='opciones'){state='opciones';opcSel=0;opcT=0;opcPag='main';}
+    else histOpen(o);
   }
 }
 // ---------- OPCIONES ----------
-let opcSel=0,opcT=0;
-const opcFilas=()=>[
-  ['TAMAÑO',tamano==='grande'?'GRANDE':'NORMAL',()=>setTamano(tamano==='grande'?'normal':'grande')],
-  ['MÚSICA',mus.on?'SÍ':'NO',()=>{mus.on=!mus.on;store.set('oxido-musica',mus.on?'1':'0');}],
-  ['SONIDO',muted?'NO':'SÍ',()=>{muted=!muted;}],
-  ['CONTROLES',controlesSimples?'SIMPLES':'COMPLETOS',()=>setControles(controlesSimples?'completos':'simples')],
-  ['VOLVER',null,null]].filter(f=>!(f[0]==='CONTROLES'&&onTouch())); // en táctil no aplica
+let opcSel=0,opcT=0,opcPag='main';
+// OPCIONES tiene páginas: la principal y tres submenús (CONTROLES, ACCESIBILIDAD, AYUDAS). Cada fila: [nombre, valor,
+// acción, ayuda]. Valor '▸' = entra a un submenú. VOLVER (sin acción) sale al título o vuelve a la principal.
+const opcEntrar=p=>()=>{opcPag=p;opcSel=0;};
+const OPC_DISP={normal:'NORMAL',auto:'AUTOMÁTICO',alternado:'ALTERNADO'},OPC_DISP_SIG={normal:'auto',auto:'alternado',alternado:'normal'};
+const opcFilas=()=>{
+  // textos de textos.js (TX.opciones)
+  const O=TX.opciones,Pw=TX.palabras,si=b=>b?Pw.si:Pw.no,VOLVER=[Pw.volver,null,null];
+  if(opcPag==='controles')return[
+    [O.tipo,controlesSimples?O.simples:O.completos,()=>setControles(controlesSimples?'completos':'simples'),controlesSimples?O.simplesAyuda:O.completosAyuda],
+    [O.disparo,{normal:O.disparoNormal,auto:O.disparoAuto,alternado:O.disparoAlternado}[ACC.disparo],()=>ACC_poner('disparo',OPC_DISP_SIG[ACC.disparo]),{normal:O.disparoNormalAyuda,auto:O.disparoAutoAyuda,alternado:O.disparoAlternadoAyuda}[ACC.disparo]],
+    [O.rueda,ACC.rueda==='tocar'?O.ruedaTocar:O.ruedaMantener,()=>ACC_poner('rueda',ACC.rueda==='tocar'?'mantener':'tocar'),ACC.rueda==='tocar'?O.ruedaTocarAyuda:O.ruedaMantenerAyuda],
+    [O.teclas,'▸',()=>{if(typeof REA_abrir==='function')REA_abrir('teclado');},O.teclasAyuda],
+    [O.joystick,'▸',()=>{if(typeof REA_abrir==='function')REA_abrir('pad');},O.joystickAyuda],
+    ...(typeof IN_practicar==='function'?[[O.practicar,'▸',()=>IN_practicar(),O.practicarAyuda]]:[]),
+    ...(onTouch()&&typeof window.OXIDO_TACTIL_EDITAR==='function'?[[O.botones,O.acomodar,()=>window.OXIDO_TACTIL_EDITAR(),O.botonesAyuda]]:[]),
+    VOLVER];
+  if(opcPag==='acces')return[
+    [O.movimiento,ACC.mov==='reducido'?O.reducido:Pw.normal,()=>ACC_poner('mov',ACC.mov==='reducido'?'normal':'reducido'),O.movimientoAyuda],
+    [O.texto,ACC.txt==='grande'?Pw.grande:Pw.normal,()=>ACC_poner('txt',ACC.txt==='grande'?'normal':'grande'),O.textoAyuda],
+    [O.balas,ACC.contraste?O.altoContraste:Pw.normal,()=>ACC_poner('contraste',!ACC.contraste),O.balasAyuda],
+    VOLVER];
+  if(opcPag==='ayudas')return[
+    [O.vidasInf,si(ACC.ayVidas),()=>ACC_poner('ayVidas',!ACC.ayVidas),O.vidasInfAyuda],
+    [O.menosDano,si(ACC.ayDano),()=>ACC_poner('ayDano',!ACC.ayDano),O.menosDanoAyuda],
+    [O.masLento,si(ACC.ayLento),()=>ACC_poner('ayLento',!ACC.ayLento),O.masLentoAyuda],
+    VOLVER];
+  return[
+    [O.tamano,tamano==='grande'?Pw.grande:Pw.normal,()=>setTamano(tamano==='grande'?'normal':'grande'),O.tamanoAyuda],
+    [O.musica,si(mus.on),()=>{mus.on=!mus.on;store.set('oxido-musica',mus.on?'1':'0');}],
+    [O.sonido,si(!muted),()=>{muted=!muted;}],
+    ...(typeof CLI_valor==='function'?[[O.clima,CLI_valor(),CLI_ciclar,CLI_desc()],
+      ...(CLI.fuente==='real'?[[O.climaDatos,CLI_movilValor(),CLI_movilCiclar,CLI_movilDesc()]]:[])]:[]),
+    [O.controles,'▸',opcEntrar('controles'),O.controlesAyuda],
+    [O.accesibilidad,'▸',opcEntrar('acces'),O.accesibilidadAyuda],
+    [O.ayudas,AYUDAS_on()?O.ayudasActivadas:'▸',opcEntrar('ayudas'),O.ayudasAyuda],
+    VOLVER];
+};
+const opcTitulo=()=>({controles:TX.opciones.controles,acces:TX.opciones.accesibilidad,ayudas:TX.opciones.ayudas})[opcPag]||TX.opciones.titulo;
+const opcVolver=()=>{if(opcPag!=='main'){const n=opcTitulo();opcPag='main';opcSel=Math.max(0,opcFilas().findIndex(f=>f[0]===n));}else state='title';SFX.swap();}; // vuelve a la fila del submenú
 function updOpciones(){
   T++;opcT++;camX=(T*0.5)%2400;playMusic('title');
   const f=opcFilas();opcSel=clamp(opcSel,0,f.length-1);
   if(pressed.up){opcSel=(opcSel+f.length-1)%f.length;SFX.swap();}
   else if(pressed.down){opcSel=(opcSel+1)%f.length;SFX.swap();}
-  else if(opcT>6&&pressed.back){state='title';SFX.swap();}
+  else if(opcT>6&&pressed.back)opcVolver();
+  else if(pressed.left&&opcPag!=='main'&&(f[opcSel][1]==='▸'||!f[opcSel][2]))opcVolver(); // ← en una fila ▸ (o VOLVER) de un submenú: vuelve
   else if(pressed.left||pressed.right||pressed.start||pressed.shoot||pressed.jump){
-    audioInit();const r=f[opcSel];if(!r[2]){if(pressed.start||pressed.shoot||pressed.jump){state='title';SFX.swap();}}else{r[2]();SFX.swap();}}
+    audioInit();const r=f[opcSel];if(!r[2]){if(pressed.start||pressed.shoot||pressed.jump)opcVolver();}
+    else{r[2]();SFX.swap();}}
 }
 const tituloRecord=()=>Math.max(record,typeof histBest==='function'?(histBest()||0):0);
 // ---------- dibujo: aviso de tramo y cartel de vuelta (sobre el HUD) ----------
 ON_HUD.push(()=>{
   if(state!=='play')return;
-  if(PC_cartel){const c=PC_cartel,a=Math.min(1,c.t/20,(c.max-c.t+1)/10);ctx.globalAlpha=a;
-    ctx.fillStyle='rgba(18,12,24,0.75)';ctx.fillRect(40,64,240,34);ctx.fillStyle=c.col;ctx.fillRect(40,64,240,1);ctx.fillRect(40,97,240,1);
-    txt(c.s,W/2,67,c.s.length>10?12:18,c.col,'center');txt(c.sub,W/2,88,5,'#ddd','center',false);ctx.globalAlpha=1;}
-  else if(PC_aviso){const v=PC_aviso,t=v.tr,a=Math.min(1,v.t/20,(v.max-v.t+1)/10);ctx.globalAlpha=a;
-    const head='TRAMO '+t.n+' · '+t.kind+' · '+PC_mmss(t.secs);
-    const info=t.kills+(t.kills===1?' BAJA':' BAJAS')+(t.resc?' · '+t.resc+(t.resc===1?' RESCATE':' RESCATES'):'')+(t.cat?' · GATITO':'')+(t.pct!==null?' · PUNTERÍA '+t.pct+'%':'');
-    const bon=t.items.length?t.items.map(i=>i[0]+' +'+i[1]).join(' · '):'SIN BONUS ESTA VEZ';
-    const w=Math.max(150,hudTW(head,6),hudTW(bon,5),hudTW(info,4))+14,x=Math.round(W/2-w/2),y=65;
-    ctx.fillStyle='rgba(18,12,24,0.82)';ctx.fillRect(x,y,w,29);ctx.fillStyle='#f3c969';ctx.fillRect(x,y,w,1);
-    txt(head,W/2,y+3,6,'#ffe08a','center',false);
-    txt(info,W/2,y+11,4,'#ccc','center',false);
-    txt(bon,W/2,y+18,5,t.items.length?'#7dff9a':'#aaa','center',false);
+  // VUELTA / CONTINUACIÓN: arriba, como los demás avisos
+  if(PC_cartel){if(banner&&banner.t>0)return;const c=PC_cartel,a=Math.min(1,c.t/20,(c.max-c.t+1)/10);ctx.globalAlpha=a;
+    avTira([[c.s,c.col],[c.sub,'#ddd']],false,AV_ARRIBA,c.col);ctx.globalAlpha=1;}
+  // tarjeta de tramo: angosta, abajo, 2 s (guía de arte §7). Con la placa de cumplida.js, el último tramo lo resume la placa
+  else if(PC_aviso&&!PC_espera()&&!(typeof MC!=='undefined'&&MC&&MC.ganada)){const v=PC_aviso,t=v.tr,a=Math.min(1,v.t/12,(v.max-v.t+1)/8);ctx.globalAlpha=a;
+    const tot=t.items.reduce((n,i)=>n+i[1],0);
+    avTira([['TRAMO '+t.n+' · '+PC_mmss(t.secs)+(tot?' · +'+tot:''),tot?'#ffe08a':'#ccc']],true,AV_ABAJO(),'#f3c969');
     ctx.globalAlpha=1;}
 });
+// con alguna AYUDA activada en algún momento, la partida queda marcada (récord aparte y sin logros de desafío)
+ON_STEP.push(()=>{if(partida&&!partida.ayudas&&typeof AYUDAS_on==='function'&&AYUDAS_on())partida.ayudas=true;});

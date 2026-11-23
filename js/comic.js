@@ -1,5 +1,9 @@
 'use strict';
-// Óxido · Lenguaje de CÓMIC impreso, encima del pixel art y del dibujito (siempre activo, sin opción)
+// Óxido · Capa de efectos (antes: lenguaje de CÓMIC impreso)
+// 23 nov: a Facu no le gustó la capa de cómic. Apagados por pedido de Dirección de Arte: la trama de puntos
+// (COMIC_trama no dibuja nada), el color corrido y las onomatopeyas (COMIC.efecto ignora los tipos 'corrido' y
+// 'onomato', vengan de donde vengan), la animación "de a dos" y la página de historieta del jefe (pagina.js ya no se
+// carga: vuelve el cartel simple de dibujito.js). Siguen las líneas de velocidad. El registro queda para efectos nuevos.
 // Reparto: el DIBUJITO manda en el MOVIMIENTO (rebote, remolino, mareo, pop de los globos); el CÓMIC en el COLOR y los
 // IMPACTOS. Solo lo general del cómic impreso (tramas de puntos, color corrido de imprenta, onomatopeyas, líneas de
 // velocidad, viñetas): nada de personajes, máscaras, logos ni efectos de alguna película en particular.
@@ -16,8 +20,10 @@ const COMIC=(()=>{
   function registrar(n,d){tipos[n]={dur:30,capa:'mundo',...d};}
   function efecto(n,o={}){
     const d=tipos[n];if(!d||state!=='play')return null;
+    if(d.tipo==='corrido'||d.tipo==='onomato')return null; // apagados (23 nov)
     const mismos=vivos.filter(e=>e.d.tipo&&e.d.tipo===d.tipo);
     if(d.tipo==='corrido'&&mismos.length)return null;                       // el color corrido no se superpone
+    if(d.tipo==='corrido'&&(MOV_reducido()||!FL_puede()))return null;      // es un destello de pantalla: no en movimiento reducido, ≤ 3/s
     if(d.tipo&&TOPE[d.tipo]&&mismos.length>=TOPE[d.tipo])vivos.splice(vivos.indexOf(mismos[0]),1); // sale la más vieja
     const e={n,d,t:0,dur:o.dur||d.dur,...o};if(d.crear)d.crear(e);vivos.push(e);return e;
   }
@@ -39,6 +45,7 @@ const COMIC_PUNTOS=(()=>{const c=document.createElement('canvas');c.width=c.heig
   g.fillStyle='#1a0e1e';g.fillRect(1,1,1,1);g.fillRect(4,4,1,1);return c;})();
 let COMIC_patron=null;
 function COMIC_trama(){
+  return; // apagada (23 nov): clima.js se cuelga de esta función, por eso sigue existiendo
   if(!COMIC_patron)COMIC_patron=ctx.createPattern(COMIC_PUNTOS,'repeat');
   const y0=Math.max(camY,GROUND-VH*0.62),k=COMIC_liviano()?0.14:0.26;
   ctx.save();ctx.globalCompositeOperation='overlay';ctx.globalAlpha=k;ctx.fillStyle=COMIC_patron;
@@ -66,7 +73,7 @@ COMIC.registrar('corrido',{tipo:'corrido',capa:'pantalla',dur:8,draw:e=>COMIC_co
 const COMIC_ONO={pum:{s:'¡PUM!',col:'#ffd25a'},crash:{s:'¡CRASH!',col:'#ffb04a'},zas:{s:'¡ZAS!',col:'#ffffff'},boom:{s:'¡BOOM!',col:'#ff6a4a',esc:2.2}};
 for(const n in COMIC_ONO){const o=COMIC_ONO[n];
   COMIC.registrar(n,{tipo:'onomato',dur:o.esc?50:34,
-    crear:e=>{e.ang=(Math.random()<0.5?-1:1)*rand(0.1,0.18);e.esc=o.esc||1.5;
+    crear:e=>{e.ang=(Math.random()<0.5?-1:1)*rand(0.1,0.18);e.esc=e.escala||o.esc||1.5; // escala: se puede pedir más chica
       // arriba del impacto; si tapa a un jugador, un enemigo, un número que flota u otra onomatopeya, sube hasta que no
       const w=pfW(o.s)*e.esc+4,h=6*e.esc+4;e.y-=10;
       const cajas=()=>{const r=[];for(const p of players)if(!p.dead){const b=hurtbox(p);r.push([b.x,b.y,b.w,b.h]);}
@@ -94,6 +101,7 @@ ON_DRAW.push(()=>{
     for(let i=0;i<5;i++){const x=m.x+3+hash(i*11+(T>>1))*(m.w-6),l=10+hash(i*5+T)*10;ctx.beginPath();ctx.moveTo(x,m.y+m.h+2);ctx.lineTo(x,m.y+m.h+2+l);ctx.stroke();}}
 });
 function COMIC_lineasPantalla(){
+  if(typeof MOV_reducido==='function'&&MOV_reducido())return; // movimiento reducido: sin líneas de velocidad de pantalla
   const u=cv.width/W,cw=cv.width,ch=cv.height;
   // rueda de armas: los primeros cuadros, líneas que van hacia el centro
   const ru=typeof RU!=='undefined'&&RU.find(r=>r.open&&r.o<1);
@@ -110,7 +118,11 @@ function COMIC_lineasPantalla(){
 // Solo en momentos especiales (la entrada de un jefe y la fusión de la CHATARRA): el dibujo se actualiza cada 2 cuadros,
 // así se siente dibujado a mano. El juego sigue a 60 por dentro; renderMain se saltea uno de cada dos.
 function COMIC_deADos(){
-  if(state!=='play')return false;
+  return false; // apagada (23 nov)
+  if(state!=='play'||(typeof MOV_reducido==='function'&&MOV_reducido()))return false; // movimiento reducido: sin "de a dos"
+  // con la página de historieta (pagina.js) el juego está quieto y T no cambia: si T quedó impar, render() no dibujaría
+  // nada en toda la página. La página ya anima "de a dos" por su cuenta (v.t&~1).
+  if(typeof VIN_activo==='function'&&VIN_activo())return false;
   if(bossRef&&!bossRef.dying&&bossRef.state&&bossRef.state!=='fight'&&bossRef.state!=='dying')return true;
   return mechs.some(m=>m.ride&&m.fus>0);
 }
@@ -136,12 +148,9 @@ COMIC.registrar('vineta',{capa:'pantalla',dur:90,draw:e=>{
   ctx.restore();
   ctx.save();ctx.setTransform(S,0,0,S,0,0);ctx.strokeStyle='#120c18';ctx.lineWidth=3;ctx.strokeRect(x0+1.5,y0+1.5,x1-x0-3,y1-y0-3);ctx.restore();
 }});
-ON_STEP.push(()=>{
-  if(bossRef&&bossRef!==COMIC_jefeRef&&typeof DIB_jefeVisible==='function'&&DIB_jefeVisible(bossRef)){COMIC_jefeRef=bossRef;COMIC.efecto('vineta',{ref:bossRef});}
-  if(!bossRef)COMIC_jefeRef=null;
-});
+// (desde la página de historieta de pagina.js, la viñeta de zoom ya no sale: queda registrada por si se quiere volver)
 // lo que va en la capa de pantalla, sobre el mundo y debajo del HUD (renderMain)
-function COMIC_post(){COMIC_lineasPantalla();COMIC.dibujar('pantalla');}
+function COMIC_post(){COMIC_lineasPantalla();COMIC.dibujar('pantalla');if(typeof VIN_dibujar==='function')VIN_dibujar();} // y la página de jefe (pagina.js)
 
 // ---------- disparadores ----------
 {const blast0=blast;blast=function(x,y,r,d,bm){const n=blast0(x,y,r,d,bm);
@@ -153,4 +162,4 @@ function COMIC_post(){COMIC_lineasPantalla();COMIC.dibujar('pantalla');}
 {const hurt0=hurtPlayer;hurtPlayer=function(n){const p=P,hp=p.hp;hurt0(n);if(p.hp<hp)COMIC.efecto('corrido',{dur:6});};}
 // el remolino del gato (remolino.js): ¡ZAS! al empezar a arañar
 {let antes=null;ON_STEP.push(()=>{const g=typeof gato!=='undefined'?gato:null;const st=g?g.st:null;
-  if(st==='scratch'&&antes!=='scratch')COMIC.efecto('zas',{x:g.x+6,y:g.y-10});antes=st;});}
+  if(st==='scratch'&&antes!=='scratch')COMIC.efecto('zas',{x:g.x+6,y:g.y-10,escala:1});antes=st;});} // ¡ZAS! más chico que los de golpe

@@ -42,8 +42,7 @@ drawPlayer=function(){
   if(!ES_esperando(p)||p.dead||p.ride)return ES_drawPlayer();
   const a=p.esT-ES_ESPERA,f=p.face>0?0:1,set=playerSet(p),fc=p.face;
   if(p.ci===0)ES_facu(p,a,set,f,fc);else if(p.ci===1)ES_jose(p,a,set,f,fc);else ES_lauti(p,a,set,f,fc);
-  if(p.shield>0){const al=0.45+Math.sin(T/6)*0.2;ctx.strokeStyle=`rgba(120,220,255,${al})`;ctx.lineWidth=1;
-    ctx.beginPath();ctx.ellipse(p.x+4,p.y+9,11,13,0,0,7);ctx.stroke();}
+  if(p.shield>0)aroPix(p.x+4,p.y+9,11,13,escudoTono(p));
 };
 const ES_r=(c,x,y,w,h)=>{ctx.fillStyle=c;ctx.fillRect(q(x),q(y),w,h);};
 // luz que suma (ilumina sin tapar los rasgos)

@@ -341,7 +341,9 @@ function M3_drawPool(x,w,big){
 }
 
 // ================== capa de arriba: barro que tapa los pies, niebla y esporas ==================
-M3_LVL.drawFx=function(){
+// detrás de los personajes (juego.js, drawWorld): barro de los pozos, ondas y niebla. El barro ya no se pinta sobre los
+// pies: aclaraba el contorno de tinta (Dirección de Arte, contraste de M3 de noche)
+M3_LVL.drawFxFondo=function(){
   ctx.save();ctx.translate(q(-camX),0);
   const pools=[...M3_LVL.pools,...M3.own.map(o=>({x:o.x-6,w:o.w+24}))];
   for(const p of pools){if(p.x>camX+VW||p.x+p.w<camX)continue;
@@ -356,13 +358,16 @@ M3_LVL.drawFx=function(){
     const cx=(o.type==='mudling'?o.hx:o.x)+(o.w||8)/2,r=((T+(cx|0))%30)/30;
     ctx.strokeStyle=`rgba(170,140,70,${0.7*(1-r)})`;ctx.beginPath();ctx.ellipse(cx,GROUND-2,(o.w||8)/2+2+r*6,0.8+r*0.8,0,0,7);ctx.stroke();
   }
-  for(const e of enemies)if(e.type==='mudling'&&e.st==='bubble')M3_drawWarn(e);
   ctx.restore();
   // niebla baja que se arrastra y bruma alta
   for(let i=0;i<6;i++){const sp=W+180,x=((i*97-camX*0.6+T*0.18)%sp+sp)%sp-90,y=GROUND-5+Math.sin(T/70+i)*2;
     ctx.fillStyle='rgba(170,210,140,0.075)';ctx.beginPath();ctx.ellipse(x,y,72,8,0,0,7);ctx.fill();}
   for(let i=0;i<3;i++){const sp=W+240,x=((i*190-camX*0.2+T*0.08)%sp+sp)%sp-120,y=96+i*11;
     ctx.fillStyle='rgba(160,200,130,0.05)';ctx.beginPath();ctx.ellipse(x,y,100,10,0,0,7);ctx.fill();}
+};
+// encima: el aviso del bicho que sube (es de juego) y las esporas de 1 px
+M3_LVL.drawFx=function(){
+  ctx.save();ctx.translate(q(-camX),0);for(const e of enemies)if(e.type==='mudling'&&e.st==='bubble')M3_drawWarn(e);ctx.restore();
   // esporas que flotan
   for(const s of M3_SPORES){const x=((s.x*W-T*0.2*s.v-camX*0.8)%W+W)%W,y=((s.y*H-T*0.12*s.v+Math.sin(T/30+s.s*6)*3)%H+H)%H;
     ctx.fillStyle=s.s>0.7?'rgba(220,250,140,0.55)':'rgba(190,220,130,0.35)';ctx.fillRect(x,y,s.s>0.85?1.2:0.8,s.s>0.85?1.2:0.8);}

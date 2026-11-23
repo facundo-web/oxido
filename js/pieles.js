@@ -51,7 +51,11 @@ ON_START.push(()=>{const s=PI_sets(levelIdx);SPR.e=s.e;SPR.g=s.g;SPR.sh=s.sh;});
 const PI_drawSoldier0=drawSoldier;
 drawSoldier=function(e){
   const p=piel();
-  if(p.alfa||p.flota){ctx.save();if(p.alfa)ctx.globalAlpha=p.alfa*(0.92+0.08*Math.sin((T+e.ph)/6));if(p.flota)ctx.translate(0,Math.round(Math.sin((T+e.ph)/14)*0.8)-1);}
+  // hologramas (M6) y fantasmas (M9): opacos, para que el contorno sea tinta #17141f (con transparencia la tinta se
+  // mezclaba con la bruma y el borde no llegaba a 3:1). Lo de holograma queda en un salto de 1 px cada tanto (quieto
+  // con MOVIMIENTO REDUCIDO); los fantasmas siguen flotando.
+  const PI_red=typeof MOV_reducido==='function'&&MOV_reducido();
+  if(p.alfa||p.flota){ctx.save();if(p.alfa&&!p.flota&&!PI_red&&((T+(e.ph|0)*7)%110)<2)ctx.translate(((T>>0)%2)?1:-1,0);if(p.flota)ctx.translate(0,Math.round(Math.sin((T+e.ph)/14)*0.8)-1);}
   PI_drawSoldier0(e);
   if(p.alfa||p.flota)ctx.restore();
   if(e.flash)return;
@@ -60,10 +64,15 @@ drawSoldier=function(e){
     ctx.fillStyle=k1;ctx.fillRect(q(sx-0.5),q(y+3.5),4.5,15);ctx.fillStyle=e.sflash?'#e8f6ff':k2;ctx.fillRect(q(sx),q(y+4),3.5,14);
     ctx.fillStyle=k3;ctx.fillRect(q(sx),q(y+9),3.5,1.2);ctx.fillStyle='rgba(255,255,255,0.3)';ctx.fillRect(q(sx),q(y+4),1,14);
     if(e.shp<=4){ctx.fillStyle=k1;ctx.fillRect(q(sx+1),q(y+6),0.8,5);ctx.fillRect(q(sx+1.8),q(y+11),0.8,4);}}
-  // linterna en la frente y un cono de luz chiquito
-  if(p.linterna&&!e.dying){const pose=rigPose(e,e.ph),cx=e.x+4+pose.ux,y=e.y+pose.uy,f=e.face;
-    ctx.fillStyle='#ffe066';ctx.fillRect(q(f>0?cx+2:cx-3),q(y+2),1.5,1.2);
-    ctx.fillStyle='rgba(255,230,120,0.12)';ctx.beginPath();ctx.moveTo(cx+f*3,y+2.5);ctx.lineTo(cx+f*26,y-4);ctx.lineTo(cx+f*26,y+10);ctx.fill();}
+  // linterna en la frente: foco de píxeles (3 × 3, centro claro, con tinta) con halo, y un cono de luz chico en escalones
+  // de 3 px que suma luz (sin bordes suaves). En la pasada de tinta de arte-luz el cono no se dibuja (es transparente).
+  if(p.linterna&&!e.dying){const pose=rigPose(e,e.ph),cx=Math.round(e.x+4+pose.ux),y=Math.round(e.y+pose.uy),f=e.face,lx=f>0?cx+2:cx-4,ly=y+1,cy=ly+1;
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle='rgba(255,230,120,0.10)';
+    for(let i=0;i<8;i++){const h=3+i*2,x=f>0?lx+3+i*3:lx-3*(i+1);ctx.fillRect(x,cy-(h>>1),3,h);}
+    ctx.restore();
+    ctx.fillStyle='#120c18';ctx.fillRect(lx-1,ly,5,3);ctx.fillRect(lx,ly-1,3,5);
+    ctx.fillStyle='#ffe066';ctx.fillRect(lx,ly,3,3);ctx.fillStyle='#fff8d0';ctx.fillRect(lx+1,ly+1,1,1);
+    if(!Object.prototype.hasOwnProperty.call(ctx,'fillRect')&&typeof LUZ_halo==='function')LUZ_halo(lx+1.5,ly+1.5,9,'#ffe8a0',0.4);}
 };
 
 // ---------- drones de cada lugar (16 × 9, el mismo lugar en pantalla) ----------
@@ -78,9 +87,12 @@ const PI_DRON={
     const al=(T>>1)%2;ctx.fillStyle='rgba(200,255,200,0.45)';ctx.fillRect(x+2,y+1-al,6,2);ctx.fillRect(x+8,y+1-al,6,2);ctx.fillRect(x+3,y+3+al,5,1.5);ctx.fillRect(x+8,y+3+al,5,1.5);
     ctx.fillStyle=w?'#fff':'#4a8a2a';ctx.fillRect(x+1,y+4,14,2);ctx.fillStyle=w?'#fff':'#7ad040';ctx.fillRect(x+3,y+4,10,1);
     ctx.fillStyle='#a6f05a';ctx.fillRect(x+(e.face>0?13:1),y+3,2,2);ctx.fillStyle='#ff3b30';ctx.fillRect(x+(e.face>0?14:1),y+3.5,1,1);},
-  3:(e,x,y,w)=>{ // dron momia: el de siempre envuelto en vendas
-    PI_dronBase(x,y,w,e);ctx.fillStyle=w?'#fff':'#e0d0a8';for(let i=0;i<4;i++)ctx.fillRect(x+3+i*3,y+2+(i%2),2,6);
-    ctx.fillStyle='#c8b080';ctx.fillRect(x+3,y+4,10,1);const s=Math.sin(T/6)*1.5;ctx.fillRect(x+(e.face>0?1:13),y+7+s,2,1);ctx.fillRect(x+(e.face>0?0:14),y+8.5+s,2,1);},
+  3:(e,x,y,w)=>{ // dron momia: cuerpo sólido vendado (dos pliegues), ojo rojo bien visible y una venda que cuelga
+    PI_dronBase(x,y,w,e);ctx.fillStyle=w?'#fff':'#c8b080';ctx.fillRect(x+3,y+2,10,7);ctx.fillRect(x+2,y+3,12,5);
+    ctx.fillStyle=w?'#fff':'#e8dcb8';ctx.fillRect(x+3,y+2,10,1);
+    ctx.fillStyle=w?'#fff':'#8a7448';ctx.fillRect(x+3,y+4,10,1);ctx.fillRect(x+3,y+7,10,1);
+    ctx.fillStyle='#1a1a20';ctx.fillRect(x+6,y+4,4,3);ctx.fillStyle='#ff3b30';ctx.fillRect(x+7,y+5,2,1);ctx.fillStyle='#ffb0a0';ctx.fillRect(x+7,y+5,1,1);
+    const s=Math.round(Math.sin(T/6)*1.5);ctx.fillStyle=w?'#fff':'#c8b080';ctx.fillRect(x+(e.face>0?1:13),y+8+s,2,2);},
   4:(e,x,y,w)=>{ // gárgola a hélice
     const rw=(T>>1)%2?7:3;ctx.fillStyle='rgba(225,225,235,0.75)';ctx.fillRect(x+8-rw/2,y-1,rw,1);ctx.fillStyle='#2a2a30';ctx.fillRect(x+7.5,y-0.5,1,2);
     ctx.fillStyle=w?'#fff':'#6a6a72';ctx.fillRect(x+3,y+2,10,6);ctx.fillRect(x+1,y+3,2,3);ctx.fillRect(x+13,y+3,2,3);
@@ -149,3 +161,13 @@ const PI_SON={
   for(let i=0;i<7;i++)parts.push({k:'p',x,y,vx:rand(-1.6,1.6),vy:rand(-2.6,-0.6),g:0.14,life:rand(18,30),maxl:30,size:i%3?1:1.6,col:p.muerte[i%2]});
   try{(PI_SON[p.son]||(()=>{}))();}catch(err){}
 };}
+
+// ---------- vaivén de los soldados al caminar, en cuadros (reemplaza el vaivén rotado de dibujito.js) ----------
+// Todos al mismo compás (~2 por segundo): el torso se corre 1 px hacia adelante y vuelve, de a cuadros enteros (nada se
+// gira ni se corre medio píxel). Quieto con MOVIMIENTO REDUCIDO. Solo soldados, granaderos y escudos, caminando.
+const PI_VAIVEN={soldier:1,grenadier:1,shield:1};
+if(typeof rigPose==='function'){const PI_rigPose0=rigPose;rigPose=function(o){
+  const r=PI_rigPose0.apply(this,arguments);
+  try{if(o&&PI_VAIVEN[o.type]&&!o.dying&&o.onGround&&Math.abs(o.vx||0)>0.05&&!(typeof MOV_reducido==='function'&&MOV_reducido())&&(T/15|0)%2)
+    {r.ux=Math.round((r.ux||0)+(o.face<0?-1:1));r.vaiven=true;}}catch(e){} // vaiven: arte-luz arma torso y piernas juntos y les pone la tinta sobre el cuadro ya corrido
+  return r;};}

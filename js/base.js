@@ -8,7 +8,33 @@ const ON_START=[],ON_STEP=[],ON_DRAW=[],ON_HUD=[];
 // Eventos de juego (para historial, logros y puntaje): emit('kill',{...}); quien escucha hace ON_EVENT.push((tipo,datos)=>{...})
 const ON_EVENT=[];
 function emit(type,data){for(const f of ON_EVENT){try{f(type,data||{});}catch(e){console.error('evento '+type,e);}}}
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const cv=document.getElementById('c');let ctx=cv.getContext('2d');const CTX0=ctx; // ctx apunta al lienzo chico mientras se dibuja el mundo (GN)
+// GRILLA NÍTIDA (Hondo, paso C, notas/arte/fichas/codigo.md): el mundo se dibuja en un lienzo chico (1 px del arte = 1 px),
+// se agranda sin suavizar a la escala entera más grande que entra y un último paso suave hasta la pantalla; la cámara se corre
+// por la fracción de píxel. Halos y luces de escena van después, a resolución de pantalla (GN_luz, GN_aPantalla). ?nitida=0 lo apaga.
+const GN={on:!/[?&]nitida=0\b/.test(location.search),suave:/[?&]nitida=suave\b/.test(location.search),luzChica:/[?&]gnluz=0\b/.test(location.search),sinSnap:/[?&]gnsnap=0\b/.test(location.search),tactil:/[?&]nitida=1\b/.test(location.search), /* diagnóstico: luces en el lienzo chico */c:document.createElement('canvas'),big:document.createElement('canvas'),mat:null,luces:[]};
+GN.g=GN.c.getContext('2d');GN.bg=GN.big.getContext('2d');
+// en el lienzo chico, los rectángulos caen en píxel entero (sin medias líneas: la guía de arte §8). Va en el prototipo
+// para que lo usen también los que envuelven fillRect por un rato (arte-luz.js toma CanvasRenderingContext2D.prototype.fillRect).
+// ?gnsnap=0 lo apaga (diagnóstico).
+{const P2=CanvasRenderingContext2D.prototype,fr0=P2.fillRect,tr0=P2.translate;
+  // barato (se llama miles de veces por cuadro): en el lienzo chico las traslaciones van a entero y los rectángulos se
+  // redondean en sus coordenadas, sin preguntar la transformación (pedirla en cada fillRect costaba 2–3 ms en el celular)
+  P2.translate=function(x,y){if(this===GN.g&&!GN.sinSnap)return tr0.call(this,Math.round(x),Math.round(y));return tr0.call(this,x,y);};
+  P2.fillRect=function(x,y,w,h){
+    if(this!==GN.g||GN.sinSnap)return fr0.call(this,x,y,w,h);
+    let x0=Math.round(x),x1=Math.round(x+w),y0=Math.round(y),y1=Math.round(y+h);
+    if(x1===x0){if(!w)return;x1=x0+(w>0?1:-1);}if(y1===y0){if(!h)return;y1=y0+(h>0?1:-1);} // lo que no era de 0 px queda de 1
+    return fr0.call(this,x0,y0,x1-x0,y1-y0);};}
+// ¿se está dibujando en el lienzo chico?
+const GN_chico=()=>GN.on&&ctx===GN.g;
+// de lo que se está dibujando a la pantalla: la matriz completa (para halos y luces que se dibujan después)
+function GN_aPantalla(m){return GN_chico()&&GN.mat?GN.mat.multiply(m||ctx.getTransform()):(m||ctx.getTransform());}
+// una luz suave (degradé, halo) que tiene que verse a resolución de pantalla: en el lienzo chico se anota y se dibuja
+// después de agrandar, con la misma posición; fuera de él, se dibuja ya
+function GN_luz(fn){if(!GN_chico()||GN.luzChica){fn();return;}GN.luces.push([ctx.getTransform(),fn,ctx.globalCompositeOperation]);} // con el modo de mezcla del que llama ('lighter')
+// imagen que cubre todo lo que se ve (cielos pintados a tamaño de pantalla): en el lienzo chico, a su tamaño
+function GN_cubre(img){ctx.save();ctx.setTransform(1,0,0,1,0,0);if(GN_chico())ctx.drawImage(img,0,0,ctx.canvas.width,ctx.canvas.height);else ctx.drawImage(img,0,0);ctx.restore();}
 let S=4,SQ=4; // SQ: escala para redondear a píxel (con zoom, S×ZOOM mientras se dibuja el mundo)
 // HC: alto del lienzo en unidades del juego. Es H (16:9), salvo en pantallas más altas (Mac 16:10) con TAMAÑO GRANDE:
 // ahí el lienzo llena el alto (altoMax en camara.js) y se ve un poco más del mundo, sin barras negras.
@@ -21,7 +47,7 @@ function fit(){
   const dpr=Math.min(2,window.devicePixelRatio||1);
   cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);S=cv.width/W;SQ=S;
   HC=ch>Math.floor(H*k)?ch*W/cw:H;
-  if(typeof setZoom==='function'){setZoom(ZOOM);camY=clamp(camY,0,H-VH);}
+  if(typeof setZoom==='function'){setZoom(ZOOM);camY=clamp(camY,typeof camYMin==='function'?camYMin():0,typeof camYMax==='function'?camYMax():H-VH);}
 }
 // pinta todo el lienzo con el color actual, sin importar la escala (oscurecer en la pausa, destellos)
 function cubrir(){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillRect(0,0,cv.width,cv.height);ctx.restore();}
@@ -37,7 +63,11 @@ const angDiff=(a,b)=>((a-b+Math.PI*3)%(Math.PI*2))-Math.PI;
 function circle(x,y,r){ctx.beginPath();ctx.arc(x,y,Math.max(0,r),0,Math.PI*2);ctx.fill();}
 function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
 function overlapPt(e,x,y,r){return x+r>e.x&&x-r<e.x+e.w&&y+r>e.y&&y-r<e.y+e.h;}
+// TEXTO GRANDE (accesible.js): txt() y txtW() agrandan el tamaño con TXT_ajuste; txtWRaw mide sin agrandar
+const TXT_aj=s=>typeof TXT_ajuste==='function'?TXT_ajuste(s):s;
 function txt(s,x,y,size,col,align='left',stroke=true){
+  if(typeof HUD_pxModo!=='undefined'&&HUD_pxModo&&pxOk(s)){HUD_pxModo=false;try{HUD_pxTxt(s,x,y,col,align);}finally{HUD_pxModo=true;}return;} // panel de la CHATARRA en pixel (hud.js)
+  size=TXT_aj(size);
   if(TXT_ICO.test(s)){txtSeg(s,x,y,size,col,align,stroke);return;}
   ctx.font=`bold ${size}px ui-monospace,Menlo,Consolas,monospace`;
   ctx.textAlign=align;ctx.textBaseline='top';
@@ -50,7 +80,8 @@ const TXT_ICO=/[✕○□△]/,TXT_SPLIT=/([✕○□△])/;
 // alto de las mayúsculas para un tamaño (centra el ícono con las letras)
 function txtCap(size){const m=ctx.measureText('H');return{top:-m.actualBoundingBoxAscent,bot:m.actualBoundingBoxDescent};}
 const txtIcoW=size=>size*0.86;
-function txtW(s,size){
+function txtW(s,size){return txtWRaw(s,TXT_aj(size));}
+function txtWRaw(s,size){
   ctx.font=`bold ${size}px ui-monospace,Menlo,Consolas,monospace`;
   if(!TXT_ICO.test(s))return ctx.measureText(s).width;
   let w=0;for(const p of s.split(TXT_SPLIT))if(p)w+=TXT_ICO.test(p)?txtIcoW(size):ctx.measureText(p).width;return w;
@@ -69,7 +100,7 @@ function txtIco(ch,x,y,size,col,stroke){
 }
 // texto con íconos: se dibuja por pedazos, de izquierda a derecha
 function txtSeg(s,x,y,size,col,align,stroke){
-  const w=txtW(s,size);let cx=align==='center'?x-w/2:align==='right'?x-w:x;
+  const w=txtWRaw(s,size);let cx=align==='center'?x-w/2:align==='right'?x-w:x;
   ctx.textAlign='left';ctx.textBaseline='top';
   for(const p of s.split(TXT_SPLIT)){if(!p)continue;
     if(TXT_ICO.test(p)){txtIco(p,cx,y,size,col,stroke);cx+=txtIcoW(size);continue;}
@@ -87,7 +118,8 @@ const hittable=e=>!e.gone&&(!isBoss(e)||e.state==='fight');
 // se suma al temblor en render) y marcas de explosión en el suelo
 let hitStop=0,stopT=-99,kickX=0,kickY=0;
 const scorches=[];
-function freeze(n){if(T-stopT<24)return;hitStop=Math.max(hitStop,n);stopT=T;}
+function freeze(n){if(T-stopT<24||(typeof MOV_reducido==='function'&&MOV_reducido()))return; // movimiento reducido: sin cuadro congelado
+  hitStop=Math.max(hitStop,n);stopT=T;}
 function kick(dx,dy){kickX=clamp(kickX+dx,-3,3);kickY=clamp(kickY+dy,-3,3);}
 // temblor según la distancia al jugador más cercano: fuerte al lado, suave lejos
 function shakeAt(x,y,amt){

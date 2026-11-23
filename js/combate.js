@@ -13,6 +13,7 @@ function killEmit(e){const src=killSrc||(P&&P.ride?'grillo':P?P.weapon:'?'),b=is
 function dmg(e,n){
   if(!hittable(e))return;
   e.hp-=n;e.flash=4;
+  if(isBoss(e)&&T-(e._sonT||-9)>=5){e._sonT=T;tone('square',260,140,0.06,0.035);noise(0.04,0.06,1800);} // "pegó": distinto del rebote
   if(hitFrom&&!isBoss(e))e.kbx=clamp((e.kbx||0)+hitFrom.dir*hitFrom.pow*0.55,-2.2,2.2); // retroceso de 1–4 px
   if(e.hp<=0)kill(e);else SFX.hit();
 }
@@ -59,12 +60,14 @@ function hurtPlayer(n=1){
   if(typeof ECO!=='undefined'&&(p.inv>=9000||(p.ride&&p.ride.inv>=9000))&&!(T-(p._bh??-999)<70)){p._bh=T;ECO.golpesBot++;}
   if(p.ride){const m=p.ride;if(m.inv>0)return;m.armor-=n;m.inv=24;m.flash=5;SFX.hit();shake=Math.max(shake,2);if(m.armor<=0)mechBreak(m);return;}
   if(p.inv>0)return;
+  if(typeof ACC!=='undefined'&&ACC.ayDano&&n<=1){p.medioGolpe=!p.medioGolpe;if(p.medioGolpe){p.inv=Math.max(p.inv,70);p.flash=6;try{SFX.hit();}catch(e){}return;}} // AYUDAS: daño reducido
   if(p.shield>0){p.shield--;p.inv=45;SFX.shield();parts.push({k:'ring',x:p.x+4,y:p.y+9,r:6,max:16,life:12,maxl:12,col:'120,220,255'});
     if(!p.shield)setBanner('ESCUDO ROTO',50);return;}
   p.hp--;SFX.hurt();shake=Math.max(shake,4);freeze(3);p.inv=70;emit('hurt',{player:p.slot+1});
   if(p.hp<=0){p.dead=true;p.deadT=110;
     // 2 jugadores: si queda una vida la reserva para volver; si no, no descuenta (queda afuera)
-    if(twoP()){p.back=lives>0;if(p.back)lives--;}else lives--;
+    const vInf=typeof ACC!=='undefined'&&ACC.ayVidas; // AYUDAS: vidas infinitas (accesible.js)
+    if(twoP()){p.back=lives>0||vInf;if(p.back&&!vInf)lives--;}else if(!vInf)lives--;
     corpse(playerSet(p),p.x,p.y,p.face);dust(p.x+4,GROUND);}
 }
 // k: el premio levantado (k.amt: munición que soltó un soldado armado, armados.js)
@@ -100,6 +103,9 @@ function spawn(it){
   if(it.x==='L')e.face=1;
   const d=DIFF();e.hp=Math.max(1,Math.round(e.hp*d.ehp));e.cd*=d.fire;PC_escalar(e);ARM_armar(e);enemies.push(e);
 }
+// la bala pega si toca al enemigo en cualquier punto del tramo que hizo este cuadro (a quemarropa sale adentro y no se escapa)
+function PB_toca(e,b,r){if(overlapPt(e,b.x,b.y,r))return true;if(b.px===undefined)return false;
+  return overlapPt(e,b.px,b.py,r)||overlapPt(e,(b.px+b.x)/2,(b.py+b.y)/2,r);}
 function updProjectiles(){
   for(const b of pbul){
     if(b.gone)continue;
@@ -113,23 +119,24 @@ function updProjectiles(){
       if(T%2===0)parts.push({k:'smoke',col:'190,180,170',x:b.x,y:b.y,vx:0,vy:-0.1,life:22,maxl:22,size:1.2});
     }
     if(b.k==='flame'){b.vx*=0.95;b.vy=b.vy*0.95-0.03;b.r+=0.22;}
-    b.x+=b.vx;b.y+=b.vy;
-    if(--b.life<=0||b.x<camX-10||b.x>camX+VW+10||b.y<-10){if(b.k==='rocket'&&b.life<=0)rocketBoom(b);b.gone=true;continue;}
-    if(b.y>=GROUND){
+    b.px=b.x;b.py=b.y;b.x+=b.vx;b.y+=b.vy;
+    if(--b.life<=0||b.x<camX-10||b.x>camX+VW+10||b.y<(typeof CA_yMin==='function'?CA_yMin():0)-10){if(b.k==='rocket'&&b.life<=0)rocketBoom(b);b.gone=true;continue;}
+    const bp=typeof CA_piso==='function'?CA_piso(b.x,b.y):GROUND;
+    if(b.y>=bp){
       if(b.k==='rocket'){rocketBoom(b);continue;}
-      if(b.k==='flame'){b.y=GROUND-1;b.vy=0;}
-      else{b.gone=true;dust(b.x,GROUND,2);continue;}
+      if(b.k==='flame'){b.y=bp-1;b.vy=0;}
+      else{b.gone=true;dust(b.x,bp,2);continue;}
     }
     if(b.k==='flame'){
       for(const e of enemies)if(hittable(e)&&!b.hit.has(e)&&overlapPt(e,b.x,b.y,b.r)){b.hit.add(e);tiroPega(b);killSrc='flame';hitFrom={dir:Math.sign(b.vx)||1,pow:0.25,fl:0.7};dmg(e,b.dmg*dmgMul);hitFrom=null;killSrc=null;}
       for(const c of crates)if(!c.gone&&!b.hit.has(c)&&overlapPt(c,b.x,b.y,b.r)){b.hit.add(c);dmgCrate(c,0.5);}
-      for(const pr of prisoners)if(pr.state==='tied'&&overlapPt(pr,b.x,b.y,b.r))freePris(pr);
       continue;
     }
-    // un disparo a la soga también libera al prisionero
-    for(const pr of prisoners)if(pr.state==='tied'&&!b.ally&&overlapPt(pr,b.x,b.y,1.5)){freePris(pr);if(b.k==='rocket')rocketBoom(b);else b.gone=true;break;}
-    if(b.gone)continue;
-    for(const e of enemies){if(!hittable(e))continue;if(overlapPt(e,b.x,b.y,b.bajo?3.5:1.5)){
+    // a los prisioneros ya no se los libera a tiros: se los libera pasando por delante (rescate.js). Las balas los atraviesan.
+    for(const e of enemies){if(!hittable(e)){
+      // un jefe que todavía no recibe daño (entrando o con una parte blindada): chispa gris y sonido metálico, la bala se frena
+      if(isBoss(e)&&!e.gone&&e.state!=='dying'&&e.state!=='enter'&&overlapPt(e,b.x,b.y,1.5)){b.gone=true;spark(b.x,b.y,'#9aa0a8',-Math.sign(b.vx)||1);if(T%4===0)SFX.ping();break;}
+      continue;}if(PB_toca(e,b,b.bajo?3.5:1.5)){
       // el escudero frena las balas que le llegan de frente
       // ...pero el escudo aguanta 8 impactos y se rompe
       if(e.type==='shield'&&e.shp>0&&b.k==='b'&&Math.sign(b.vx)===-e.face&&Math.abs(b.vx)>Math.abs(b.vy)*0.7){
@@ -149,7 +156,8 @@ function updProjectiles(){
     g.t++;g.vy+=g.can?0.08:0.18;g.x+=g.vx;g.y+=g.vy;g.rot+=g.vx*0.3;
     let boom=g.t>150;
     if(g.x<camX-20||g.x>camX+VW+20){g.gone=true;continue;}
-    if(g.y>=GROUND-2){g.y=GROUND-2;if(g.b<1){g.vy=-Math.abs(g.vy)*0.45;g.vx*=0.6;g.b++;}else boom=true;}
+    const gp=(typeof CA_piso==='function'?CA_piso(g.x,g.y):GROUND)-2;
+    if(g.y>=gp){g.y=gp;if(g.b<1){g.vy=-Math.abs(g.vy)*0.45;g.vx*=0.6;g.b++;}else boom=true;}
     for(const e of enemies)if(hittable(e)&&overlapPt(e,g.x,g.y,2)){boom=true;break;}
     for(const c of crates)if(!c.gone&&overlapPt(c,g.x,g.y,2)){boom=true;break;}
     if(boom){g.gone=true;killSrc=g.can?'grillo':'grenade';blast(g.x,g.y,g.can?22:28*(g.gr??(CH().grenadeR||1)),(g.can?7:6)*dmgMul);killSrc=null;}
@@ -158,6 +166,7 @@ function updProjectiles(){
   const tg=players.map(p=>({p,hb:p.dead?null:hurtbox(p)})),k0=P;
   for(const b of eproj){
     if(b.gone)continue;
+    CONS_pr=b; // consejos.js: quién le pegó al jugador
     if(b.upd){ // proyectiles enemigos especiales (p. ej. fuego): le pegan al jugador vivo más cercano
       let t=tg[0];if(tg.length>1){const n=nearestPlayer(b.x,b.y);t=tg.find(o=>o.p===n)||t;}
       usePlayer(t.p);b.upd(b,t.hb);usePlayer(k0);continue;}
@@ -167,7 +176,7 @@ function updProjectiles(){
     let hitP=!!who;
     if(b.kind==='bullet'){
       if(hitP){withP(who.p,()=>hurtPlayer(1));b.gone=true;}
-      else if(b.y>GROUND||b.x<camX-20||b.x>camX+VW+20||b.y<-20)b.gone=true;
+      else if(b.y>(typeof CA_piso==='function'?CA_piso(b.x,b.y):GROUND)||b.x<camX-20||b.x>camX+VW+20||b.y<(typeof CA_yMin==='function'?CA_yMin():0)-20)b.gone=true;
       else for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){killAlly(a);b.gone=true;break;}
     }else{
       if(!hitP)for(const a of allies)if(!a.gone&&overlapPt(a,b.x,b.y,b.r)){hitP=true;break;}
@@ -178,6 +187,7 @@ function updProjectiles(){
         for(const {p,hb} of tg)if(hb){const d=Math.hypot(hb.x+hb.w/2-b.x,hb.y+hb.h/2-y);if(d<b.blast+(p.ride?10:4))withP(p,()=>hurtPlayer(2));}}
     }
   }
+  CONS_pr=null;
 }
 function updParts(){
   for(const p of parts){
@@ -186,7 +196,7 @@ function updParts(){
     case 'fire':p.x+=p.vx;p.y+=p.vy;p.vx*=0.9;p.vy=p.vy*0.9-0.03;break;
     case 'smoke':p.x+=p.vx;p.y+=p.vy;p.size+=0.08;if(p.rise){p.vy-=0.006;p.vx*=0.985;}break;
     case 'ring':p.r+=(p.max-p.r)*0.3;break;
-    case 'p':case 'shell':p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;if(p.y>GROUND-1){p.y=GROUND-1;p.vy*=-0.35;p.vx*=0.6;}break;
+    case 'p':case 'shell':p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;if(p.y>GROUND-1&&p.y<GROUND+6&&!(typeof CA_hueco==='function'&&CA_hueco(p.x))){p.y=GROUND-1;p.vy*=-0.35;p.vx*=0.6;}break;
     case 'spr':p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;
       if(p.y>GROUND-14){p.y=GROUND-14;
         // primer golpe contra el suelo: rebote chico y polvo

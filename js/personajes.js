@@ -26,6 +26,8 @@ const COLORES=[
   [{},{h:'#2f6fc8',H:'#6aa6f0'},{h:'#a8803a',H:'#d8b060'},{h:'#6a3a8a',H:'#9a6ac0'}],
   [{},{c:'#c8503a',C:'#f08a6a'},{c:'#c89a2a',C:'#f0c860'},{c:'#7a4aa8',C:'#a87ad8'}],
   [{},{h:'#2f6fc8',H:'#6aa6f0',u:'#1a3a80'},{h:'#3a8a3a',H:'#6ac06a',u:'#1e5a1e'},{h:'#d89a2a',H:'#f0c860',u:'#8a5a10'}]];
+// TUERCA (arte-personaje.js, elegido por Facu el 22 nov): va al final y se destraba con 6 engranajes dorados (tuerca.js)
+if(typeof PJ_BOCETOS!=='undefined'){CHARS.push(PJ_BOCETOS[PJ_ELEGIDO]);COLORES.push(PJ_COLORES);}
 const N_COL=4;
 const colMuestra=(ci,k)=>{const o=COLORES[ci][k];return o.h||o.c||CHARS[ci].helmet;};
 // piernas de los jugadores: 0 = como siempre (el pedido de acortarlas se canceló el 22 nov). build() admite 1 o 2

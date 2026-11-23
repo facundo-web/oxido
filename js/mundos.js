@@ -55,6 +55,7 @@ function MU_cobertura(e){
     else{const dy=(p.y+(p.crouch?11:8))-b.y,tt=Math.max(1,Math.abs(p.x+4-b.x)/Math.abs(b.vx||2));b.vy=clamp(dy/tt,-1.8,0.9);} // apunta arriba
     if(MU_tiene(2)&&!b.rafaga&&e.type==='soldier'&&!e.arma){e.rafaga=2;e.rafT=7;}}
   // ráfaga: dos tiros más, separados
+  if(e.molesto>0)e.rafaga=0; // el gato lo está molestando (gatito.js): la ráfaga se corta, como todo lo que tira
   if(e.rafaga>0&&--e.rafT<=0&&!e.gone&&p&&!p.dead){e.rafaga--;e.rafT=7;const ex=e.x+e.w/2,sx=ex+e.face*8,sy=e.y+9,dy=(p.y+(p.crouch?11:8))-sy,tt=Math.max(1,Math.abs(p.x+4-sx)/2.1);
     eproj.push({kind:'bullet',x:sx,y:sy,vx:e.face*2.1,vy:clamp(dy/tt,-1.8,0.9),g:0,r:1.6,t:0,rafaga:true});SFX.eshoot();parts.push({k:'flash',x:sx,y:sy,life:3,maxl:3,size:2.5});e.rec=1;}
   // mundo 3: saltan más seguido
@@ -71,6 +72,8 @@ function MU_cobertura(e){
     if(e.fase>1&&e.state!=='dying'){ctx.fillStyle=e.fase===3?'rgba(255,70,40,0.18)':'rgba(255,200,60,0.14)';circle(fx,e.y+e.h/2,Math.max(e.w,e.h)*0.75);}};}
   // tres fases: a 2/3 y a 1/3 de la vida se apura y llama refuerzos
   if(v.upd){const u0=v.upd;v.upd=function(e){u0(e);if(e.state==='dying'||e.gone)return;
+    // la vida arranca vacía y se llena en la entrada: las fases cuentan recién cuando pelea con la barra llena
+    if(e.state!=='fight')return;if(!e.lleno){if(e.hp>=e.max*0.95)e.lleno=true;else return;}
     const k=e.hp/e.max,f=k>0.66?1:k>0.33?2:3;
     if(f>e.fase){e.fase=f;setBanner('¡FASE '+f+'!',70);shake=Math.max(shake,6);SFX.alarm();
       for(const lado of[-1,1])spawn({t:f===3?'shield':'soldier',x:lado<0?camX+6:camX+VW-14});
@@ -80,4 +83,4 @@ function MU_cobertura(e){
 // al vencer al guardián se abre el mundo siguiente
 // (finishWin está en juego.js, que carga después: se engancha en PC_misionGanada de partida.js, que finishWin llama)
 {const pg0=PC_misionGanada;PC_misionGanada=function(...a){const r=pg0(...a),g=MU_GUARDIAN[levelIdx];
-  if(g)toast('¡'+MU_NOMBRE[g+1]+' ABIERTO!','Venciste al guardián del '+MU_NOMBRE[g].toLowerCase(),'#ffe066');return r;};}
+  if(g&&!(typeof MC!=='undefined'&&MC))toast( /* con la placa de cumplida.js, lo dice la placa */tx(TX.cumplida.mundoAbierto,{mundo:MU_NOMBRE[g+1]}),tx(TX.cumplida.mundoAbiertoSub,{mundo:MU_NOMBRE[g].toLowerCase()}),'#ffe066');return r;};}

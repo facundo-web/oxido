@@ -283,7 +283,7 @@ function EN_drawMarcas(){
       ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle=`rgba(${EN_VERDE},${0.12+0.1*Math.random()})`;
       ctx.fillRect(q(e.x),q(e.y+((T*3)%Math.max(1,e.h))),e.w,1);ctx.fillRect(q(e.x),q(e.y),e.w,e.h);ctx.restore();
       for(let i=0;i<3;i++){ctx.fillStyle=i%2?`rgb(${EN_VERDE})`:'#ff4fd8';ctx.fillRect(q(e.x+rand(-2,e.w+2)),q(e.y+rand(-2,e.h+2)),1,1);}
-      if((T>>3)%2&&e.enHack>12)txt('ERROR',e.x+e.w/2,e.y-7,4,`rgb(${EN_VERDE})`,'center');
+      if((T>>3)%2&&e.enHack>12){const yE=HY(e.y-7)<30?e.y+e.h+2:e.y-7;txt('ERROR',e.x+e.w/2,yE,4,`rgb(${EN_VERDE})`,'center');} // en la franja del HUD (reloj), va debajo (Pruebas, Z)
     }
   }
   for(const f of EN_fx){
@@ -301,7 +301,7 @@ function EN_drawMarcas(){
 }
 // destello de pantalla de la foto (encima de todo, cortito y suave)
 function EN_drawHud(){
-  for(const f of EN_fx)if(f.k==='flash'&&f.t<6){ctx.fillStyle=`rgba(255,255,255,${0.28*(1-f.t/6)})`;cubrir();}
+  for(const f of EN_fx)if(f.k==='flash'&&f.t<(MOV_reducido()?1:6)){ctx.fillStyle=`rgba(255,255,255,${0.28*FL_k()*(1-f.t/6)})`;cubrir();}
 }
 ON_STEP.push(()=>{
   EN_updBalls();
@@ -324,8 +324,7 @@ drawPlayer=function(){
   const set=playerSet(p),f=p.face>0?0:1;
   let escudo=true;
   if(en.ci===0)escudo=EN_dibFacu(p,en,set,f);else if(en.ci===1)escudo=EN_dibJose(p,en,set,f);else EN_dibLauti(p,en,set,f);
-  if(escudo&&p.shield>0){const a=0.45+Math.sin(T/6)*0.2;ctx.strokeStyle=`rgba(120,220,255,${a})`;ctx.lineWidth=1;
-    ctx.beginPath();ctx.ellipse(p.x+4,p.y+9,11,13,0,0,7);ctx.stroke();}
+  if(escudo&&p.shield>0)aroPix(p.x+4,p.y+9,11,13,escudoTono(p));
 };
 const EN_r=(c,x,y,w,h)=>{ctx.fillStyle=c;ctx.fillRect(q(x),q(y),w,h);};
 function EN_pose(p,leg){const pose=rigPose(p);if(leg){pose.leg=leg;pose.uy=0;pose.hop=0;}return pose;}

@@ -1,9 +1,10 @@
 'use strict';
-// Óxido · Misión 5: Ciudad sin luna (noche de lluvia, reflector en las nubes, murciélagos)
+// Óxido · Misión 5: Ciudad sin luna (noche de lluvia, reflector que barre las nubes, murciélagos de lata)
 // Todo lo de este archivo usa el prefijo M5_ para no chocar con otros nombres globales.
-// La acción que identifica la misión es el REFLECTOR: proyecta en las nubes la tuerca de Óxido desde que
-// arranca; en la emboscada baja a la calle y encandila a los enemigos; el villano lo apaga y vuelve a
-// prenderse en su fase de rabia, apuntándole al dirigible (ver jefes5.js).
+// La acción que identifica la misión es el REFLECTOR: desde que arranca BARRE las nubes (una mancha de luz, sin
+// ningún dibujo proyectado); en la emboscada baja a la calle y encandila a los enemigos; el villano lo apaga y
+// vuelve a prenderse en su fase de rabia, apuntándole al dirigible (ver jefes5.js). La tuerca de Óxido está
+// PINTADA en la torre del reflector. Los murciélagos son de lata: alas de chapa remachada y un engranaje en el pecho.
 
 // ================== datos de la misión ==================
 const M5_LVL={name:'MISIÓN 5 · CIUDAD SIN LUNA',short:'5 · CIUDAD SIN LUNA',theme:'noche',end:3400,music:'l5',
@@ -77,7 +78,7 @@ LEVELS.push(M5_LVL);
 // una bandada cuesta un poco más que un dron al sortear tipos (ver variarPartida)
 NV_COSTO.bat=1.4;
 COB_COL.m5barrera=['#6a6a72','#8a8a94'];COB_COL.m5volqueta=['#2e4a3a','#3e6450'];COB_COL.m5tachos=['#4a4e58','#6a707c'];
-KILL_NAMES.push(['bat','murciélagos']);
+KILL_NAMES.push(['bat','murciélagos de lata']);
 
 // ================== estado ==================
 // hash entero propio (el hash() de base.js pierde precisión con números grandes, como T)
@@ -97,23 +98,21 @@ function M5_tower(){return{x:196-camX*0.04,y:50};}
 function M5_sweep(){return Math.sin(T/230)*0.9+Math.sin(T/97)*0.14;}
 function M5_spot(){const t=M5_tower();return{x:t.x+M5_sweep()*62,y:38};}
 function M5_hexPath(x,y,r,rot){ctx.beginPath();for(let i=0;i<6;i++){const a=rot+i*Math.PI/3,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py);}ctx.closePath();}
-// emblema proyectado: círculo de luz con la TUERCA de Óxido (hexágono oscuro con el agujero iluminado)
-function M5_nut(x,y,r,sy,rot,a,dark){
+// mancha de luz del reflector: solo luz, sin ningún dibujo adentro (el haz barre, no proyecta emblemas)
+function M5_mancha(x,y,r,sy,a){
   if(a<=0.01)return;
   ctx.save();ctx.translate(x,y);ctx.scale(1,sy);
-  ctx.fillStyle=`rgba(255,232,170,${0.09*a})`;circle(0,0,r*1.9);
-  ctx.fillStyle=`rgba(255,238,190,${0.26*a})`;circle(0,0,r*1.35);
-  ctx.fillStyle=`rgba(255,246,214,${0.40*a})`;circle(0,0,r*1.08);
-  ctx.fillStyle=`rgba(${dark},${0.86*a})`;M5_hexPath(0,0,r*0.74,rot);ctx.fill();
-  ctx.strokeStyle=`rgba(255,246,214,${0.22*a})`;ctx.lineWidth=0.7;M5_hexPath(0,0,r*0.56,rot);ctx.stroke();   // chaflán
-  ctx.fillStyle=`rgba(255,248,224,${0.55*a})`;circle(0,0,r*0.3);
+  ctx.fillStyle=`rgba(255,232,170,${0.08*a})`;circle(0,0,r*1.9);
+  ctx.fillStyle=`rgba(255,238,190,${0.18*a})`;circle(0,0,r*1.35);
+  ctx.fillStyle=`rgba(255,246,214,${0.26*a})`;circle(0,0,r);
   ctx.restore();
 }
 // intensidad del reflector del cielo (titila cuando lo apagan)
 function M5_slA(){const s=M5.sl;if(s.mode!=='off')return s.a;return s.t<34?((T>>1)%2?0.85:0.15)*(1-s.t/34):0;}
 
-// ================== murciélagos ==================
-// Vuelan en zigzag sobre el jugador. De a uno por vez se tiran en picada: AVISO = se quedan quietos, abren
+// ================== murciélagos de lata ==================
+// Máquinas: alas de chapa remachada (tres varillas), cuerpo de lata con un engranaje que gira en el pecho y dos
+// lucecitas de ojo. Vuelan en zigzag sobre el jugador. De a uno por vez se tiran en picada: AVISO = se quedan quietos, abren
 // las alas, chillan (ondas rojas) y en los últimos cuadros marcan con puntos rojos hacia dónde van.
 // El punto se fija 12 cuadros antes de salir: moviéndote lo esquivás. Un tiro los baja. Bajo el reflector se
 // encandilan: no se tiran.
@@ -187,7 +186,7 @@ function M5_updBat(e){
 function M5_killBat(e){
   M5_sfx('murcimuere');
   M5.fall.push({x:e.x+6,y:e.y+4,vx:(e.kbx||0)*0.4+rand(-0.5,0.5),vy:-1.2,rot:0,vr:rand(0.2,0.35)*(Math.random()<0.5?-1:1),t:0,land:0});
-  for(let i=0;i<5;i++)parts.push({k:'p',x:e.x+6,y:e.y+4,vx:rand(-1.2,1.2),vy:rand(-1.6,0),g:0.1,life:rand(14,24),maxl:24,size:1,col:i%2?'#3a2836':'#6a4a5a'});
+  for(let i=0;i<5;i++)parts.push({k:'p',x:e.x+6,y:e.y+4,vx:rand(-1.2,1.2),vy:rand(-1.6,0),g:0.1,life:rand(14,24),maxl:24,size:1,col:i%2?'#8a929e':'#ffd080'});   // tornillos y chispas
   if(M5.dive===e)M5.dive=null;
   if(Math.random()<0.08)pickups.push({kind:pick(['H','S','F','R','G','E','+']),x:e.x,y:e.y,w:10,h:10,vy:-2.5,life:700});
 }
@@ -195,27 +194,29 @@ function M5_drawBat(e){
   const cx=e.x+6,cy=e.y+4,fl=e.flash>0,C=c=>fl?'#fff':c;
   if(e.st==='dive'){
     ctx.save();ctx.translate(q(cx),q(cy));ctx.rotate(Math.atan2(e.vy,e.vx));
-    ctx.fillStyle=C('#3a2434');ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(-8,-4.5);ctx.lineTo(-4,0);ctx.lineTo(-8,4.5);ctx.closePath();ctx.fill();
-    ctx.fillStyle=C('#1a121c');ctx.beginPath();ctx.ellipse(0,0,3.4,2.1,0,0,7);ctx.fill();
-    ctx.fillStyle=C('#1a121c');ctx.fillRect(-1.5,-3,1,1.5);ctx.fillRect(-1.5,1.5,1,1.5);
-    ctx.fillStyle='#ff4a3a';ctx.fillRect(1.6,-1.2,1,1);ctx.fillRect(1.6,0.3,1,1);
+    ctx.fillStyle=C('#5a606c');ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(-8,-4.5);ctx.lineTo(-4,0);ctx.lineTo(-8,4.5);ctx.closePath();ctx.fill();
+    ctx.fillStyle=C('#2c3038');ctx.fillRect(-3.4,-2.1,6.8,4.2);
+    if(!fl){ctx.fillStyle='#b08a4a';circle(-0.6,0,1.3);ctx.fillStyle='#2c3038';ctx.fillRect(-0.9,-0.3,0.6,0.6);}
+    ctx.fillStyle='#ffb040';ctx.fillRect(1.6,-1.2,1,1);ctx.fillRect(1.6,0.3,1,1);
     ctx.restore();return;}
   const spread=e.st==='warn';
   const a=spread?0:Math.sin(e.flap);
-  for(const s of[-1,1]){ // alas: membrana con borde festoneado
+  for(const s of[-1,1]){ // alas: chapa con borde en dientes de sierra
     const tx=cx+s*(spread?9.5:7),ty=cy-1-(spread?2.5:a*4);
-    ctx.fillStyle=C(spread?'#4e2c40':'#3a2638');ctx.beginPath();ctx.moveTo(cx+s*1.5,cy-1.5);ctx.lineTo(tx,ty);
+    ctx.fillStyle=C(spread?'#6a7280':'#555c68');ctx.beginPath();ctx.moveTo(cx+s*1.5,cy-1.5);ctx.lineTo(tx,ty);
     ctx.lineTo(cx+s*(spread?7.5:5.6),cy+1.5-a*1.6);ctx.lineTo(cx+s*(spread?5.2:4.2),cy+0.4-a);ctx.lineTo(cx+s*3.4,cy+2-a*0.6);ctx.lineTo(cx+s*1.5,cy+1.6);ctx.closePath();ctx.fill();
-    if(!spread&&!fl){ctx.strokeStyle='#6e4a66';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(cx+s*1.5,cy-1.5);ctx.lineTo(tx,ty);ctx.stroke();}
-    if(spread&&!fl){ctx.strokeStyle='#8a5068';ctx.lineWidth=0.5;ctx.beginPath();
+    if(!spread&&!fl){ctx.strokeStyle='#9aa2ae';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(cx+s*1.5,cy-1.5);ctx.lineTo(tx,ty);ctx.stroke();
+      ctx.fillStyle='#c8ccd4';ctx.fillRect(q((cx+s*1.5+tx)/2),q((cy-1.5+ty)/2),0.8,0.8);}   // remache
+    if(spread&&!fl){ctx.strokeStyle='#a8b0bc';ctx.lineWidth=0.5;ctx.beginPath();
       ctx.moveTo(cx+s*1.5,cy-1.5);ctx.lineTo(cx+s*7.5,cy+1.5);ctx.moveTo(cx+s*1.5,cy-1.5);ctx.lineTo(cx+s*5.2,cy+0.4);ctx.moveTo(cx+s*1.5,cy-1.5);ctx.lineTo(tx,ty);ctx.stroke();}
   }
-  ctx.fillStyle=C('#1c1420');ctx.beginPath();ctx.ellipse(cx,cy,2.3,3,0,0,7);ctx.fill();
-  ctx.beginPath();ctx.moveTo(cx-2.1,cy-1.8);ctx.lineTo(cx-1.7,cy-5);ctx.lineTo(cx-0.5,cy-2.6);ctx.closePath();ctx.fill();
-  ctx.beginPath();ctx.moveTo(cx+2.1,cy-1.8);ctx.lineTo(cx+1.7,cy-5);ctx.lineTo(cx+0.5,cy-2.6);ctx.closePath();ctx.fill();
-  ctx.fillStyle=C('#4a3440');ctx.fillRect(cx-1,cy+0.6,2,1.4);
+  // cuerpo de lata con la cabeza redonda, sin orejas (Investigación, 2ª ronda)
+  ctx.fillStyle=C('#2c3038');ctx.fillRect(cx-2.3,cy-1.2,4.6,4.2);circle(cx,cy-1.8,2.6);
   if(fl)return;
-  ctx.fillStyle=spread&&(T>>1)%2?'#fff2a0':'#ff3a2a';ctx.fillRect(q(cx-1.5),q(cy-1.3),1,1);ctx.fillRect(q(cx+0.5),q(cy-1.3),1,1);
+  // engranaje en el pecho que gira con el aleteo
+  {const gr=T/6+e.flap,gx=cx,gy=cy+1;ctx.fillStyle='#b08a4a';for(let i=0;i<6;i++){const an=gr+i*Math.PI/3;ctx.fillRect(gx+Math.cos(an)*1.6-0.4,gy+Math.sin(an)*1.6-0.4,0.8,0.8);}
+    circle(gx,gy,1.2);ctx.fillStyle='#2c3038';ctx.fillRect(gx-0.3,gy-0.3,0.6,0.6);}
+  ctx.fillStyle=spread&&(T>>1)%2?'#fff2a0':'#ffb040'; /* ojos ámbar */ctx.fillRect(q(cx-1.5),q(cy-1.3),1,1);ctx.fillRect(q(cx+0.5),q(cy-1.3),1,1);
   if(e.m5lit>0){ctx.fillStyle='#ffe08a';const r=T/5;ctx.fillRect(q(cx+Math.cos(r)*4),q(cy-6+Math.sin(r)),1,1);ctx.fillRect(q(cx-Math.cos(r)*4),q(cy-6-Math.sin(r)),1,1);}
   if(spread){
     ctx.fillStyle='#14080c';ctx.fillRect(cx-0.9,cy+0.3,1.8,1.2);ctx.fillStyle='#fff';ctx.fillRect(cx-0.9,cy+0.3,0.5,0.8);ctx.fillRect(cx+0.4,cy+0.3,0.5,0.8);
@@ -228,7 +229,7 @@ function M5_drawBat(e){
       ctx.fillRect(q(L0.x-2),q(L0.y-2),1,1);ctx.fillRect(q(L0.x+1),q(L0.y-2),1,1);ctx.fillRect(q(L0.x-0.5),q(L0.y-0.5),1,1);ctx.fillRect(q(L0.x-2),q(L0.y+1),1,1);ctx.fillRect(q(L0.x+1),q(L0.y+1),1,1);}
   }
 }
-// murciélagos derribados: caen girando y quedan un rato en el piso
+// murciélagos de lata derribados: caen girando (largando chispitas) y quedan un rato en el piso
 function M5_updFall(){
   for(const f of M5.fall){f.t++;
     if(!f.land){f.vy=Math.min(f.vy+0.18,4);f.x+=f.vx;f.y+=f.vy;f.rot+=f.vr;if(f.y>=GROUND-2){f.y=GROUND-2;f.land=f.t;f.rot=0.25;}}
@@ -239,10 +240,11 @@ function M5_drawFall(){
   if(L!==M5_LVL)return;
   for(const f of M5.fall){if(f.land&&(f.t-f.land>30)&&(T>>2)%2)continue;
     ctx.save();ctx.translate(q(f.x),q(f.y));ctx.rotate(f.rot);
-    ctx.fillStyle='#2e2030';ctx.beginPath();ctx.moveTo(-1,0);ctx.lineTo(-6,2);ctx.lineTo(-4,-1);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#4a505a';ctx.beginPath();ctx.moveTo(-1,0);ctx.lineTo(-6,2);ctx.lineTo(-4,-1);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.moveTo(1,0);ctx.lineTo(6,2);ctx.lineTo(4,-1);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#1c1420';ctx.beginPath();ctx.ellipse(0,0,2,2.6,0,0,7);ctx.fill();
-    ctx.fillStyle='#5a3a3a';ctx.fillRect(-1,-1,0.8,0.8);ctx.fillRect(0.4,-1,0.8,0.8);
+    ctx.fillStyle='#2c3038';ctx.fillRect(-2,-2.4,4,4.8);
+    ctx.fillStyle='#7a6038';circle(0,0.6,1);
+    if(f.t%24<2&&!f.land){ctx.fillStyle='#ffd080';ctx.fillRect(1.5,-2,0.8,0.8);}   // chispita
     ctx.restore();}
 }
 ON_DRAW.push(M5_drawFall);
@@ -255,14 +257,14 @@ function M5_mkBolt(){
   for(let i=0;i<3;i++){by+=6+Math.random()*5;bx+=(Math.random()<0.5?-1:1)*rand(4,9);br.push([bx,by]);}
   return{pts,br};
 }
-const M5_flashA=()=>{const f=M5.flash;if(f<=0)return 0;return f>8?1:f>6?0.35:f>4?0.85:f/8;};
+const M5_flashA=()=>{const f=M5.flash;if(f<=0)return 0;return FL_k()*(f>8?1:f/8);}; // un destello que se apaga (sin doble golpe), más suave en movimiento reducido
 M5_LVL.upd=function(){
   if(M5.ev!==levelEvents)M5_reset();
   if(M5.diveCd>0)M5.diveCd--;
   M5_updFall();
   // relámpagos (y trueno con demora)
   if(M5.flash>0)M5.flash--;
-  if(--M5.nextBolt<=0&&!winT){M5.nextBolt=(300+Math.random()*320)|0;M5.flash=12;M5.bolt=M5_mkBolt();later(250+Math.random()*600,()=>M5_sfx('thunder'));}
+  if(--M5.nextBolt<=0&&!winT){M5.nextBolt=(300+Math.random()*320)|0;M5.flash=FL_puede()?12:0;M5.bolt=M5_mkBolt();later(250+Math.random()*600,()=>M5_sfx('thunder'));}
   // tren lejano que cruza de vez en cuando
   if(M5.train<0){if(Math.random()<0.0025)M5.train=0;}else if(++M5.train>470)M5.train=-1;
   // vapor de las alcantarillas
@@ -370,6 +372,8 @@ function M5_drawTower(t){
   ctx.fillStyle='#0d0f1c';ctx.fillRect(x-6,64,12,GROUND-64);ctx.fillRect(x-4,57,8,7);ctx.fillRect(x-7,63,14,2);
   ctx.fillStyle='#161a2c';ctx.fillRect(x-6,64,1,GROUND-64);
   ctx.fillStyle='rgba(222,168,84,0.6)';for(let y=72;y<GROUND-30;y+=9)ctx.fillRect(x-2,y,1,2);
+  // la tuerca de Óxido pintada en la torre (pintura gastada)
+  ctx.fillStyle='rgba(190,110,60,0.42)';M5_hexPath(x,GROUND-34,3,0);ctx.fill();ctx.fillStyle='#0d0f1c';circle(x,GROUND-34,1.1); // abajo, lejos de la lente
   ctx.fillStyle='#2a2e40';ctx.fillRect(x-3.5,51,7,6);ctx.fillStyle='#3a3e52';ctx.fillRect(x-3.5,51,7,1);
   const a=M5.sl.mode==='off'?M5_slA():1;
   ctx.fillStyle=a>0.5?'#fff4d0':'#3a3426';ctx.fillRect(x-2.5,49.5,5,1.6);
@@ -403,9 +407,9 @@ M5_LVL.drawBG=function(){
   const fl=M5_flashA();
   if(fl>0){ctx.fillStyle=`rgba(150,160,215,${0.5*fl})`;ctx.fillRect(0,0,W,GROUND);}
   M5_clouds(fl);
-  // el reflector proyecta la tuerca en las nubes
+  // el reflector barre las nubes: una mancha de luz que va y viene
   const sl=M5.sl,tw=M5_tower(),sa=(sl.mode==='boss'?0:M5_slA())*(1-sl.k),sp=M5_spot();
-  M5_nut(sp.x,sp.y,15,0.5,M5_sweep()*0.35,sa,'14,14,26');
+  M5_mancha(sp.x,sp.y,15,0.5,sa);
   if(fl>0&&M5.bolt)M5_drawBolt(fl);
   M5_strip(M5_FAR,M5_FARW,0.1);
   const offF=((camX*0.1)%M5_FARW+M5_FARW)%M5_FARW;
@@ -474,22 +478,26 @@ function M5_rainNear(){
   for(let i=0;i<26;i++){const x=((i*71.3+T*2.6-camX*0.6)%(W+40)+W+40)%(W+40)-20,y=((i*131.7+T*9)%(H+30))-15;ctx.moveTo(x,y);ctx.lineTo(x-2.6,y+10);}
   ctx.stroke();
 }
-M5_LVL.drawFx=function(){
+// detrás de los personajes (juego.js, drawWorld): los haces del reflector, sus manchas en el piso y la niebla baja
+M5_LVL.drawFxFondo=function(){
   const sl=M5.sl,tw=M5_tower();
   if(sl.k>0.01){const gx=sl.gx-camX;
     ctx.save();ctx.globalCompositeOperation='lighter';
     ctx.fillStyle=`rgba(255,236,180,${0.06*sl.k})`;ctx.beginPath();ctx.moveTo(tw.x-6,96);ctx.lineTo(gx-22,GROUND+1);ctx.lineTo(gx+22,GROUND+1);ctx.lineTo(tw.x+6,96);ctx.fill();
     ctx.fillStyle=`rgba(255,240,200,${0.06*sl.k})`;ctx.beginPath();ctx.moveTo(tw.x-2,96);ctx.lineTo(gx-10,GROUND+1);ctx.lineTo(gx+10,GROUND+1);ctx.lineTo(tw.x+2,96);ctx.fill();
     ctx.restore();
-    M5_nut(gx,GROUND+2,15,0.28,T/60,sl.k,'22,18,32');
-    // estrellitas sobre los soldados encandilados
-    ctx.fillStyle='#ffe08a';
-    for(const e of enemies)if(e.m5lit>0&&e.type!=='bat'){const x=e.x+e.w/2-camX,y=e.y-4,r=T/5;ctx.fillRect(q(x+Math.cos(r)*4),q(y+Math.sin(r)),1,1);ctx.fillRect(q(x-Math.cos(r)*4),q(y-Math.sin(r)),1,1);}
+    M5_mancha(gx,GROUND+2,15,0.28,sl.k);
   }
-  if(sl.mode==='boss'&&sl.tx!==undefined)M5_nut(sl.tx-camX,sl.ty,12,0.72,T/80,sl.a,'34,22,40');
+  if(sl.mode==='boss'&&sl.tx!==undefined)M5_mancha(sl.tx-camX,sl.ty,10,0.72,sl.a*0.8);
   // niebla baja
   for(let i=0;i<4;i++){const sp=W+180,x=((i*113-camX*0.6+T*0.15)%sp+sp)%sp-90,y=GROUND-4+Math.sin(T/70+i)*2;
     ctx.fillStyle='rgba(150,160,200,0.06)';ctx.beginPath();ctx.ellipse(x,y,70,7,0,0,7);ctx.fill();}
+};
+// encima: las estrellitas de los encandilados, la lluvia y el relámpago
+M5_LVL.drawFx=function(){
+  const sl=M5.sl;
+  if(sl.k>0.01){ctx.fillStyle='#ffe08a';
+    for(const e of enemies)if(e.m5lit>0&&e.type!=='bat'){const x=e.x+e.w/2-camX,y=e.y-4,r=T/5;ctx.fillRect(q(x+Math.cos(r)*4),q(y+Math.sin(r)),1,1);ctx.fillRect(q(x-Math.cos(r)*4),q(y-Math.sin(r)),1,1);}}
   drawRain();M5_rainNear();
   const fl=M5_flashA();if(fl>0){ctx.fillStyle=`rgba(210,220,255,${0.1*fl})`;ctx.fillRect(0,0,W,H);}
 };

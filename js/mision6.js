@@ -402,7 +402,7 @@ function M6_cielo(){
     disco(34,'rgba(255,180,58,0.07)');disco(20,'rgba(255,180,58,0.16)');disco(12,'#ffb43a');
     g.fillStyle='#2a1258';for(let i=0;i<4;i++)g.fillRect(216,92+i*3,28,1+i*0.4);
     M6_SKY=c;}
-  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(M6_SKY,0,0);ctx.restore();
+  GN_cubre(M6_SKY); // el cielo cubre lo que se ve, también en el lienzo chico (base.js)
 }
 M6_LVL.drawBG=function(){
   const HZ=126;

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Óxido · Privacidad</title>
-<meta name="description" content="Política de privacidad de Óxido: el juego no recolecta datos.">
+<meta name="description" content="Política de privacidad de Óxido: sin cuentas, publicidad ni rastreadores. La ubicación aproximada solo sale si activás el clima real.">
 <link rel="icon" href="iconos/favicon-32.png" sizes="32x32">
 <style>
   :root{--fondo:#0b0a10;--caja:#1a1220;--texto:#ece8e2;--suave:#b9b0bf;--oro:#ffe08a;--oxido:#e0582c}
@@ -27,7 +27,7 @@
   <h1>Privacidad</h1>
   <p class="fecha">Óxido · última actualización: noviembre de 2026</p>
 
-  <p class="resumen"><strong>En corto:</strong> Óxido no recolecta datos tuyos. No tiene cuentas, publicidad, estadísticas ni rastreadores. No se conecta a internet mientras jugás.</p>
+  <p class="resumen"><strong>En corto:</strong> Óxido no tiene cuentas, publicidad, estadísticas ni rastreadores. Lo único que puede salir de tu equipo es tu <strong>ubicación aproximada</strong>, y solo si activás el <strong>clima real</strong> (viene apagado).</p>
 
   <h2>Qué guarda el juego</h2>
   <p>El juego guarda esto, y solo en tu equipo:</p>
@@ -37,14 +37,29 @@
     <li>tus ajustes y hasta qué misión llegaste.</li>
   </ul>
   <p>Se guardan en el almacenamiento local del navegador o de la app (<code>localStorage</code>). Nadie más los ve y nunca salen de tu equipo.</p>
+  <p>Solo si abrís el juego con la dirección de prueba (<code>?prueba=1</code>), que usamos en pruebas con personas, también se anota en tu equipo un registro de la partida: en qué misión y tramo perdiste, qué armas usaste y con qué controles jugaste. Tampoco sale de tu equipo: lo ves y lo copiás desde el botón REGISTRO.</p>
 
   <h2>Qué no hace</h2>
   <ul>
     <li>No te pide correo ni ningún dato personal. El nombre del ranking lo elegís vos y no sale de tu equipo.</li>
     <li>No usa cookies ni identificadores de publicidad.</li>
-    <li>No manda información a ningún servidor, ni nuestro ni de otros.</li>
-    <li>No usa la cámara, el micrófono ni tu ubicación.</li>
+    <li>No manda información a ningún servidor. La única excepción es la ubicación aproximada si activás el clima real (ver abajo).</li>
+    <li>No usa la cámara ni el micrófono. Tu ubicación, solo si activás el clima real.</li>
   </ul>
+
+  <h2>Clima real (opcional)</h2>
+  <p>De fábrica, el clima del juego es <strong>DEL DÍA</strong> y no usa tu ubicación.</p>
+  <p>Si en <strong>OPCIONES › CLIMA</strong> elegís <strong>REAL</strong>, el juego te pide permiso para saber dónde estás. Con ese permiso:</p>
+  <ul>
+    <li><strong>Qué usa:</strong> tu ubicación, redondeada en tu equipo a unos 10 km. Nunca la ubicación exacta.</li>
+    <li><strong>Para qué:</strong> para saber si llueve, nieva o está despejado donde estás, y mostrarlo en el juego.</li>
+    <li><strong>Cuándo:</strong> una sola consulta cada vez que abrís el juego. El resultado (por ejemplo, "lluvia") y la hora se guardan en tu equipo durante 3 horas, así no se vuelve a preguntar. La ubicación no se guarda.</li>
+    <li><strong>Datos móviles:</strong> de fábrica, la consulta se hace solo con wifi u otra conexión que no cobre por uso. Si querés que también se haga con datos del celular, activá CLIMA CON DATOS MÓVILES. En el celular, si no se puede saber qué conexión hay, se usa el último clima guardado o el del día.</li>
+    <li><strong>A quién le pregunta:</strong> a <a href="https://open-meteo.com/">Open-Meteo</a>, un servicio de pronóstico gratuito. Le llega la ubicación redondeada y, como en cualquier conexión, la dirección IP de tu equipo.</li>
+    <li><strong>Qué se guarda:</strong> nosotros no guardamos tu ubicación ni la mandamos a nadie más. Open-Meteo guarda registros técnicos de sus servidores, que pueden incluir esa ubicación aproximada y la IP. Los borra a los 90 días y no los comparte. Ver <a href="https://open-meteo.com/en/terms">sus condiciones</a>.</li>
+    <li><strong>Cómo apagarlo:</strong> en OPCIONES › CLIMA, elegí DEL DÍA o APAGADO. También podés quitarle el permiso de ubicación al navegador o a la app desde los ajustes del equipo.</li>
+  </ul>
+  <p>Si no das el permiso, o no hay conexión, el juego sigue con el clima del día.</p>
 
   <h2>Joystick</h2>
   <p>Si conectás un joystick, el juego lee los botones para que puedas jugar. Esa información se usa en el momento y no se guarda.</p>
@@ -56,7 +71,7 @@
   <p>En la web, borrá los datos del sitio desde la configuración del navegador. En la app de Mac, los datos están en la carpeta de Óxido dentro de Biblioteca › Containers de tu usuario: borrá esa carpeta.</p>
 
   <h2>Chicos</h2>
-  <p>Como el juego no recolecta datos, tampoco recolecta datos de menores.</p>
+  <p>El juego no tiene cuentas ni pide datos personales. El clima real viene apagado; si se activa, funciona como se explica arriba.</p>
 
   <h2>Contacto</h2>
   <p>Si tenés una pregunta sobre esta política, escribí a <a href="mailto:jfirco@gmail.com"><strong>jfirco@gmail.com</strong></a>.</p>

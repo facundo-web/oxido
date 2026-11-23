@@ -61,16 +61,19 @@ function updPlayer(){
   p.crouch=D&&p.onGround;
   if(mv)p.face=mv;
   p.vx=mv*(p.crouch?0.6:c.speed)*(L.speedMul?L.speedMul(p):1); // speedMul: gancho por misión (barro)
-  if(tapped('jump')&&p.onGround){
+  const agua=typeof CA_nada==='function'&&CA_nada(p); // nadando (caminos en capas, caminos.js)
+  if(agua){}
+  else if(tapped('jump')&&p.onGround){
     if(D&&p.plat){p.y+=3;p.onGround=false;p.plat=null;p.drop=8;p.crouch=false;}
     else{p.vy=-c.jump;p.onGround=false;p.plat=null;p.crouch=false;SFX.jump();dust(p.x+4,p.y+18);}
   }else if(tapped('jump')&&!p.onGround&&p.airJ<(c.airJump||0)&&p.drop<=0){
     p.airJ++;p.vy=-c.jump*0.85;SFX.jump();parts.push({k:'ring',x:p.x+4,y:p.y+18,r:2,max:7,life:10,maxl:10,col:'180,230,255'});
   }
   if(p.onGround)p.airJ=0;
-  p.x=clamp(p.x+p.vx,camX+2,camX+VW-10);
+  p.x=clamp(p.x+p.vx,camX+2-(typeof MC_margenIzq==='function'?MC_margenIzq():0),camX+VW-10+(typeof MC_margen==='function'?MC_margen():0)); // al ganar sale caminando (cumplida.js)
+  if(typeof CA_paredes==='function')CA_paredes(p); // abajo, el agua tiene paredes y techo (caminos.js)
   const pb=p.y+p.h,wasAir=!p.onGround;
-  p.vy=Math.min(p.vy+0.32,6);p.y+=p.vy;
+  if(agua)CA_nadar(p,c,D);else{p.vy=Math.min(p.vy+0.32,6);p.y+=p.vy;}
   if(p.drop>0)p.drop--;
   const vyAntes=p.vy;
   land(p,pb,p.drop<=0);
@@ -80,7 +83,8 @@ function updPlayer(){
   // cambiar arma (tocar) y la rueda (mantener): rueda.js, en cada cuadro real
   if(p.fireCd>0)p.fireCd--;
   if(tapped('shoot')&&p.weapon==='pistol'&&p.fireCd<=6)p.fireCd=0;
-  if(held('shoot')&&p.fireCd<=0){const w=p.weapon;fire();p.fireCd=Math.max(2,Math.round(WEAPONS[w].cd*fireMul*c.cd));}
+  if(held('shoot')&&p.fireCd<=0){const w=p.weapon;fire();p.fireCd=Math.max(2,Math.round(WEAPONS[w].cd*fireMul*c.cd));
+    if(w==='pistol'&&typeof ACC_auto==='function'&&ACC_auto())p.fireCd=Math.min(p.fireCd,6);} // DISPARO AUTOMÁTICO: mantener = tan seguido como tocando (accesible.js)
   // con 2 jugadores, cada uno puede tener 3 granadas en el aire
   if(tapped('bomb')&&p.bombs>0&&(twoP()?grens.filter(g=>g.own===p.slot).length:grens.length)<3){
     p.bombs--;grens.push({x:p.x+4+p.face*4,y:p.y+4,vx:p.face*2.3+p.vx*0.4,vy:-3.4,t:0,b:0,rot:0,own:p.slot,gr:c.grenadeR||1});SFX.toss();
@@ -110,9 +114,8 @@ function drawPlayer(){
     drawGunShape(p.weapon,p.fireCd<4);ctx.restore();
   }
   if(p.shield>0){
-    const a=0.45+Math.sin(T/6)*0.2;ctx.strokeStyle=`rgba(120,220,255,${a})`;ctx.lineWidth=1;
-    ctx.beginPath();ctx.ellipse(p.x+4,sy+(p.crouch?7:9),11,p.crouch?11:13,0,0,7);ctx.stroke();
-    ctx.fillStyle='rgba(120,220,255,0.10)';ctx.fill();
+    // anillo de píxeles de 1 px que titila lento entre 2 tonos de celeste (quieto con MOVIMIENTO REDUCIDO): Dirección de Arte
+    aroPix(p.x+4,sy+(p.crouch?7:9),11,p.crouch?11:13,escudoTono(p));
   }
 }
 // 2 jugadores: número arriba de la cabeza (también arriba del Grillo). Se esconde mientras carga el avión.

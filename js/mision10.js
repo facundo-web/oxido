@@ -1,9 +1,11 @@
 'use strict';
 // Óxido · Misión 10: Templo perdido (la final). Selva que entra en un templo de piedra que se pone cada vez más dorado.
 // Todo lo de este archivo usa el prefijo M10_ para no chocar con otros nombres globales.
-// La acción de la misión: LA ROCA. Tiembla el templo, cae polvo del techo, la roca asoma por un hueco y cae.
-// Rueda detrás tuyo, la cámara avanza sola y hay que correr a la derecha saltando bloques, pozos con pinchos,
-// dardos y piso que se hunde. Termina en un abismo: lo saltás y la roca se estrella adentro y lo tapa.
+// La acción de la misión: LA RUEDA DENTADA. Tiembla el templo, cae polvo del techo, una rueda de engranaje gigante
+// (cobre y bronce, con rayos y remaches) asoma por un hueco y cae. Rueda detrás tuyo, la cámara avanza sola y hay que
+// correr a la derecha saltando bloques, pozos con pinchos, dardos y piso que se hunde. Termina en un ENGRANAJE del piso:
+// sus dientes muerden los de la rueda y la rueda se TRABA (chispas, chirrido) y queda ahí, quieta. No hay salto final.
+// (En el código la rueda se sigue llamando "roca": M10.roca, M10_drawRock.)
 // Trampas de templo: cabezas que escupen dardos, pinchos que salen del piso, piso que se hunde. Criatura: la víbora.
 
 // ================== datos de la misión ==================
@@ -12,7 +14,7 @@ const M10_CEIL=12;           // alto del techo de piedra
 const M10_LVL={name:'MISIÓN 10 · TEMPLO PERDIDO',short:'10 · TEMPLO PERDIDO',theme:'templo',end:3700,music:'l10',
   platforms:[
     // selva: tronco caído, losas y una rama alta
-    {x:150,y:132,w:46,k:'tronco'},{x:250,y:118,w:40},{x:330,y:66,w:46,hi:'rama'},{x:420,y:128,w:50,k:'tronco'},{x:500,y:110,w:40},
+    {x:150,y:132,w:46,k:'tronco'},{x:250,y:112,w:54},{x:330,y:66,w:46,hi:'rama'},{x:420,y:128,w:50,k:'tronco'},{x:500,y:110,w:40},
     // salón de la entrada (emboscada)
     {x:700,y:128,w:44},{x:790,y:106,w:40},{x:840,y:64,w:44,hi:'cornisa'},{x:920,y:124,w:40},
     // patio del jefe chico
@@ -89,11 +91,11 @@ KILL_NAMES.push(['m10Vibora','víboras']);
 // ================== la persecución (datos) ==================
 // at: cuando la cámara llega acá empieza el aviso. drop: donde cae la roca (centro). Bloques: se saltan (son
 // sólidos de costado y se puede parar arriba; la roca los pisa y los rompe). Pozos: si caés, los pinchos te
-// pegan y te tiran para adelante. El abismo del final: la roca se cae adentro y lo tapa.
+// pegan y te tiran para adelante. traba: el engranaje del piso donde la rueda se traba al final (no es un pozo).
 const M10_R=28;
 const M10_CHASE={at:1760,drop:1822,hole:[1794,1850],
   blocks:[{x:1960,w:14,h:10},{x:2290,w:16,h:16},{x:2580,w:64,h:12}],
-  pits:[{x:2040,w:26,k:'pozo'},{x:2450,w:28,k:'pozo'},{x:2644,w:36,k:'abismo'}]};
+  pits:[{x:2040,w:26,k:'pozo'},{x:2450,w:28,k:'pozo'}],traba:{x:2644,w:36}};
 
 // ================== utilidades ==================
 const M10_sfx=(n,...a)=>{if(typeof SFX!=='undefined'&&SFX[n])SFX[n](...a);};
@@ -119,7 +121,7 @@ function M10_reset(){
     if(d.k==='cabeza')M10.heads.set(d,{t:d.ph||0,glow:0});
     if(d.k==='hunde')M10.crumble.set(d,{st:'ok',t:0});
   }
-  M10.roca={st:'idle',x:M10_CHASE.drop,y:-M10_R-4,vy:0,rot:0,t:0,v:1.2,crack:0};
+  M10.roca={st:'idle',x:M10_CHASE.drop,y:-M10_R-4,vy:0,rot:0,t:0,v:1.2,crack:0,jam:false,jamRot:0};
   M10.chase=M10_LVL.chase;M10.chase.on=false;M10.chase.st='idle';M10.chase.obs=[];M10.chase.cam=0;M10.chase.t2=0;
   if(!M10.motes.length)for(let i=0;i<34;i++)M10.motes.push({x:Math.random()*W,y:Math.random()*GROUND,ph:Math.random()*6,s:0.1+Math.random()*0.25});
 }
@@ -261,7 +263,7 @@ function M10_pitsUpd(){
     if(!p.onGround||p.plat)continue;
     const cx=p.x+4;
     for(const pit of M10.pits){if(!pit.open||cx<pit.x+2||cx>pit.x+pit.w-2)continue;
-      const dir=M10.chase.on||pit.k==='abismo'?1:(cx-pit.x<pit.w/2?-1:1);
+      const dir=M10.chase.on?1:(cx-pit.x<pit.w/2?-1:1);
       withP(p,()=>hurtPlayer(1));
       p.y=GROUND-p.h+8;p.vy=-6.6;p.onGround=false;p.m10b={dir,t:26};
       M10_sfx('m10Pinchos');dust(cx,GROUND,4);
@@ -282,43 +284,60 @@ function M10_blocksUpd(){
 }
 
 // ================== la roca ==================
-// estados: idle → (aviso) peek → drop → run → fall → done
+// estados: idle → (aviso) peek → drop → run → traba → done (R.jam: queda trabada y se sigue dibujando)
 let M10_ROCK=null,M10_SHADE=null;
 function M10_rockSprites(){
   if(M10_ROCK)return;
   const s=64,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d'),R=M10_R,o=32,rnd=mulberry32(1010);
-  x.fillStyle='#7a6e5c';x.beginPath();x.arc(o,o,R,0,7);x.fill();
-  x.save();x.beginPath();x.arc(o,o,R,0,7);x.clip();
-  for(let i=0;i<40;i++){x.fillStyle=rnd()<0.5?'#6a604e':'#8a7e6a';const a=rnd()*7,d=rnd()*R;x.fillRect(o+Math.cos(a)*d,o+Math.sin(a)*d,1+rnd()*3,1+rnd()*2);}
-  // franja tallada que da la vuelta (se ve girar)
-  x.strokeStyle='#5a5040';x.lineWidth=5;x.beginPath();x.arc(o,o,R*0.62,0,7);x.stroke();
-  x.strokeStyle='#9a8e78';x.lineWidth=1;x.beginPath();x.arc(o,o,R*0.62+2.6,0,7);x.stroke();
-  for(let i=0;i<12;i++){const a=i/12*Math.PI*2;x.save();x.translate(o+Math.cos(a)*R*0.62,o+Math.sin(a)*R*0.62);x.rotate(a);
-    x.fillStyle='#3e3628';x.fillRect(-1.5,-2,3,1.2);x.fillRect(-0.6,-2,1.2,4);x.restore();}
-  // musgo y grietas
-  x.fillStyle='rgba(70,110,50,0.75)';for(let i=0;i<5;i++){const a=rnd()*7;x.beginPath();x.ellipse(o+Math.cos(a)*R*0.85,o+Math.sin(a)*R*0.85,3+rnd()*3,2,a,0,7);x.fill();}
-  x.strokeStyle='#3a3226';x.lineWidth=0.8;x.beginPath();x.moveTo(o-6,o-20);x.lineTo(o-2,o-12);x.lineTo(o-7,o-4);x.moveTo(o+12,o+6);x.lineTo(o+18,o+12);x.lineTo(o+16,o+20);x.stroke();
-  x.fillStyle='#2e281e';x.beginPath();x.arc(o,o,4,0,7);x.fill();x.fillStyle='#5a5040';x.beginPath();x.arc(o,o,2,0,7);x.fill();
-  x.restore();
+  // rueda dentada de cobre: 14 dientes, llanta, 6 rayos, cubo con remaches y manchas de verdín
+  const nD=12,rb=R-6;
+  for(let i=0;i<nD;i++){const a=i/nD*Math.PI*2;x.save();x.translate(o,o);x.rotate(a);
+    x.fillStyle='#4a2810';x.beginPath();x.moveTo(rb-1,-5.4);x.lineTo(R+0.6,-3.8);x.lineTo(R+0.6,3.8);x.lineTo(rb-1,5.4);x.closePath();x.fill();   // contorno
+    x.fillStyle='#c27a40';x.beginPath();x.moveTo(rb-1,-4.4);x.lineTo(R-0.4,-2.9);x.lineTo(R-0.4,2.9);x.lineTo(rb-1,4.4);x.closePath();x.fill();
+    x.fillStyle='#e0a060';x.fillRect(R-1.6,-2.6,1,5.2);x.restore();}
+  x.fillStyle='#b06a34';x.beginPath();x.arc(o,o,rb,0,7);x.fill();
+  x.fillStyle='#5a3218';x.beginPath();x.arc(o,o,rb-5,0,7);x.fill();   // hueco entre la llanta y el cubo
+  x.strokeStyle='#a0602e';x.lineWidth=4.2;
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+0.26;x.beginPath();x.moveTo(o+Math.cos(a)*6,o+Math.sin(a)*6);x.lineTo(o+Math.cos(a)*(rb-4),o+Math.sin(a)*(rb-4));x.stroke();}
+  x.strokeStyle='#d08a4a';x.lineWidth=0.8;
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+0.26;x.beginPath();x.moveTo(o+Math.cos(a)*6-1,o+Math.sin(a)*6-1);x.lineTo(o+Math.cos(a)*(rb-4)-1,o+Math.sin(a)*(rb-4)-1);x.stroke();}
+  x.strokeStyle='#d8925a';x.lineWidth=1;x.beginPath();x.arc(o,o,rb-0.5,0,7);x.stroke();
+  // remaches en la llanta (se ven girar)
+  x.fillStyle='#e8b070';for(let i=0;i<12;i++){const a=i/12*Math.PI*2;x.fillRect(o+Math.cos(a)*(rb-2.6)-0.8,o+Math.sin(a)*(rb-2.6)-0.8,1.6,1.6);}
+  // verdín y raspones
+  x.fillStyle='rgba(80,150,120,0.6)';for(let i=0;i<5;i++){const a=rnd()*7,d=rb-2-rnd()*3;x.beginPath();x.ellipse(o+Math.cos(a)*d,o+Math.sin(a)*d,2+rnd()*2.5,1.3,a,0,7);x.fill();}
+  x.strokeStyle='rgba(60,30,14,0.8)';x.lineWidth=0.7;for(let i=0;i<4;i++){const a=rnd()*7;x.beginPath();x.moveTo(o+Math.cos(a)*(rb-1),o+Math.sin(a)*(rb-1));x.lineTo(o+Math.cos(a+0.12)*(rb-4),o+Math.sin(a+0.12)*(rb-4));x.stroke();}
+  // cubo
+  x.fillStyle='#7a4220';x.beginPath();x.arc(o,o,7,0,7);x.fill();x.fillStyle='#c27a40';x.beginPath();x.arc(o,o,5,0,7);x.fill();
+  x.fillStyle='#3a2010';x.beginPath();for(let i=0;i<6;i++){const a=i/6*Math.PI*2;if(i)x.lineTo(o+Math.cos(a)*2.6,o+Math.sin(a)*2.6);else x.moveTo(o+Math.cos(a)*2.6,o+Math.sin(a)*2.6);}x.closePath();x.fill();
   M10_ROCK=c;
   const h=document.createElement('canvas');h.width=h.height=s;const y=h.getContext('2d');
-  const g=y.createRadialGradient(o-10,o-12,4,o,o,R+1);g.addColorStop(0,'rgba(255,236,190,0.28)');g.addColorStop(0.55,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(10,6,4,0.62)');
-  y.fillStyle=g;y.beginPath();y.arc(o,o,R+0.5,0,7);y.fill();
-  y.strokeStyle='rgba(20,14,8,0.8)';y.lineWidth=1;y.beginPath();y.arc(o,o,R,0,7);y.stroke();
+  const RB=R-6,g=y.createRadialGradient(o-8,o-10,3,o,o,RB+1);g.addColorStop(0,'rgba(255,236,190,0.28)');g.addColorStop(0.55,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(10,6,4,0.62)');
+  y.fillStyle=g;y.beginPath();y.arc(o,o,RB+0.5,0,7);y.fill();
+  y.strokeStyle='rgba(20,14,8,0.8)';y.lineWidth=1;y.beginPath();y.arc(o,o,RB,0,7);y.stroke();
   M10_SHADE=h;
 }
 function M10_drawRock(){
-  const R=M10.roca;if(R.st==='idle'||R.st==='done')return;
+  const R=M10.roca;if(R.st==='idle'||(R.st==='done'&&!R.jam))return;
   M10_rockSprites();
-  if(R.st==='run'){ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(R.x,GROUND,M10_R*0.9,2,0,0,7);ctx.fill();}
-  const ab=(R.st==='fall'||R.st==='crash')?M10.pits.find(p=>p.k==='abismo'):null;
-  if(ab){ctx.save();ctx.beginPath();ctx.rect(camX-60,-60,W+120,GROUND+60);ctx.rect(ab.x,GROUND,ab.w,H);ctx.clip();}
+  if(R.st==='run'||R.jam){ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(R.x,GROUND,M10_R*0.9,2,0,0,7);ctx.fill();}
   ctx.save();ctx.translate(q(R.x),q(R.y));ctx.rotate(R.rot);ctx.drawImage(M10_ROCK,-32,-32);ctx.restore();
   ctx.drawImage(M10_SHADE,q(R.x-32),q(R.y-32));
-  if(R.crack>0){ctx.strokeStyle='#1e1812';ctx.lineWidth=1.2;ctx.beginPath();const k=R.crack;
-    ctx.moveTo(R.x-2,R.y-M10_R);ctx.lineTo(R.x+3,R.y-M10_R+10*k);ctx.lineTo(R.x-1,R.y-M10_R+20*k);ctx.lineTo(R.x+4,R.y-M10_R+34*k);
-    ctx.moveTo(R.x+3,R.y-M10_R+10*k);ctx.lineTo(R.x+14*k,R.y-M10_R+14*k);ctx.stroke();}
-  if(ab)ctx.restore();
+  // trabada: el engranaje del piso tapa la parte de abajo (dientes metidos entre los de la rueda)
+  if(R.jam)M10_drawTraba(true);
+}
+// engranaje del piso donde se traba la rueda: medio enterrado, asoman los dientes de arriba. delante=true lo vuelve
+// a dibujar encima de la rueda (solo los dientes que muerden).
+function M10_drawTraba(delante){
+  const t=M10_CHASE.traba,cx=t.x+t.w/2,cy=GROUND+12,r=18,R=M10.roca,rot=(R&&R.jam?R.jamRot:0)||0;
+  if(cx<camX-30||cx>camX+VW+30)return;
+  ctx.save();ctx.beginPath();ctx.rect(cx-r-6,delante?GROUND-6:GROUND-8,2*r+12,delante?7:H);ctx.clip();
+  ctx.fillStyle='#6a4a2a';
+  for(let i=0;i<12;i++){const a=i/12*Math.PI*2+rot;ctx.save();ctx.translate(cx,cy);ctx.rotate(a);ctx.fillRect(r-2,-2.6,5,5.2);ctx.restore();}
+  if(!delante){ctx.fillStyle='#7a5a34';circle(cx,cy,r);ctx.fillStyle='#4a3420';circle(cx,cy,r-5);ctx.fillStyle='#9a7448';circle(cx,cy,4);}
+  ctx.restore();
+  if(!delante){ctx.fillStyle='#3a2a1a';ctx.fillRect(t.x-4,GROUND,t.w+8,1);   // ranura del piso
+    if(!(R&&R.jam)){ctx.fillStyle='rgba(255,200,120,0.5)';for(let i=0;i<3;i++)ctx.fillRect(t.x-6-i*5,GROUND-1,2,1);}}
 }
 // aplastar: una caja (jugador) contra el círculo de la roca
 function M10_hitsRock(b,pad){const R=M10.roca,cx=clamp(R.x,b.x,b.x+b.w),cy=clamp(R.y,b.y,b.y+b.h);return Math.hypot(cx-R.x,cy-R.y)<M10_R-(pad||0);}
@@ -332,7 +351,7 @@ function M10_crush(p){
   p.x=clamp(nx,camX+2,camX+VW-12);p.y=GROUND-70;p.vy=0;p.onGround=false;p.plat=null;p.m10b=null;
   if(p.inv<60)p.inv=60;
   shake=Math.max(shake,5);M10_sfx('m10Aplasta');dust(p.x+4,GROUND,6);
-  setBanner(twoP()?'¡LA ROCA ALCANZÓ AL JUGADOR '+(p.slot+1)+'!':'¡TE ALCANZÓ LA ROCA!',60);
+  setBanner(twoP()?'¡LA RUEDA ALCANZÓ AL JUGADOR '+(p.slot+1)+'!':'¡TE ALCANZÓ LA RUEDA!',60);
 }
 function M10_chaseUpd(){
   const C=M10.chase,R=M10.roca;
@@ -356,7 +375,7 @@ function M10_chaseUpd(){
     if(C.t%9===0&&C.t>30)M10_chips(rand(M10_CHASE.hole[0]+6,M10_CHASE.hole[1]-6),M10_CEIL+2,1);
     // la roca asoma por el hueco del techo
     R.y=-M10_R-4+M10_ease(clamp((C.t-30)/70,0,1))*(M10_R+22);R.rot=Math.sin(C.t/7)*0.05;
-    if(C.t===80)setBanner('¡UNA ROCA! ¡CORRÉ ▶!',110);
+    if(C.t===80)setBanner('¡UNA RUEDA DENTADA! ¡CORRÉ ▶!',110);
     if(C.t>=118){C.st='run';R.st='drop';R.vy=1;M10_sfx('m10Cae');}
     return;}
   // la roca cae y después rueda
@@ -367,10 +386,12 @@ function M10_chaseUpd(){
       for(let i=0;i<8;i++)M10_chips(R.x+rand(-20,20),GROUND-2,1);}
     camX=Math.max(camX,C.cam);}
   else if(R.st==='run'){
-    // la roca nunca queda fuera de cuadro y la cámara avanza sola con ella; antes del abismo la cámara se frena
-    // para que se vea cómo se estrella
+    // la rueda nunca queda fuera de cuadro y la cámara avanza sola con ella; antes del engranaje del piso la cámara
+    // se frena para que se vea cómo se traba
     R.x=Math.max(R.x+R.v,camX+14);R.rot+=R.v/M10_R;R.t++;
-    camX=Math.min(Math.max(camX,R.x-14),M10.pits.find(p=>p.k==='abismo').x-60);
+    // no rueda en línea recta (Investigación, 2ª ronda): va dando saltitos bajos (nunca deja pasar por debajo)
+    R.vyB=(R.vyB||0)+0.32;R.y+=R.vyB;if(R.y>=GROUND-M10_R){R.y=GROUND-M10_R;R.vyB=-2.4;shake=Math.max(shake,2.2);dust(R.x,GROUND,4);if(R.t%2===0)M10_sfx('m10Golpe');}
+    camX=Math.min(Math.max(camX,R.x-14),M10_CHASE.traba.x-60);
     shake=Math.max(shake,1.1);
     if(R.t%14===0)M10_sfx('m10Rueda');
     if(R.t%3===0)parts.push({k:'smoke',col:'170,150,120',x:R.x-M10_R*0.6+rand(-4,4),y:GROUND-2,vx:rand(-0.6,-0.1),vy:rand(-0.4,-0.1),life:rand(18,30),maxl:30,size:rand(1.5,3)});
@@ -384,24 +405,22 @@ function M10_chaseUpd(){
     for(const a of allies)if(!a.gone&&M10_hitsRock(a,2)){a.x=Math.min(R.x+M10_R+18,camX+VW-12);a.y=GROUND-50;a.vy=-1;a.onGround=false;}
     if(typeof gato!=='undefined'&&gato&&gato.x!==undefined&&M10_hitsRock({x:gato.x,y:gato.y,w:gato.w||10,h:gato.h||8},2)){gato.x=Math.min(R.x+M10_R+16,camX+VW-14);gato.y=GROUND-46;gato.vy=-1;gato.onGround=false;}
     for(const p of players)if(!p.dead&&!p.ride&&M10_hitsRock(hurtbox(p),3))M10_crush(p);
-    // el abismo: la roca se cae adentro y se estrella
-    const ab=M10.pits.find(p=>p.k==='abismo');
-    if(ab&&R.x>=ab.x+ab.w/2){R.st='fall';R.vy=0.5;R.x=ab.x+ab.w/2;M10_sfx('m10Cae');}
-  }else if(R.st==='fall'){
-    camX=Math.min(camX,M10.pits.find(p=>p.k==='abismo').x-60);
-    R.vy=Math.min(R.vy+0.35,6);R.y+=R.vy;R.rot+=0.02;
-    const ab=M10.pits.find(p=>p.k==='abismo'),rest=GROUND+Math.sqrt(M10_R*M10_R-(ab.w/2)*(ab.w/2))-4;
-    for(const p of players)if(!p.dead&&!p.ride&&M10_hitsRock(hurtbox(p),3))M10_crush(p);
-    if(R.y>=rest){R.y=rest;R.st='crash';R.t=0;ab.fill=1;ab.open=false;
-      shake=11;freeze(5);M10_sfx('m10Crash');parts.push({k:'ring',x:R.x,y:GROUND-4,r:4,max:40,life:16,maxl:16,col:'220,200,160'});
-      for(let i=0;i<24;i++)M10_chips(R.x+rand(-20,20),GROUND-rand(0,20),1);
-      for(let i=0;i<16;i++)parts.push({k:'smoke',col:'190,170,130',rise:1,x:R.x+rand(-30,30),y:GROUND-rand(0,30),vx:rand(-1,1),vy:rand(-0.8,-0.2),life:rand(40,70),maxl:70,size:rand(3,6)});}
-  }else if(R.st==='crash'){
-    camX=Math.min(camX,M10.pits.find(p=>p.k==='abismo').x-60);
-    R.t++;R.crack=Math.min(1,R.t/20);if(R.t>14)R.y+=0.45;if(R.t%6===0)M10_chips(R.x+rand(-14,14),GROUND,1);
+    // el engranaje del piso: los dientes muerden y la rueda se traba
+    const tb=M10_CHASE.traba;
+    if(R.x>=tb.x+tb.w/2){R.x=tb.x+tb.w/2;R.y=GROUND-M10_R;R.st='traba';R.t=0;R.jam=true;R.jamRot=0;
+      shake=9;freeze(4);M10_sfx('m10Crash');parts.push({k:'ring',x:R.x,y:GROUND-2,r:4,max:34,life:16,maxl:16,col:'255,210,140'});
+      for(let i=0;i<14;i++)parts.push({k:'p',x:R.x+rand(-8,8),y:GROUND-2,vx:rand(-2.2,2.2),vy:rand(-3,-1),g:0.15,life:rand(16,28),maxl:28,size:1,col:i%2?'#ffd080':'#fff2c0'});
+      for(let i=0;i<10;i++)parts.push({k:'smoke',col:'190,170,130',rise:1,x:R.x+rand(-24,24),y:GROUND-rand(0,16),vx:rand(-0.8,0.8),vy:rand(-0.6,-0.2),life:rand(30,50),maxl:50,size:rand(2,4)});}
+  }else if(R.st==='traba'){
+    // forcejea: se mece para adelante y para atrás cada vez menos, larga chispas y chirría
+    camX=Math.min(camX,M10_CHASE.traba.x-60);
+    R.t++;const k=Math.max(0,1-R.t/40);R.rot+=Math.sin(R.t/2.4)*0.03*k;R.jamRot=-Math.sin(R.t/2.4)*0.05*k;
+    if(R.t%5===0&&k>0.2){shake=Math.max(shake,2*k);parts.push({k:'p',x:R.x+rand(-6,6),y:GROUND-1,vx:rand(-1.6,1.6),vy:rand(-2.4,-0.8),g:0.15,life:18,maxl:18,size:1,col:'#ffd080'});}
+    if(R.t%12===0&&k>0.3)M10_sfx('m10Piedra');
+    for(const p of players)if(!p.dead&&!p.ride&&R.t<8&&M10_hitsRock(hurtbox(p),3))M10_crush(p);
     if(R.t===40){C.st='done';C.on=false;R.st='done';playMusic(L.music);C.t2=240;C.camPrev=camX;
       if(!M10.hurtRun){setBanner('¡CARRERA LIMPIA! +1500',110);addScore(1500,leadP().x,leadP().y-10);later(200,SFX.medal);}
-      else setBanner('¡LA ROCA QUEDÓ ATRÁS!',100);}
+      else setBanner('¡LA RUEDA SE TRABÓ!',100);}
   }
 }
 
@@ -415,7 +434,8 @@ M10_LVL.upd=function(){
     if(Math.random()<0.4){const y=d.k==='antorcha'?GROUND-58:GROUND-30;parts.push({k:'p',x:d.x+5+rand(-1.5,1.5),y,vx:rand(-0.2,0.2),vy:rand(-0.7,-0.3),g:-0.005,life:rand(20,34),maxl:34,size:1,col:Math.random()<0.5?'#ffd27a':'#ff8a2a'});}}
   M10_festUpd();
 };
-ON_DRAW.push(()=>{if(M10_here()&&M10.roca&&M10.roca.st!=='peek')M10_drawRock();});
+// (trabada y quieta se dibuja con el piso, detrás de los personajes: ver drawGround)
+ON_DRAW.push(()=>{if(M10_here()&&M10.roca&&M10.roca.st!=='peek'&&M10.roca.st!=='done')M10_drawRock();});
 
 // ================== festejo final: ¡TERMINASTE LAS 10 MISIONES! ==================
 // Cuando cae el villano (winT de juego.js): fuegos de oro y un cartel grande. Se estira un poco la espera
@@ -567,7 +587,6 @@ function M10_drawPit(p){
   ctx.fillStyle='#c8c0b0';for(let i=x+2;i<x+w-2;i+=4)ctx.fillRect(i+1.6,H-8,0.8,1.6);
   // bordes rotos
   ctx.fillStyle='#6a6252';ctx.fillRect(x-2,g,3,4);ctx.fillRect(x+w-1,g,3,5);ctx.fillStyle='#8a8070';ctx.fillRect(x-2,g,3,1);ctx.fillRect(x+w-1,g,3,1);
-  if(p.k==='abismo'){ctx.fillStyle='rgba(255,200,120,0.5)';for(let i=0;i<3;i++)ctx.fillRect(x-6-i*5,g-1,2,1);}
 }
 M10_LVL.drawGround=function(){
   const x0=Math.floor(camX)-10,gk=M10_gold(camX+VW/2);
@@ -585,6 +604,8 @@ M10_LVL.drawGround=function(){
       if(h<0.12){ctx.fillStyle='rgba(70,110,50,0.6)';ctx.fillRect(x+3,GROUND,6,1);}}
   }
   for(const p of M10.pits)if(p.x+p.w>camX-4&&p.x<camX+VW+4)M10_drawPit(p);
+  M10_drawTraba(false);
+  if(M10.roca&&M10.roca.jam&&M10.roca.st==='done')M10_drawRock();
   // aviso de la roca: sombra que crece en el piso debajo del hueco
   if(M10.chase&&M10.chase.st==='warn'){const k=clamp(M10.chase.t/118,0,1),x=M10_CHASE.drop;
     ctx.fillStyle=`rgba(0,0,0,${0.15+0.3*k})`;ctx.beginPath();ctx.ellipse(x,GROUND,8+k*20,1.5+k*1.5,0,0,7);ctx.fill();
@@ -609,7 +630,7 @@ M10_LVL.drawFx=function(){
   const gk=M10_gold(camX+VW/2);
   for(const m of M10.motes){const x=((m.x-camX*m.s*0.6+Math.sin(T/90+m.ph)*6)%W+W)%W,y=(m.y+Math.sin(T/70+m.ph*3)*4+GROUND)%GROUND;
     ctx.fillStyle=`rgba(255,${230-gk*30},${170-gk*60},${0.25+0.2*Math.sin(T/30+m.ph)})`;ctx.fillRect(x,y,1,1);}
-  if(gk>0.3&&T%2===0){ctx.fillStyle=`rgba(255,200,90,${0.04*gk})`;ctx.fillRect(0,0,W,H);}
+  if(gk>0.3){ctx.fillStyle=`rgba(255,200,90,${0.02*gk})`;ctx.fillRect(0,0,W,H);} // sin titilar a 30 por segundo
   // aviso de la roca: viñeta oscura que late durante el temblor
   const C=M10.chase;
   if(C&&C.st==='warn'){const a=0.12+0.1*Math.sin(T/5);ctx.fillStyle=`rgba(20,10,4,${a})`;ctx.fillRect(0,0,W,6);ctx.fillRect(0,H-6,W,6);}

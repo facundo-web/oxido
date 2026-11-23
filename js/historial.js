@@ -44,6 +44,7 @@ function HIST_sanitize(d){
     for(const k in d.logros){const t=HIST_num(d.logros[k],-1);if(t>=0)h.logros[k]=t||1;}
   if(Array.isArray(d.records))for(const r of d.records){const c=HIST_cleanRec(r);if(c)h.records.push(c);}
   HIST_sort(h);
+  if(Array.isArray(d.recordsAy)){h.recordsAy=[];for(const r of d.recordsAy){const c=HIST_cleanRec(r);if(c){c.ay=true;h.recordsAy.push(c);}}h.recordsAy.sort((a,b)=>b.score-a.score);h.recordsAy.length=Math.min(h.recordsAy.length,HIST_MAX);} // con ayudas
   const t=d.totals&&typeof d.totals==='object'?d.totals:{};
   for(const k in h.totals)if(k!=='chars')h.totals[k]=HIST_num(t[k],0);
   h.totals.chars=Array.isArray(t.chars)?[...new Set(t.chars.filter(c=>typeof c==='string'&&c).map(c=>c.slice(0,10)))].slice(0,12):[];
@@ -116,8 +117,11 @@ const HIST_BY={};for(const a of HIST_LOGROS)HIST_BY[a.id]=a;
 const HIST_CHARN=()=>typeof CHARS!=='undefined'?CHARS.map(c=>c.name):['FACU','JOSÉ','LAUTI'];
 const HIST_pops=[];
 function HIST_chime(){try{[784,1047,1568].forEach((f,i)=>later(i*70,()=>tone('square',f,f*1.01,0.1,0.045)));}catch(e){}}
+// logros de desafío: con AYUDAS no cuentan
+const HIST_DESAFIO=new Set(['intacto','sinavion','dificil','cien','oro','leyenda','vuelta2','vuelta3','grillo','rescate']);
 function HIST_unlock(id){
   const a=HIST_BY[id];if(!a||HIST.logros[id])return false;
+  if(typeof partida!=='undefined'&&partida&&partida.ayudas&&HIST_DESAFIO.has(id))return false;
   HIST.logros[id]=Date.now();HIST_pops.push({a,t0:0});HIST_save();HIST_chime();return true;
 }
 const histHas=id=>!!HIST.logros[id];
@@ -164,7 +168,7 @@ function HIST_onEvent(t,d){
   case 'rescue':{HIST_S().resc++;tt.rescued++;if(tt.rescued>=50)HIST_unlock('rescatista');break;}
   case 'hurt':HIST_S().mHurt++;break;
   case 'weaponUse':{const s=HIST_S();if(d.w)s.weap[d.w]=1;
-    if(Object.keys(s.weap).length>=(typeof WORDER!=='undefined'?WORDER.length:5))HIST_unlock('arsenal');break;}
+    if(Object.keys(s.weap).filter(w=>w!=='harpoon').length>=(typeof WORDER!=='undefined'?WORDER.filter(w=>w!=='harpoon').length:5))HIST_unlock('arsenal');break;}
   case 'airCall':{HIST_S().mAir++;tt.airCalls++;if(tt.airCalls>=10)HIST_unlock('avion10');break;}
   case 'vaultOpen':tt.vaults++;HIST_unlock('cofre');break;
   case 'medal':{const i=typeof MEDALS!=='undefined'?MEDALS.findIndex(m=>m.name===d.name):-1;
@@ -203,11 +207,13 @@ function HIST_register(sum){
     score:HIST_num(sum.score,s.score),kills:HIST_num(sum.kills,s.kills),rescued:HIST_num(sum.rescued,s.resc),
     twoP:!!(sum.twoP??s.twoP)||chars.length>1,diff:HIST_diff(sum.difficulty??s.diff)};
   let rank=-1;
-  if(e.score>0){HIST.records.push(e);HIST_sort(HIST);rank=HIST.records.indexOf(e);}
+  if(sum.ayudas){e.ay=true;HIST.recordsAy=HIST.recordsAy||[];if(e.score>0){HIST.recordsAy.push(e);HIST.recordsAy.sort((a,b)=>b.score-a.score);if(HIST.recordsAy.length>HIST_MAX)HIST.recordsAy.length=HIST_MAX;rank=HIST.recordsAy.indexOf(e);}HIST_tabAy=true;} // con ayudas: tabla aparte
+  else if(e.score>0){HIST.records.push(e);HIST_sort(HIST);rank=HIST.records.indexOf(e);HIST_tabAy=false;}
   s.result={entry:e,rank,named:false};HIST_justDate=rank>=0?e.date:0;
   HIST_save();return s.result;
 }
 const histBest=()=>HIST.records.length?HIST.records[0].score:0;
+let HIST_tabAy=false; // RÉCORDS: la tabla de partidas con ayudas (← → cambia, si hay)
 // ================== pantallas: abrir, actualizar ==================
 let HIST_view={from:'title',done:null,t:0},HIST_cur=0,HIST_nm=null;
 const histIsScreen=()=>HIST_STATES.includes(state);
@@ -284,6 +290,7 @@ function histUpdate(){
     else if(n.age>10&&(HIST_tap('jump')||HIST_tap('start')))HIST_nOk();
     return true;
   }
+  if(state==='records'&&HIST.recordsAy&&HIST.recordsAy.length&&(HIST_tap('left')||HIST_tap('right'))){HIST_tabAy=!HIST_tabAy;try{SFX.swap();}catch(e){}}
   if(state==='logros'){
     const N=HIST_LOGROS.length;
     const o=HIST_cur;
@@ -323,27 +330,28 @@ function HIST_icon(a,x,y,s,on){
   txt(g,x+s/2,y+s/2-fs*0.48,fs,a.col,'center',false);
 }
 // aviso de logro nuevo: arriba al centro, baja deslizando y se va (uno por vez, con "+N" si hay más)
-function histDrawPops(top=20,below=false){
+function histDrawPops(top=20,below=false,bot=false){ // bot: top es el borde de abajo
   if(!HIST_pops.length)return;
   if(state==='play'&&toasts.length&&!HIST_pops[0].t0)return; // espera a que termine el aviso de medalla para no encimarse
   if(state==='play'&&typeof DIB_jefe!=='undefined'&&DIB_jefe&&!HIST_pops[0].t0)return; // y al cartel de jefe (dibujito.js)
   if(state==='play'&&typeof MO_activo==='function'&&MO_activo()&&!HIST_pops[0].t0)return; // y a los momentos (momentos.js)
+  if(state==='play'&&(lock||(bossRef&&!bossRef.gone))&&!HIST_pops[0].t0)return; // y a que termine la pelea
+  if(state==='play'&&((banner&&banner.t>0)||(typeof PC_aviso!=='undefined'&&PC_aviso)||(typeof PC_cartel!=='undefined'&&PC_cartel)||(typeof AY_OBJ_T!=='undefined'&&T<AY_OBJ_T))&&!HIST_pops[0].t0)return; // uno por vez: espera al aviso de arriba y a la tarjeta de tramo
   const p=HIST_pops[0],now=performance.now();
   // en la pausa no se dibuja (se pisaba con el título) y el reloj del aviso queda quieto: sale al seguir
-  if(state==='pause'){if(p.t0)p.t0+=now-(p.lp||now);p.lp=now;return;}
+  // con un aviso de arriba encima, igual (uno por vez): se esconde y sigue cuando se va
+  if(state==='pause'||(state==='play'&&banner&&banner.t>0)){if(p.t0)p.t0+=now-(p.lp||now);p.lp=now;return;}
   p.lp=now;if(!p.t0)p.t0=now;
   const e=(now-p.t0)/1000,DUR=3.4;if(e>DUR){HIST_pops.shift();return;}
-  const k=Math.min(1,e/0.2,(DUR-e)/0.3),a=p.a,w=136,x=Math.round(W/2-w/2),y=Math.round(top+(below?1:-1)*(1-k)*30);
+  // en letra pixel, en el lugar de los avisos (below: entra desde abajo, en las pantallas de logros y récords)
+  const k=Math.min(1,e/0.2,(DUR-e)/0.3),a=p.a,y=Math.round(top+(below?30:-6)*(1-Math.min(1,e/0.2)));
   ctx.globalAlpha=Math.max(0,Math.min(1,k*1.5));
-  ctx.fillStyle='rgba(18,12,24,0.92)';ctx.fillRect(x,y,w,21);ctx.fillStyle=a.col;ctx.fillRect(x,y,w,1);ctx.fillRect(x,y+20,w,0.5);
-  HIST_icon(a,x+3,y+3,15,true);
-  txt('¡LOGRO!',x+22,y+2.5,4,'#ffe08a','left',false);
-  if(HIST_pops.length>1)txt('+'+(HIST_pops.length-1),x+w-3,y+2.5,4,'#aaa','right',false);
-  txt(a.n,x+22,y+7,6,'#fff','left',false);
-  txt(a.d,x+22,y+14.5,4,'#ccc','left',false);
+  const mas=HIST_pops.length>1?' +'+(HIST_pops.length-1):'';
+  const r=avTira([['¡LOGRO! '+a.n+mas,'#ffe08a'],[a.d,'#ccc']],bot,y,a.col,15,true);
+  HIST_icon(a,r.x+2,r.y+Math.round((r.h-12)/2),12,true);
   ctx.globalAlpha=1;
 }
-ON_HUD.push(()=>histDrawPops());
+ON_HUD.push(()=>histDrawPops(AV_ARRIBA)); // arriba, en el mismo lugar que las medallas (de a uno)
 function histDraw(){
   if(!histIsScreen())return;
   HIST_dim(state==='nombre'?0.7:0.75);
@@ -362,6 +370,7 @@ function HIST_drawLogros(){
   HIST_LOGROS.forEach((a,i)=>{
     const r=Math.floor(i/HIST_COLS)-HIST_top;if(r<0||r>=HIST_ROWS)return;
     const on=!!HIST.logros[a.id],sel=i===HIST_cur,x=x0+(i%HIST_COLS)*(cw+gx),y=y0+r*(ch+gy);
+    if(typeof zona==='function')zona(x,y,cw,ch,{sobre:()=>{HIST_cur=i;}});
     ctx.fillStyle=sel?'rgba(243,201,105,0.2)':on?'rgba(42,31,48,0.85)':'rgba(18,12,24,0.75)';ctx.fillRect(x,y,cw,ch);
     if(sel){ctx.strokeStyle='#f3c969';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,cw-1,ch-1);}
     HIST_icon(a,x+2,y+2,15,on);
@@ -383,15 +392,23 @@ function HIST_drawLogros(){
     txt(v+' / '+m,bx+bw+4,y+18.5,4,'#f3c969','left',false);}
   else txt('Todavía no',x0+28,y+18.5,4,'#8a7f92','left',false);
   txt('← → ↑ ↓ mirar  ·  '+HIST_back()+' volver',W/2,H-7,4,'#aaa','center',false);
+  if(typeof zona==='function')zona(W/2-70,H-9,140,8,{clic:RA_volver});
 }
 function HIST_drawRecords(){
   const after=!!HIST_view.after;
-  txt(after?'TU LUGAR EN EL RANKING':'RÉCORDS',W/2,3,9,'#ffe08a','center');
-  const cols=[[16,'#','right'],[22,'NOMBRE','left'],[60,'PERSONAJE','left'],[104,'HASTA','left'],[134,'DIFICULTAD','left'],[212,'PUNTOS','right'],[238,'BAJAS','right'],[262,'RESC.','right'],[W-12,'FECHA','right']];
-  const y0=16;ctx.fillStyle='rgba(18,12,24,0.8)';ctx.fillRect(8,y0-1,W-16,102);
-  cols.forEach(([x,s,al])=>txt(s,x,y0+1,4,'#aaa',al,false));
+  const ay=HIST_tabAy&&HIST.recordsAy&&HIST.recordsAy.length,lista=ay?HIST.recordsAy:HIST.records;
+  txt((after?'TU LUGAR EN EL RANKING':'RÉCORDS')+(ay?' · CON AYUDAS':''),W/2,3,9,ay?'#9ad0ff':'#ffe08a','center');
+  if(HIST.recordsAy&&HIST.recordsAy.length)txt('← → '+(ay?'récords sin ayudas':'récords con ayudas'),W-10,5,4,'#aaa','right',false);
+  const cols=[[16,'#','right'],[22,'NOMBRE','left'],[60,'PERSONAJE','left'],[104,'HASTA','left'],[134,'DIFICULTAD','left'],[212,'PUNTOS','right'],[238,'BAJAS','right'],[262,'RESC.','right'],[284,'TIEMPO','right'],[W-12,'FECHA','right']];
+  const lbT=typeof tactilLibre==='function'?tactilLibre():null,y0=lbT?24:16,dy=lbT?8.5:9; // táctil: debajo de ‹ VOLVER
+  ctx.fillStyle='rgba(18,12,24,0.8)';ctx.fillRect(8,y0-1,W-16,lbT?94:102);
+  // títulos de columna: con TEXTO GRANDE no entran todos; cada uno se achica hasta el lugar que tiene (y si no, se abrevia)
+  const ABREV={'PERSONAJE':'PJ','DIFICULTAD':'DIF.','PUNTOS':'PTS','BAJAS':'B.','RESC.':'R.','TIEMPO':'T.','FECHA':'DÍA','NOMBRE':'NOM.'};
+  cols.forEach(([x,s,al],i)=>{const sig=cols[i+1],ant=cols[i-1],lugar=al==='right'?(ant?x-ant[0]-(ant[2]==='right'?0:24)-2:x):(sig?sig[0]-x-(sig[2]==='right'?24:0)-2:W-x);
+    let t=s,sz=4;while(sz>2&&txtW(t,sz)>Math.max(8,lugar))sz--;if(txtW(t,sz)>Math.max(8,lugar)&&ABREV[s]){t=ABREV[s];sz=4;while(sz>2&&txtW(t,sz)>Math.max(8,lugar))sz--;}
+    txt(t,x,y0+1,sz,'#aaa',al,false);});
   for(let i=0;i<HIST_MAX;i++){
-    const r=HIST.records[i],y=y0+8+i*9;
+    const r=lista[i],y=y0+8+i*dy;
     if(i%2===0){ctx.fillStyle='rgba(255,255,255,0.03)';ctx.fillRect(9,y-1,W-18,9);}
     if(!r){txt(String(i+1),16,y+1,5,'#4a3f52','right',false);txt('—',22,y+1,5,'#4a3f52','left',false);continue;}
     const me=HIST_justDate&&r.date===HIST_justDate,top=i===0;
@@ -406,10 +423,19 @@ function HIST_drawRecords(){
     txt(String(r.score).padStart(7,'0'),212,y+1,5,c,'right',false);
     txt(r.kills==null?'—':String(r.kills),238,y+1.5,4,c2,'right',false);
     txt(r.rescued==null?'—':String(r.rescued),262,y+1.5,4,c2,'right',false);
+    txt(typeof JT_tiempoRec==='function'?JT_tiempoRec(r):'—',284,y+1.5,4,c2,'right',false); // tiempo de la partida (reloj.js)
     txt(HIST_date(r.date),W-12,y+1.5,4,c2,'right',false);
   }
   // totales de toda la vida
   const t=HIST.totals,ty=122;
+  if(lbT){ // táctil: los totales en una o dos líneas, dentro de la franja que dejan libre la palanca y el rombo
+    const x0=Math.max(8,lbT.x0+4),x1=Math.min(W-8,lbT.x1-4),s='EN TOTAL: '+t.games+' partidas · '+t.kills+' bajas · '+t.rescued+' rescates · '+HIST_time(t.secs)+' · '+t.bosses+' jefes · logros '+HIST_count()+' de '+HIST_LOGROS.length;
+    const ls=wrapTxt(s,4,x1-x0-6).slice(0,4),lh=TXT_aj(4)+1; // renglones según el tamaño real de la letra
+    ctx.fillStyle='rgba(18,12,24,0.8)';ctx.fillRect(x0,ty,x1-x0,4+ls.length*lh);ctx.fillStyle='#f3c969';ctx.fillRect(x0,ty,x1-x0,1);
+    ls.forEach((l,i)=>txt(l,(x0+x1)/2,ty+3+i*lh,4,'#ddd','center',false));
+    txt(after?btn('ok')+': seguir':HIST_back()+': volver',(x0+x1)/2,H-15,5,after&&(T>>5)%2?'#ffe08a':'#ddd','center',false);
+    if(typeof zona==='function')zona((x0+x1)/2-50,H-17,100,9,{clic:after?RA_enter:RA_volver});
+    return;}
   ctx.fillStyle='rgba(18,12,24,0.8)';ctx.fillRect(8,ty,W-16,34);ctx.fillStyle='#f3c969';ctx.fillRect(8,ty,W-16,1);
   txt('EN TOTAL, EN ESTA COMPU',W/2,ty+3,4,'#f3c969','center',false);
   const cells=[['PARTIDAS',t.games],['BAJAS',t.kills],['RESCATES',t.rescued],['TIEMPO',HIST_time(t.secs)],['JEFES',t.bosses],['MEJOR VUELTA',t.bestLoop||'—'],['LOGROS',HIST_count()+' de '+HIST_LOGROS.length]];
@@ -417,6 +443,7 @@ function HIST_drawRecords(){
   [row1,row2].forEach((row,j)=>{const cw=(W-16)/row.length;
     row.forEach(([k,v],i)=>{const cx=8+cw*i+cw/2,yy=ty+10+j*12;txt(k,cx,yy,4,'#aaa','center',false);txt(String(v),cx,yy+5,5,'#fff','center',false);});});
   txt(after?btn('ok')+': seguir':HIST_back()+': volver',W/2,H-15,5,after&&(T>>5)%2?'#ffe08a':'#ddd','center',false);
+  if(typeof zona==='function')zona(W/2-50,H-17,100,9,{clic:after?RA_enter:RA_volver});
 }
 function HIST_drawName(){
   const n=HIST_nm;if(!n)return;const e=n.r.entry;
@@ -431,6 +458,7 @@ function HIST_drawName(){
   if(n.fresh&&n.s.length){ctx.fillStyle='rgba(122,184,255,0.25)';ctx.fillRect(x0-2,y-2,n.s.length*(bw+gap)-gap+4,bh+4);}
   for(let i=0;i<HIST_NLEN;i++){
     const x=x0+i*(bw+gap),cur=i===n.c,ch=n.s[i];
+    if(typeof zona==='function')zona(x,y,bw,bh,{clic:()=>{n.c=Math.min(i,n.s.length);}});
     ctx.fillStyle=cur?'rgba(243,201,105,0.2)':'rgba(18,12,24,0.85)';ctx.fillRect(x,y,bw,bh);
     ctx.strokeStyle=cur?'#f3c969':ch?'#5a4a60':'#3a2f40';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,bw-1,bh-1);
     if(ch)txt(ch,x+bw/2,y+5,11,cur?'#ffe08a':'#fff','center');
@@ -444,6 +472,7 @@ function HIST_drawName(){
   // ayuda, corta: teclado y joystick (con los botones del último joystick). Se resalta el control que se usa.
   const pad=onPad(),kbL='TECLADO: letras · ⌫ borrar · ENTER listo';
   ctx.fillStyle='rgba(18,12,24,0.75)';ctx.fillRect(40,104,240,21);
+  if(typeof zona==='function')zona(40,104,240,21,{clic:RA_enter}); // mouse: listo
   if(onTouch())txt('ESCRIBIR: teclado del celular · flechas: letra · ○ borrar · ✕ listo',W/2,111,5,'#ffe08a','center',false);
   else if(!padsOn)txt(kbL,W/2,111,5,'#ffe08a','center',false);
   else{txt(kbL,W/2,107,5,pad?'#aaa':'#ffe08a','center',false);
