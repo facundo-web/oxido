@@ -241,7 +241,7 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
   const pausa = el('b pausa', 'pause', 'II');
   const escribir = el('b escribir', 'escribir', ICO.teclado + 'ESCRIBIR');
   const salidas = el('salidas');
-  const chips = [0, 1, 2].map(() => { const d = document.createElement('div'); d.className = 'b chip'; salidas.appendChild(d); return d; });
+  const chips = [0, 1, 2, 3].map(() => { const d = document.createElement('div'); d.className = 'b chip'; salidas.appendChild(d); return d; });
   const zona = el('zona');
   const base = document.createElement('div'); base.className = 'base';
   base.innerHTML = '<i class="u">' + ICO.flecha + '</i><i class="d">' + ICO.flecha + '</i><i class="l">' + ICO.flecha + '</i><i class="r">' + ICO.flecha + '</i><div class="perilla"></div>';
@@ -333,7 +333,8 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
     if (a === 'air' && raiz.dataset.modo === 'play' && ruedaTocar()) {
       dedos[id] = 'gesto:air'; const r = b.getBoundingClientRect();
       gestos[id] = { x: r.left + r.width / 2, y: r.top + r.height / 2, u: r.width / 0.84, deslizo: false };
-    } else if (a.startsWith('tecla:')) { dedos[id] = null; tecla(a.slice(6)); }
+    } else if (a === 'actualizar') { dedos[id] = null; try { window.OXIDO_ACTUALIZAR(); } catch (e) {} }
+    else if (a.startsWith('tecla:')) { dedos[id] = null; tecla(a.slice(6)); }
     else if (a.startsWith('confirmar:')) { // primer toque: pregunta; segundo toque (en 3 s): lo hace
       dedos[id] = null;
       if (b.classList.contains('confirma')) { desarmar(); pressed[a.slice(10)] = true; }
@@ -788,6 +789,8 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
       const l = [['▶ SEGUIR', 'pause'], salir('SALIR AL MENÚ', '¿SALIR? TOCÁ OTRA VEZ')];
       // durante la intro de la misión 1 (intro.js) el juego omite la intro con 'bomb' en la pausa (juego.js)
       try { if (window.OXIDO_INTRO && OXIDO_INTRO.activa()) l.push(['OMITIR INTRO ▶▶', 'bomb']); } catch (e) {}
+      // hay versión nueva del juego (registrar.js): se actualiza desde la pausa, nunca jugando
+      if (typeof window.OXIDO_ACTUALIZAR === 'function') l.push(['ACTUALIZAR ↻', 'actualizar']);
       return l;
     }
     if (s === 'win') return [['SEGUIR ▶', 'start'], salir('SALIR AL MENÚ', '¿SALIR? TOCÁ OTRA VEZ')];

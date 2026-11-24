@@ -6,7 +6,7 @@
 // Con ahorro de datos activado o red de celular (navigator.connection, donde el navegador lo dice; Safari de iPhone
 // no lo dice), si la actualización pesa más de CHICA se deja para más tarde: el juego sigue con la versión que tiene
 // y se vuelve a intentar en la próxima visita o al pasar a wifi (registrar.js).
-const VERSION = "7df02192f86b";
+const VERSION = "5c9accd8e488";
 const ARCHIVOS = [
   ["LICENCIA.txt","49a1176ce7",275],
   ["aviso-tactil.js","b862e0ab3f",2276],
@@ -139,9 +139,9 @@ const ARCHIVOS = [
   ["js/vehiculos2.js","9ac33e1865",18117],
   ["manifest.webmanifest","1de8a7b57f",825],
   ["privacidad.html","87bea1d814",6050],
-  ["registrar.js","78fe276a8f",806],
+  ["registrar.js","721c2e1ddf",5062],
   ["registro-prueba.js","b85c4918e2",24238],
-  ["tactil.js","a2225a2b61",61356]
+  ["tactil.js","2ae472f4a3",61658]
 ];
 const CACHE = 'oxido-' + VERSION;
 const HUELLAS = '__huellas__'; // en cada caché: qué huella tiene cada archivo guardado
@@ -191,6 +191,11 @@ self.addEventListener('install', e => {
       { headers: { 'content-type': 'application/json' } }));
     await self.skipWaiting();
   })());
+});
+
+// la página pregunta qué versión tiene (registrar.js la muestra en el título)
+self.addEventListener('message', e => {
+  if (e.data === 'version' && e.ports && e.ports[0]) e.ports[0].postMessage(VERSION);
 });
 
 self.addEventListener('activate', e => {
