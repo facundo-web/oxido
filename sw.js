@@ -6,7 +6,7 @@
 // Con ahorro de datos activado o red de celular (navigator.connection, donde el navegador lo dice; Safari de iPhone
 // no lo dice), si la actualización pesa más de CHICA se deja para más tarde: el juego sigue con la versión que tiene
 // y se vuelve a intentar en la próxima visita o al pasar a wifi (registrar.js).
-const VERSION = "72d54fac51f6";
+const VERSION = "7df02192f86b";
 const ARCHIVOS = [
   ["LICENCIA.txt","49a1176ce7",275],
   ["aviso-tactil.js","b862e0ab3f",2276],
@@ -41,7 +41,7 @@ const ARCHIVOS = [
   ["js/arte-luz.js","ca6e925b40",22374],
   ["js/arte-personaje.js","ff873be2b6",3357],
   ["js/arte-tasador.js","a9d6b55a54",12204],
-  ["js/arte-terreno.js","6e450434c6",20747],
+  ["js/arte-terreno.js","04043a7fc3",20990],
   ["js/arte-vehiculos.js","3140e0479b",26796],
   ["js/arte-vehiculos2.js","dd4bee7f77",15851],
   ["js/audio.js","453e5f3e71",12839],
@@ -65,7 +65,7 @@ const ARCHIVOS = [
   ["js/escenario-base.js","c9000f6735",41257],
   ["js/escenario-m1.js","fb6c7da466",25282],
   ["js/escenario-m10.js","b09dc4c6a5",21278],
-  ["js/escenario-m2.js","e7b3724a20",28860],
+  ["js/escenario-m2.js","16b3c5aec2",29073],
   ["js/escenario-m3.js","f4f2feae59",25764],
   ["js/escenario-m4.js","3e010b2870",13025],
   ["js/escenario-m5.js","0ac6d7ced0",25050],
@@ -141,7 +141,7 @@ const ARCHIVOS = [
   ["privacidad.html","87bea1d814",6050],
   ["registrar.js","78fe276a8f",806],
   ["registro-prueba.js","b85c4918e2",24238],
-  ["tactil.js","765e4cf526",60805]
+  ["tactil.js","a2225a2b61",61356]
 ];
 const CACHE = 'oxido-' + VERSION;
 const HUELLAS = '__huellas__'; // en cada caché: qué huella tiene cada archivo guardado

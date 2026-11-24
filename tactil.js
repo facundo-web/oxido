@@ -213,6 +213,9 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
 #tactil .girar span{font-size:52px;display:inline-block;animation:oxGira 1.6s ease-in-out infinite}
 @keyframes oxGira{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
 #tactil.on.parado .girar{display:flex}
+/* con el cartel de girar no se ve nada más: los botones tienen z-index y quedaban encima del texto (prueba en un iPhone) */
+#tactil .girar{z-index:30}
+#tactil.parado .b,#tactil.parado .zona,#tactil.parado .salidas,#tactil.parado .inicio,#tactil.parado .editor{display:none!important}
 #tactil .inicio{position:absolute;left:50%;top:calc(8px + var(--st));transform:translateX(-50%);display:none;align-items:center;gap:10px;
   background:rgba(18,12,24,.92);border:1px solid #f3c969;border-radius:999px;padding:4px 4px 4px 16px;font-size:12px;color:#eee;white-space:nowrap}
 #tactil .inicio b{color:#ffe08a}
@@ -248,7 +251,10 @@ html.ox-arriba body{align-items:flex-start;padding-top:var(--ox-top,0px);box-siz
   el('girar', '', '<span>↻</span>Girá la pantalla para jugar');
   const editor = el('editor', '', '<div class="barra"><span>Arrastrá cada botón</span><button type="button" data-ed="menos" aria-label="Más chicos">−</button><b class="tam"></b>' +
     '<button type="button" data-ed="mas" aria-label="Más grandes">+</button><button type="button" data-ed="restablecer">RESTABLECER</button><button type="button" data-ed="listo">LISTO</button></div>');
-  const inicio = el('inicio', '', 'Pantalla completa: <b>Compartir</b> → <b>Agregar a inicio</b><button type="button" aria-label="Cerrar">✕</button>');
+  // en Safari el botón Compartir está en la barra de abajo; en Chrome, Edge y Firefox de iPhone, en la barra de direcciones
+  const otroNavegador = /CriOS|EdgiOS|FxiOS/.test(navigator.userAgent);
+  const inicio = el('inicio', '', 'Pantalla completa: <b>Compartir</b>' + (otroNavegador ? ' (en la barra de direcciones)' : '') +
+    ' → <b>Agregar a inicio</b><button type="button" aria-label="Cerrar">✕</button>');
   const campo = document.createElement('input');
   Object.assign(campo, { type: 'text', autocomplete: 'off', spellcheck: false });
   campo.setAttribute('autocapitalize', 'characters'); campo.setAttribute('autocorrect', 'off'); campo.setAttribute('enterkeyhint', 'done');

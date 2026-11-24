@@ -188,8 +188,9 @@ const def={
   // algas, fondo de barro, paredes, superficie que se mueve de a píxel y el espesor de la tabla. Los huecos y carteles son de Código.
   bajo(b,d){
     const x0=Math.round(b.x0),x1=Math.round(b.x1),w=x1-x0,top=G+(typeof CA_DECK==='number'?CA_DECK:7),piso=Math.round(b.piso),yMax=LV.caminos?LV.caminos.yMax:piso+10,sup=Math.round(b.sup);
-    const st=[[top,'#468474'],[sup+20,'#3e7a6c'],[piso-10,'#3a7466'],[piso,'#2e6254']]; // verde azulado medio: 0,13–0,16 donde se nada, más claro arriba y más oscuro solo en el fondo
-    for(let y=top;y<piso;y+=4){c2y(ctx,x0,y,w,Math.min(4,piso-y),tramo(st,y));}
+    const st=[[top,'#468474'],[sup+20,'#3e7a6c'],[piso-24,'#4a8a7a'],[piso-4,'#3e7a6a']]; /* donde se nada ≥ 0,13; el oscuro solo en los últimos 4 px */ // verde azulado medio: 0,13–0,16 donde se nada, más claro arriba y más oscuro solo en el fondo
+    for(let y=top;y<piso-4;y+=4){c2y(ctx,x0,y,w,Math.min(4,piso-4-y),tramo(st,y));}
+    c2y(ctx,x0,piso-4,w,4,'#2e6254'); // pegado al barro
     // haces de luz que bajan por los huecos (luz suave)
     if(LV.caminos)for(const h of LV.caminos.huecos){if(h.x<x0||h.x>x1)continue;ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=0.08;ctx.fillStyle='#b4e0d0';
       ctx.beginPath();ctx.moveTo(h.x,sup);ctx.lineTo(h.x+h.w,sup);ctx.lineTo(h.x+h.w+16,piso);ctx.lineTo(h.x-16,piso);ctx.closePath();ctx.fill();ctx.restore();}
@@ -200,7 +201,7 @@ const def={
     // motas que flotan, de a píxel
     ctx.fillStyle='#4a7a6a';for(let i=0;i<Math.floor(w/14);i++){const mx=x0+Math.floor(hsh(i*7.1)*w),my=top+6+Math.floor(((hsh(i*3.3)*(piso-top-10))+T*0.05*(1+i%3))%(piso-top-10));ctx.fillRect(mx,my,1,1);}
     // pilotes con algas
-    for(let x=x0+14;x<x1;x+=34){P.R(ctx,x-1,top,7,piso-top,C.tinta);P.R(ctx,x,top,5,piso-top,'#3a3228');P.R(ctx,x,top,1,piso-top,'#56483a');
+    for(let x=x0+14;x<x1;x+=34){P.R(ctx,x-1,top,7,piso-top,'#466456');P.R(ctx,x,top,5,piso-top,'#56766a');P.R(ctx,x,top,1,piso-top,'#729486'); /* pilotes vistos a través del agua: sin tinta, del color del agua (≥ 0,13) */
       P.R(ctx,x-1,piso-14-(x%7),7,3,'#2a5a3a');P.R(ctx,x-1,piso-13-(x%7),7,1,'#3e7a4e');}
     // fondo: barro y piedras
     P.R(ctx,x0,piso,w,yMax-piso,'#1e1a12');P.R(ctx,x0,piso,w,1,'#3a3220');

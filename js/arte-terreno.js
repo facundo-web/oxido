@@ -188,7 +188,7 @@ function TRA_luz(z){
   z.plats.forEach((p,i)=>{const ok=z.on&&(!z.turno||i===z.cual);if(ok)TRA_ecto(p,i,av&&((T>>2)%2===1)&&!red);else TRA_rayas(p);});
 }
 // ---------- M2 · corriente y marea bajo el muelle ----------
-const TRA_M={est:'#7a90a8',estL:'#c0d0e0',amb:'#c08a4a',ambL:'#ffc070',burb:'#a8bcd0',burbL:'#e0ecf4',alga:'#2a4a3a',algaL:'#3e6a4e',
+const TRA_M={est:'#7a90a8',estL:'#c0d0e0',amb:'#c08a4a',ambL:'#ffc070',burb:'#a8bcd0',burbL:'#e0ecf4',alga:'#4a7a5a',algaL:'#6a9a72',algaT:'#9ac8a0',algaB:'#2e4e3a',
   lata:'#8a3b2a',lataL:'#b3543a',bot:'#3a5a4a',botL:'#6a8a7a'};
 function TRA_corriente(z){
   const x0=Math.round(z.x0),x1=Math.round(z.x1),sup=Math.round(z.sup),fondo=Math.round(z.y),w=x1-x0,h=fondo-sup,red=TRA_red();
@@ -196,9 +196,11 @@ function TRA_corriente(z){
   ctx.save();ctx.beginPath();ctx.rect(x0,sup,w,h);ctx.clip();
   const vis=xx=>xx>cx-12&&xx<cx+(typeof VW==='number'?VW:320)+12;
   // algas del fondo (en la vista): tallos de 2 px en tramos de 2 filas que se inclinan con la corriente
-  for(let ax=x0+10;ax<x1-6;ax+=26){if(!vis(ax))continue;const alto=6+((ax*7)%6),lean=av?0:dir*(0.45+0.15*Math.sin((T+ax)/18));
-    for(let k=0;k<alto;k+=2){const ox=Math.round(lean*k),yy=fondo-2-k;ctx.fillStyle=TRA_C.tinta;ctx.fillRect(ax+ox-1,yy-1,4,3);}
-    for(let k=0;k<alto;k+=2){const ox=Math.round(lean*k),yy=fondo-2-k;ctx.fillStyle=k%4?TRA_M.algaL:TRA_M.alga;ctx.fillRect(ax+ox,yy,2,2);}}
+  // (verde medio con la punta clara y un borde verde oscuro, no tinta negra: a la altura del cuerpo nada casi negro;
+  //  como mucho 6 px, por debajo de la rodilla del jugador)
+  for(let ax=x0+10;ax<x1-6;ax+=26){if(!vis(ax))continue;const alto=4+((ax*7)%3)*1,lean=av?0:dir*(0.45+0.15*Math.sin((T+ax)/18));
+    for(let k=0;k<alto;k+=2){const ox=Math.round(lean*k),yy=fondo-2-k;ctx.fillStyle=TRA_M.algaB;ctx.fillRect(ax+ox-1,yy-1,4,3);}
+    for(let k=0;k<alto;k+=2){const ox=Math.round(lean*k),yy=fondo-2-k,top=k+2>=alto;ctx.fillStyle=top?TRA_M.algaT:k%4?TRA_M.algaL:TRA_M.alga;ctx.fillRect(ax+ox,yy,2,2);}}
   // estelas: 3 capas a distinta velocidad, de 4 a 8 px, con la punta clara del lado al que van
   const n=Math.floor(w/9);
   for(let i=0;i<n;i++){const capa=i%3,vel=1+capa*0.45,largo=av?3:4+((i*5)%5),yy=sup+5+((i*29)%Math.max(8,h-12));
