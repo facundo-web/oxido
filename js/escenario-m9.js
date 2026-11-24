@@ -106,7 +106,11 @@ const def={
   },
   luces(lv){return velas().map(v=>({x:v.x+4,y:v.y+5,r:12,col:C.gas,fuerza:0.5,tipo:'fuego'})).concat(lv.decor.filter(o=>o.k==='farol').map(o=>({x:o.x+3,y:G-43,r:44,col:C.gas,tipo:'farol',
     // los faroles titilan cuando un fantasma se pone sólido cerca (mision9.js): la luz los sigue
-    get fuerza(){return typeof M9!=='undefined'&&M9.flick>0&&hash((o.x|0)+(T>>1))<0.5?0:0.6;}})));},
+    get fuerza(){
+      // farol con plataforma de luz (terreno.js, TR.zonas tipo 'luz', fx = x del farol): el halo se apaga con ella y en el aviso titila igual que el vidrio
+      const z=typeof TR!=='undefined'&&TR.zonas?TR.zonas.find(q=>q.tipo==='luz'&&q.fx===o.x):null;
+      if(z&&(!z.on||(z.aviso&&!ESC_reducido()&&(T>>2)%2)))return 0; // con MOVIMIENTO REDUCIDO no titila (como el vidrio)
+      return typeof M9!=='undefined'&&M9.flick>0&&hash((o.x|0)+(T>>1))<0.5?0:0.6;}})));},
   decor(o,d){
     const g=G,x=Math.round(o.x),spr=(k,w,h,fn,dx,dy)=>ctx.drawImage(ESC_sprite(d,k,w,h,fn),x+dx,g+dy);
     switch(o.k){

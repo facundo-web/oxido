@@ -57,11 +57,11 @@ function avFranjaHUD(){const c=HUD_centro;return{cx:(c.x0+c.x1)/2,max:c.x1-c.x0}
 // abajo=true: y es el borde de abajo. Devuelve {x,y,w,h} (por si alguien quiere poner un ícono a la izquierda).
 // sub=true: la segunda línea es un detalle (medallas, logros); con TEXTO GRANDE, si la tira pasaría de 2 renglones ×2, se
 // saca el detalle (en el iPhone SE ocupaba la cuarta parte de arriba: Pruebas)
-function avTira(lineas,abajo,y,col,ico=0,sub=false){lineas=lineas.filter(l=>l[0]);
+function avTira(lineas,abajo,y,col,ico=0,sub=false,fuerte=false){lineas=lineas.filter(l=>l[0]); // fuerte: el aviso de ataque, al doble si entra
   let f=avFranja(abajo);const big=typeof ACC!=='undefined'&&ACC.txt==='grande';
   // arriba en el juego: si entra entre el panel y el puntaje va ahí; si no, a lo ancho y debajo del panel (nunca encima)
   const enHUD=!abajo&&state==='play'&&HUD_centro.yb;
-  if(enHUD){const fh=avFranjaHUD(),cabe=lineas.every(([t])=>pxW(t,big?2:1)+8+ico<=fh.max);if(cabe)f=fh;else y=Math.max(y,HUD_centro.yb);}
+  if(enHUD){const fh=avFranjaHUD(),cabe=lineas.every(([t])=>pxW(t,big||fuerte?2:1)+8+ico<=fh.max);if(cabe)f=fh;else y=Math.max(y,HUD_centro.yb);}
   const lim=f.max-8-ico;
   // lo que no entra se parte en renglones por palabras (nunca se corta: Dirección de Arte)
   // y los renglones quedan parejos (sin una palabra sola abajo): se busca el ancho más chico que da la misma cantidad
@@ -73,6 +73,7 @@ function avTira(lineas,abajo,y,col,ico=0,sub=false){lineas=lineas.filter(l=>l[0]
   // vuelve a ×1 solo si una palabra sola no entra o quedarían más del doble de renglones
   let k=1,ls=parte(1);if(big){let l2=parte(2);if(sub&&l2.length>2&&lineas.length>1){lineas=lineas.slice(0,1);l2=parte(2);ls=parte(1);}
     if(l2.length<=lineas.length*2&&l2.every(l=>pxW(l[0],2)<=lim)){k=2;ls=l2;}}
+  if(fuerte&&k===1){const l2=parte(2);if(l2.length<=2&&l2.every(l=>pxW(l[0],2)<=lim)){k=2;ls=l2;}}
   const lh=6*k+2,w=Math.min(f.max,Math.max(...ls.map(l=>pxW(l[0],k)))+8+ico),h=ls.length*lh+3;
   const x=Math.round(f.cx-w/2),y0=Math.round(abajo?y-h:y);
   ctx.fillStyle='rgba(12,9,18,0.82)';ctx.fillRect(x,y0,w,h);ctx.fillStyle=col;ctx.fillRect(x,y0,w,1);
@@ -236,9 +237,11 @@ function drawHUD(){
   }
   // con el cartel de jefe a la vista (dibujito.js) los avisos esperan en fila (momentos.js)
   // los avisos van arriba, chicos y en letra pixel; los de ataque, con la línea roja (y esperan en fila: momentos.js)
+  // el aviso de ataque es lo más grande y lo ÚNICO que titila (prueba con personas); los premios van chicos y quietos
   if(banner&&banner.t>0&&state!=='pause'){ctx.globalAlpha=Math.min(1,banner.t/20,(banner.max-banner.t+1)/8);
-    avTira([[banner.s,banner.prio>=4?'#ffb0a0':'#ffe08a']],false,AV_ARRIBA,banner.prio>=4?'#ff6b5b':'#f3c969');ctx.globalAlpha=1;}
-  if(goT>0&&(T>>4)%2)pxTxt('¡ADELANTE! ▶',W-8,78,'#fff','right',typeof ACC!=='undefined'&&ACC.txt==='grande'?2:1);
+    const at=banner.prio>=4,tit=at&&!(typeof MOV_reducido==='function'&&MOV_reducido())&&(T>>3)%2;
+    avTira([[banner.s,at?(tit?'#ffffff':'#ffb0a0'):'#ffe08a']],false,AV_ARRIBA,at?(tit?'#ffd0c8':'#ff6b5b'):'#f3c969',0,false,at);ctx.globalAlpha=1;}
+  if(goT>0)pxTxt('¡ADELANTE! ▶',W-8,78,'#fff','right',typeof ACC!=='undefined'&&ACC.txt==='grande'?2:1); // quieto: solo la amenaza titila
   // medallas y premios: arriba, de a uno (esperan a los avisos de ataque y demás: cartelOcupado en juego.js)
   if(toasts.length&&!cartelOcupado()){const t=toasts[0],a=Math.min(1,t.t/15,(170-t.t+1)/10);ctx.globalAlpha=a;
     const r=avTira([[t.title,t.col],[t.sub||'','#ddd']],false,AV_ARRIBA,t.col,12,true),cy=r.y+r.h/2;
@@ -342,12 +345,12 @@ function drawTitle(){
   ctx.font='bold 38px ui-monospace,Menlo,Consolas,monospace';ctx.textAlign='center';ctx.textBaseline='top';
   ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#120c18';ctx.strokeText(TX.menu.titulo,W/2,22);ctx.fillStyle=g;ctx.fillText(TX.menu.titulo,W/2,22);
   // menú vertical corto: ↑ ↓ elegir · ENTER o ✕ entrar
-  const ops=tituloOps(),st=11,y0=78;
-  ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;zona(W/2-hudTW(o,8)/2-18,y-1.5,hudTW(o,8)+36,st-0.5,{sobre:()=>{if(tituloSel!==i){tituloSel=i;SFX.swap();}},clic:RA_enter});
-    // resaltado: la flecha va a la izquierda del texto y el recuadro abraza a los dos con el mismo margen
-    if(on){const tw=hudTW(o,8),ax=W/2-tw/2-11,x0=ax-6,x1=W/2+tw/2+6;ctx.fillStyle='rgba(243,201,105,0.18)';ctx.fillRect(x0,y-1.5,x1-x0,st-0.5);
-      txt('▶',ax+((T>>4)%2),y,8,'#ffe08a','left',false);}
-    txt(o,W/2,y,8,on?'#ffe08a':'#aaa','center');});
+  // cada opción es un botón (prueba con personas): todos del mismo ancho, el elegido con su tecla adentro; el clic
+  // entra al primer intento (el botón entero cuenta, no solo las letras)
+  const ops=tituloOps(),sz=7,big=TXT_aj(sz)>sz,bh=big?TXT_aj(sz)+4:9,st=big?bh+2:11,y0=Math.min(77,HC-22-ops.length*st),k=onTouch()?null:btn('ok'); // filas cada 11 desde y 78 (como antes)
+  const bw=Math.max(...ops.map(o=>botonW(o,k,sz)+(k?keycapW(k)+3:0)))+8,bx=Math.round(W/2-bw/2);
+  ops.forEach((o,i)=>{const y=y0+i*st,on=i===tituloSel;
+    botonUI(bx,y,bw,bh,o,on?k:null,{on,size:sz,nombre:tituloIds()[i]==='jugar'?'jugar':undefined,sobre:()=>{if(tituloSel!==i){tituloSel=i;SFX.swap();}},clic:()=>{tituloSel=i;RA_enter();}});});
   // una sola línea chica abajo, con los botones del control que se usó último (en táctil, entre la palanca y el rombo)
   const pie=tx(onTouch()?TX.menu.pieTactil:TX.menu.pie,{ok:btn('ok')});
   const lb=tactilLibre(),pw=lb&&H-12>=lb.y0?Math.min(290,lb.x1-4)-Math.max(30,lb.x0+4):999;
@@ -466,11 +469,19 @@ function drawSelect(){
   // jugador 1: botones de su último control (con su joystick, ✕ u OPTIONS juegan; ✕ en otro joystick suma al jugador 2)
   if(selLocked(selLevel))txt('BLOQUEADA · GANÁ LA MISIÓN '+selLevel+' PARA JUGARLA',W/2,ry+1,5,selNo>0?'#ff6b5b':'#c8b8a0','center');
   // en táctil no hay W S A D: se nombra la palanca, y se juega tocando de nuevo la tarjeta elegida (Pruebas)
-  else if(onTouch()){const h=TX.elegir.pieTactil,lb=tactilLibre(),abajo=lb&&ry+8>lb.y0,cx=abajo?(lb.x0+lb.x1)/2:W/2,mx=abajo?lb.x1-lb.x0-6:W-12;
-    let sz=5;while(sz>3&&txtW(h,sz)>mx)sz--;if(txtW(h,sz)<=mx)txt(h,cx,ry+1,sz,'#fff','center');else pxTxt(h,cx,ry+1,'#fff','center');} // entre la palanca y el rombo (con TEXTO GRANDE, JUGAR quedaba debajo del ✕)
-  else txt(btn('up',0)+' '+btn('down',0)+' ELEGIR FILA · '+btn('left',0)+' '+btn('right',0)+' CAMBIAR · '+btn(onPad(0)?'jump':'start',0)+': JUGAR',W/2,ry+1,5,'#fff','center');
-  if(!onTouch())txt(btn('back',0)+': volver',W/2,ry+9,4,'#aaa','center',false);
-  zona(40,ry,240,8,{clic:RA_enter});zona(W/2-30,ry+8.5,60,6,{clic:RA_volver}); // mouse: jugar · volver
+  // táctil: la ayuda corta y un botón JUGAR grande entre la palanca y el rombo (Publicación: la línea "TOCÁ OTRA VEZ: JUGAR"
+  // quedaba debajo de la palanca y del ✕ en el iPhone SE; tocar de nuevo la tarjeta también juega)
+  else if(onTouch()){const pt=TX.elegir.pieTactil.split('·').map(s=>s.trim()),h=pt.slice(0,-1).join(' · '),jug=(pt[pt.length-1].split(':').pop()||'').trim()||'JUGAR',
+    lb=tactilLibre(),abajo=lb&&ry+8>lb.y0,cx=lb?(lb.x0+lb.x1)/2:W/2,mx=abajo?lb.x1-lb.x0-6:W-12;
+    let sz=5;while(sz>3&&txtW(h,sz)>mx)sz--;if(txtW(h,sz)<=mx)txt(h,abajo?cx:W/2,ry+1,sz,'#fff','center');else pxTxt(h,abajo?cx:W/2,ry+1,'#fff','center');
+    const bw=Math.min(lb?lb.x1-lb.x0-8:120,110),bh=TXT_aj(7)+8,yb=Math.max(ry+8,Math.min(HC-bh-3,lb?Math.max(ry+8,lb.y0+2):ry+8));
+    botonUI(Math.round(cx-bw/2),Math.min(yb,HC-bh-2),bw,bh,jug,null,{on:true,size:7,clic:RA_enter,nombre:'jugar'});}
+  // JUGAR es un botón de verdad (prueba con personas: "ENTER: JUGAR" se podía clickear pero no parecía botón); VOLVER, chico al lado
+  else{const k=btn(onPad(0)?'jump':'start',0),kv=btn('back',0),hint=btn('up',0)+' '+btn('down',0)+' FILA · '+btn('left',0)+' '+btn('right',0)+' CAMBIAR',
+    bh=TXT_aj(6)+5,bw=botonW('JUGAR',k,6)+6,vw=botonW('VOLVER',kv,4),tw=txtW(hint,4),tot=tw+6+vw+6+bw,x0=Math.round(W/2-tot/2),yb=ry-2;
+    txt(hint,x0,yb+(bh-TXT_aj(4))/2,4,'#c8c0d0','left',false);
+    botonUI(x0+tw+6,yb+1,vw,bh-2,'VOLVER',kv,{size:4,clic:RA_volver});
+    botonUI(x0+tw+6+vw+6,yb,bw,bh,'JUGAR',k,{on:true,clic:RA_enter,nombre:'jugar'});}
   // jugador 2: se suma con saltar (✕, A o B) en un joystick libre; sus botones salen de su joystick
   if(two)txt('JUGADOR 2: ← → ELEGIR · ↑ ↓ COLOR · '+btn('bomb',1)+' SALIR',W/2,ry+16,5,P_COL[1],'center');
   else if(padFree()&&(T>>5)%2===0)txt('JUGADOR 2: APRETÁ '+btn('jump','free')+' PARA SUMARTE',W/2,ry+16,5,P_COL[1],'center');

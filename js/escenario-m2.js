@@ -32,6 +32,13 @@ const CIELOS={
 };
 const Y0=-40;
 const hsh=n=>{const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s);};
+function c2y(c2,x,y,w,h,col){c2.fillStyle=col;c2.fillRect(x,y,w,h);} // franja de color (la usa bajo(): no borrar)
+// torre reticulada de las grúas de arriba (lienzo de 16 × G+52, desde y −48 del mundo hasta el piso), luz ámbar arriba.
+// La usa el piso (CA2_TORRES): no borrar (se perdió en af9eaf8 al pasar las piezas a ESC_H; la prueba de humo ahora lo detecta)
+function torreGrua(g,w,h){const ink=C.tinta,col='#2a3244',hi='#3e4860';P.R(g,0,4,22>w?w:w,4,ink);
+  P.R(g,1,8,2,h-8,ink);P.R(g,13,8,2,h-8,ink);P.R(g,1,8,1,h-8,hi);P.R(g,13,8,1,h-8,col);
+  for(let y=8;y<h-6;y+=14){P.line(g,2,y,13,y+14,col);P.line(g,13,y,2,y+14,col);}
+  P.R(g,0,4,16,4,ink);P.R(g,1,5,14,2,col);P.R(g,1,5,14,1,hi);P.R(g,6,1,3,3,ink);P.R(g,7,2,1,1,'#ffc070');}
 function tramo(st,y){let i=0;while(i<st.length-2&&y>=st[i+1][0])i++;const a=ESC_rgb(st[i][1]),b=ESC_rgb(st[i+1][1]),t=Math.min(1,Math.max(0,(y-st[i][0])/((st[i+1][0]-st[i][0])||1)));return`rgb(${a.map((v,k)=>Math.round(v+(b[k]-v)*t))})`;}
 // grúa de puerto (pórtico): dos patas en A, viga larga hacia el mar, cabina y tirantes
 function portico(g,x,base,h,col,dk){
@@ -68,6 +75,7 @@ function barcaza(c2,x,y,b){
 
 const BRUMA_PIE={noche:0.5,lluvia:1.0,amanecer:0.5,tarde:0.5,dia:0.38,otra:0.5}; // fuerza de la meseta de bruma al pie (se ajusta midiendo)
 const def={
+  oscPiso:(typeof CA_DECK==='number'?CA_DECK:7)+1, // la oscuridad del piso queda en el muelle: el agua de abajo (camino de nado) no se apaga (regla 2)
   halosAltos:{col:'#96a6cc',a:0.92,r:20,plano:true,alto:40}, // de noche, luz suave detrás de las plataformas altas (regla de Arte)
   pix:1,nat:'noche',semilla:22,paso:'pixel',
   atm:{col:C.niebla,fuerza:0.03,pie:0},
@@ -180,7 +188,7 @@ const def={
   // algas, fondo de barro, paredes, superficie que se mueve de a píxel y el espesor de la tabla. Los huecos y carteles son de Código.
   bajo(b,d){
     const x0=Math.round(b.x0),x1=Math.round(b.x1),w=x1-x0,top=G+(typeof CA_DECK==='number'?CA_DECK:7),piso=Math.round(b.piso),yMax=LV.caminos?LV.caminos.yMax:piso+10,sup=Math.round(b.sup);
-    const st=[[top,'#2a5a4e'],[sup+20,'#20483e'],[piso-30,'#173a32'],[piso,'#112c26']];
+    const st=[[top,'#468474'],[sup+20,'#3e7a6c'],[piso-10,'#3a7466'],[piso,'#2e6254']]; // verde azulado medio: 0,13–0,16 donde se nada, más claro arriba y más oscuro solo en el fondo
     for(let y=top;y<piso;y+=4){c2y(ctx,x0,y,w,Math.min(4,piso-y),tramo(st,y));}
     // haces de luz que bajan por los huecos (luz suave)
     if(LV.caminos)for(const h of LV.caminos.huecos){if(h.x<x0||h.x>x1)continue;ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=0.08;ctx.fillStyle='#b4e0d0';

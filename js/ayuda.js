@@ -34,15 +34,16 @@ function updAyuda(){
 function drawAyuda(){
   dim(0.72);
   txt('CÓMO JUGAR',W/2,16,13,'#ffe08a','center');
-  if(typeof IN_practicar==='function'){const s='PRACTICAR: '+btn('bomb'),w=hudTW(s,5)+10;ctx.fillStyle='rgba(243,201,105,0.16)';ctx.fillRect(W-8-w,28,w,9);ctx.strokeStyle='#f3c969';ctx.lineWidth=0.6;ctx.strokeRect(W-8-w+0.5,28.5,w-1,8);
-    txt(s,W-8-w/2,29.5,5,'#ffe08a','center',false);zona(W-8-w,28,w,9,{clic:()=>{SFX.pick();IN_practicar();}});}
-  zona(W/2-60,145,120,10,{clic:RA_volver});
+  if(typeof IN_practicar==='function'){const k=onTouch()?null:btn('bomb'),w=botonW('PRACTICAR',k,5),h=TXT_aj(5)+5;
+    botonUI(W-8-w,27,w,h,'PRACTICAR',k,{size:5,clic:()=>{SFX.pick();IN_practicar();}});}
   // el control dibujado (controles.js, de Arte): de a 2 con un teclado ahora es una vista de la misma tarjeta (◀ ▶)
-  CTRL_dibujar(28,42,264,98);
+  CTRL_dibujar(28,41,264,96); // (2 px más arriba y más baja: debajo va el botón VOLVER)
   {const s=padFree()?'De a 2: en el otro joystick, '+btn('jump','free')+' al elegir personaje.':'De a 2: conectá un joystick y apretá saltar al elegir personaje.';
    const lb=tactilLibre(),x0=lb?Math.max(8,lb.x0+4):8,x1=lb?Math.min(W-8,lb.x1-4):W-8;   // en táctil, entre la palanca y el rombo
    const ls=lb?wrapTxt(s,5,x1-x0):[s];
    if(lb)ls.forEach((l,i)=>txt(l,(x0+x1)/2,140+i*7,5,'#ddd','center',false));
-   else txt(s,W/2,142,5,'#ddd','center',false);
-   txt(btn('ok')+' o '+btn('back')+': volver',lb?(x0+x1)/2:W/2,lb?141+ls.length*7:148,5,'#aaa','center',false);}
+   else txt(s,W/2,138,5,"#ddd","center",false);
+   // VOLVER: botón de verdad (prueba con personas), debajo de la línea de "de a 2"
+   const k=onTouch()?null:btn('back'),bw=botonW('VOLVER',k,5),bh=TXT_aj(5)+5,yb=Math.min(HC-bh-3,(lb?141+ls.length*7:145));
+   botonUI(Math.round((lb?(x0+x1)/2:W/2)-bw/2),yb,bw,bh,'VOLVER',k,{size:5,clic:RA_volver});}
 }

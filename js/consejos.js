@@ -10,8 +10,46 @@ let CONS_en=null,CONS_pr=null;
 {const upd0=updEnemy;updEnemy=function(e){const np=eproj.length;CONS_en=e;try{upd0(e);}finally{CONS_en=null;}
   for(let i=np;i<eproj.length;i++)if(eproj[i]&&!eproj[i].de)eproj[i].de=e;};}
 {const h0=hurtPlayer;hurtPlayer=function(n){const p=P,vivo=!p.dead;
-  const causa=CONS_en||(CONS_pr&&(CONS_pr.de||CONS_pr))||null;h0(n);
-  if(vivo&&p.dead){p.causa=causa;CONS_ultima={causa,mision:levelIdx,jefe:bossRef&&!bossRef.gone?bossRef.name:null};}};}
+  const causa=CONS_en||(CONS_pr&&(CONS_pr.de||CONS_pr))||null,bala=CONS_pr||null;
+  const antes=p.hp*100+p.shield+(p.ride?p.ride.armor*1000:0);h0(n);
+  if(p.hp*100+p.shield+(p.ride?p.ride.armor*1000:0)<antes)CONS_golpe(p,causa,bala); // recibió daño de verdad
+  if(vivo&&p.dead){p.causa=causa;CONS_ultima={causa,mision:levelIdx,jefe:bossRef&&!bossRef.gone?bossRef.name:null,quien:CONS_quien(causa),foto:CONS_foto(causa)};}};}
+// ---------- de dónde vino el golpe (prueba con personas: "no se entendió qué le sacó la vida") ----------
+// borde rojo del lado del golpe (izquierda, derecha o arriba) y un destello con esquinas rojas en el que te pegó
+let CONS_g=null;ON_START.push(()=>{CONS_g=null;});
+function CONS_golpe(p,causa,bala){
+  const o=p.ride||p,cx=o.x+(o.w||8)/2,cy=o.y+(o.h||18)/2,e=causa&&causa.x!=null&&causa.w?causa:null;
+  let sx=null,sy=null;
+  if(e&&!e.gone&&e.x+e.w>camX-20&&e.x<camX+VW+20){sx=e.x+e.w/2;sy=e.y+(e.h||16)/2;}
+  else if(bala){sx=bala.x-(bala.vx||0)*12;sy=bala.y-(bala.vy||0)*12;} // la bala: de donde venía
+  const lado=sx==null?0:(sy<cy-30&&Math.abs(sx-cx)<34)?2:sx<cx?-1:1;
+  CONS_g={t:T,lado,e:e&&e!==p?e:null};
+}
+ON_DRAW.push(()=>{const g=CONS_g;if(!g||!g.e||g.e.gone||T-g.t>40)return;const e=g.e,k=1-(T-g.t)/40;
+  const x0=Math.round(e.x)-3,y0=Math.round(e.y)-3,x1=Math.round(e.x+e.w)+3,y1=Math.round(e.y+(e.h||16))+3,L=4;
+  if(typeof LUZ_halo==='function')LUZ_halo((x0+x1)/2,(y0+y1)/2,Math.max(10,(x1-x0)/2+6),'#ff3b30',0.55*k);
+  ctx.globalAlpha=Math.min(1,k*1.4);ctx.fillStyle='#ff3b30';
+  for(const[x,y,sx,sy]of[[x0,y0,1,1],[x1,y0,-1,1],[x0,y1,1,-1],[x1,y1,-1,-1]]){ctx.fillRect(sx>0?x:x-L+1,y,L,1);ctx.fillRect(x,sy>0?y:y-L+1,1,L);} // esquinas rojas
+  ctx.globalAlpha=1;});
+ON_HUD.push(()=>{const g=CONS_g;if(!g||g.lado===0||T-g.t>36||state!=='play')return;const k=1-(T-g.t)/36,w=10;
+  for(let i=0;i<w;i++){ctx.fillStyle=`rgba(255,40,30,${(0.55*k*(1-i/w)).toFixed(3)})`;
+    if(g.lado===-1)ctx.fillRect(i,0,1,HC);else if(g.lado===1)ctx.fillRect(W-1-i,0,1,HC);else ctx.fillRect(0,i,W,1);}});
+// ---------- quién te ganó: nombre y un dibujo chico (para ¡CAÍSTE!) ----------
+function CONS_quien(c){
+  if(!c)return null;const Q=TX.caiste.quien||{};
+  if(c.isBoss||c.mini||c.isVillain)return c.name||null;if(c.name&&!c.kind)return c.name;
+  if(c.endo)return Q.endo||null;if(Q[c.type])return Q[c.type];if(c.kind&&Q[c.kind])return Q[c.kind];
+  return null;}
+// el dibujo del que te pegó, tal como estaba, en un lienzo chico (con su propia función de dibujo)
+function CONS_foto(e){
+  if(!e||e.x==null||!e.w)return null;const pad=6,w=Math.min(160,Math.ceil(e.w)+pad*2),h=Math.min(160,Math.ceil(e.h||16)+pad*2);
+  const cvF=document.createElement('canvas');cvF.width=w;cvF.height=h;const g=cvF.getContext('2d');g.imageSmoothingEnabled=false;
+  const c0=ctx;ctx=g;
+  try{g.translate(Math.round(-e.x+pad+((w-pad*2)-e.w)/2),Math.round(-e.y+pad));
+    if(e.draw)e.draw(e);else if(typeof isBoss==='function'&&isBoss(e))drawBossAny(e);else if(e.type==='drone')drawDrone(e);else if(e.type==='turret')drawTurret(e);else if(!e.kind)drawSoldier(e);else return null;}
+  catch(err){return null;}finally{ctx=c0;}
+  try{const d=g.getImageData(0,0,w,h).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>0)n++;if(n<12)return null;}catch(err){} // vacío: no se muestra
+  return cvF;}
 let CONS_ultima=null;
 ON_START.push(()=>{if(!(typeof partida!=='undefined'&&partida))CONS_ultima=null;});
 

@@ -129,8 +129,10 @@ function continuar(){
   for(const p of players)p.out=true; // todos vuelven nuevos (armas iniciales)
   allies=[];
   const hechos=PC_mis?PC_mis.tramos.slice():[];   // los tramos ya cerrados: se vuelve después del último
+  const mitad=PC_mis&&!hechos.length?PC_mis.mitad:null; // o a la mitad del tramo 1, si ya pasaste por ahí
   PC_cont=true;try{startLevel(levelIdx,true);}finally{PC_cont=false;}
   if(hechos.length&&hechos.length<L.arenas.length)PC_alTramo(hechos);
+  else if(mitad)PC_alMitad(mitad);
   lives=DIFF().lives;score=half;PC_mis.score0=score;newRecord=false;
   PC_cartel={s:'CONTINUACIÓN '+partida.cont+' DE '+PC_MAX_CONT,sub:'MITAD DE LOS PUNTOS · VIDAS ×'+lives,col:'#7dff9a',t:200,max:200};
   SFX.pick();
@@ -145,6 +147,30 @@ function PC_alTramo(hechos){
   players.forEach((p,j)=>{const o=p.ride||p;o.x=camX+40-j*18;o.y=GROUND-(o.h||18);if(p.ride)P.x=o.x+7;});
   for(const al of allies)al.x=camX+20;if(typeof gato!=='undefined'&&gato)gato.x=camX+26;
   PC_mis.tramos=hechos;PC_abrirTramo();
+}
+// ---------- punto de vuelta a la mitad del tramo 1 (pedido de Coordinación tras la prueba con personas) ----------
+// El tramo 1 es el más largo sin red. Se anota el lugar cuando el jugador 1 pasa la mitad del camino a la primera arena,
+// parado en el piso de abajo (no en el agua ni en una plataforma) y sin amenaza cerca (AV_amenaza, juego.js); si en la
+// mitad justo hay pelea, se anota apenas se calma, siempre lejos de la arena. Así es un lugar por el que ya se pasó,
+// tranquilo y sin huecos. CONTINUAR vuelve ahí con las mismas reglas de puntos que al volver a un tramo.
+ON_STEP.push(()=>{
+  const m=PC_mis,a=L&&L.arenas&&L.arenas[0];
+  if(state!=='play'||!m||m.mitad||m.tramos.length||!a||(typeof IN!=='undefined'&&IN.activa))return;
+  const p=players[0];if(!p||p.dead||p.ride)return;
+  const hasta=Math.max(a.at*0.5+40,a.at-VW*0.7);
+  if(p.x>hasta&&m.mitadProv){m.mitad=m.mitadProv;return;} // no hubo calma: vale el primer lugar firme pasada la mitad (al volver se limpian los enemigos)
+  if(p.x<a.at*0.5||p.x>hasta||!p.onGround||Math.abs(p.y+(p.h||18)-GROUND)>2||lock)return;
+  if((typeof CA_nada==='function'&&CA_nada(p))||(typeof TR_en==='function'&&TR_en(p)))return; // ni en el agua ni sobre una cinta (terreno.js)
+  const c={x:Math.round(p.x),cam:Math.round(camX)};if(!m.mitadProv)m.mitadProv=c;
+  if(!(typeof AV_amenaza==='function'&&AV_amenaza()))m.mitad=c;
+});
+function PC_alMitad(c){
+  camX=Math.max(0,Math.min(c.cam,LEVEL_END-VW));arenaIdx=0;lock=null;
+  while(evIdx<levelEvents.length&&levelEvents[evIdx].at<=camX)evIdx++;
+  for(const e of enemies)if(!isBoss(e)&&e.type!=='turret'&&e.x<camX+VW+40)e.gone=true;spawnQ.length=0; // sin enemigos encima al volver
+  players.forEach((p,j)=>{const o=p.ride||p;o.x=c.x-j*18;o.y=GROUND-(o.h||18);if(p.ride)P.x=o.x+7;});
+  for(const al of allies)al.x=c.x-20;if(typeof gato!=='undefined'&&gato)gato.x=c.x+8;
+  PC_mis.mitad=c; // si volvés a caer antes de la primera arena, se vuelve acá de nuevo
 }
 // ---------- fin de partida ----------
 function resumenPartida(){

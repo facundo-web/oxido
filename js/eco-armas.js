@@ -195,12 +195,16 @@ function EA_dar(pr,x,y){
 let EA_prDib=null;
 {const dpr0=drawPrisoner;drawPrisoner=function(pr){EA_prDib=pr;try{return dpr0(pr);}finally{EA_prDib=null;}};}
 const EA_GLOBO='¡AYUDA!',EA_GLOBO_ICO='¡AYUDA!    ';
+// globos.js puede juntar los globos y dibujarlos al final (GL_diferir): el prisionero viaja dentro de las opciones del
+// globo (o.eaPr), así el ícono se dibuja cuando el globo se dibuja de verdad
 {const g0=globo;globo=function(s,ax,ay,o){
   const pr=EA_prDib;
-  if(!pr||s!==EA_GLOBO||!pr.ea||!EA_ON())return g0(s,ax,ay,o);
-  const n=GL_rects.length;g0(EA_GLOBO_ICO,ax,ay,o);const r=GL_rects[n];if(!r)return;
-  const t=o&&o.t!==undefined?o.t:99,sc=glEscala(t,o&&o.dur||0);if(sc<0.98)return; // durante el pop, sin ícono
-  EA_icono(pr,r.x+3+pfW(EA_GLOBO)+3,r.y+2);};}
+  if(pr&&s===EA_GLOBO&&pr.ea&&EA_ON()){s=EA_GLOBO_ICO;o={...(o||{}),eaPr:pr};}
+  if(s!==EA_GLOBO_ICO||!o||!o.eaPr)return g0(s,ax,ay,o);
+  const dif=typeof GL_diferir!=='undefined'&&GL_diferir,n=GL_rects.length;g0(s,ax,ay,o);if(dif)return;
+  const r=GL_rects[n];if(!r)return;
+  const t=o.t!==undefined?o.t:99,sc=glEscala(t,o.dur||0);if(sc<0.98)return; // durante el pop, sin ícono
+  EA_icono(o.eaPr,r.x+3+pfW(EA_GLOBO)+3,r.y+2);};}
 // íconos de 5 filas (k tinta, el resto colores); cada uno entra en el lugar de tres espacios del globo
 const EA_ICO={
   gun:['..kkkkkkkk','kkcccccccc','kcccdkkkkk','kcdk......','kkk.......'],

@@ -101,6 +101,7 @@ function HI_buscarLugar(){
 }
 function HI_tuercaDibujar(){
   if(typeof levelIdx==='undefined'||levelIdx!==0||typeof TU_libre!=='function'||TU_libre())return;
+  if(typeof IN!=='undefined'&&IN.activa)return; // en la intro no va (caía justo en el hueco de la barricada y parecía que tapaba el paso); su lugar se busca en la misión
   if(HI.tuercaX===null)HI.tuercaX=HI_buscarLugar()??-1;if(HI.tuercaX<0)return;
   const cv=HI_conLuz(HI_tuercaLienzo()),x=Math.round(HI.tuercaX),y=GROUND-cv.height+1;
   if(x>camX+VW+10||x+cv.width<camX-10)return;

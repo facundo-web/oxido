@@ -292,9 +292,11 @@ function EN_drawMarcas(){
       g.addColorStop(0,`rgba(255,255,255,${0.85*(1-k)})`);g.addColorStop(0.4,`rgba(255,240,250,${0.35*(1-k)})`);g.addColorStop(1,'rgba(255,240,250,0)');
       ctx.fillStyle=g;ctx.fillRect(f.x-r,f.y-r,r*2,r*2);
     }else if(f.k==='hack'){
-      const r=6+f.t*6,a=1-f.t/24;ctx.strokeStyle=`rgba(${EN_VERDE},${0.7*a})`;ctx.lineWidth=1;ctx.setLineDash([2,2]);ctx.lineDashOffset=-f.t;
-      ctx.beginPath();ctx.arc(f.x,f.y,r,0,7);ctx.stroke();ctx.setLineDash([]);
-      ctx.fillStyle=`rgba(${EN_VERDE},${a})`;
+      // aro del alcance: trazo continuo de 1 px que titila, en blanco hueso (Dirección de Arte: el punteado verde se leía
+      // como trama y se confundía con el verde de "saltar" y con el color de los jugadores)
+      const r=6+f.t*6,a=1-f.t/24,tit=(f.t>>1)%2&&!(typeof MOV_reducido==='function'&&MOV_reducido());
+      ctx.globalAlpha=Math.max(0,(tit?0.45:0.85)*a);aroPix(f.x,f.y,Math.round(r),Math.round(r),'#f4eee0');ctx.globalAlpha=1;
+      ctx.fillStyle=`rgba(244,238,224,${a})`;
       for(let i=0;i<10;i++){const an=i*0.628+f.t*0.05;ctx.fillRect(q(f.x+Math.cos(an)*r),q(f.y+Math.sin(an)*r),1,(i+f.t)%3?1:2);}
     }
   }

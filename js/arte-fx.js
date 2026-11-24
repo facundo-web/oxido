@@ -109,7 +109,7 @@ function FX_convertir(){
   for(const p of parts){
     switch(p.k){
     case 'fire':p.k='axfuego';break;
-    case 'smoke':p.k='axhumo';if(!p.cols&&p.col)p.cols=null;break;
+    case 'smoke':p.k='axhumo';if(!p.cols&&p.col){const v=String(p.col).split(',').map(Number);if(v.length>=3&&Math.min(v[0],v[1],v[2])>=215){const h=k=>'#'+v.slice(0,3).map(n=>Math.max(0,Math.min(255,Math.round(n*k))).toString(16).padStart(2,'0')).join('');p.cols=[h(0.82),h(1)];}}break; /* el VAPOR blanco (color propio casi blanco: M5, entradas, jefes) conserva su color; el resto del humo va en los 2 tonos de la misión */
     case 'ring':p.k='axluz';break;
     case 'flash':p.k='axdestello';break;
     case 'spr':{p.k='axcae';p.dir=Math.sign(p.vr||1);p.cuadro=0;break;}}

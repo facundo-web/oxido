@@ -54,15 +54,19 @@ function FIN_franja(){const lb=typeof tactilLibre==='function'?tactilLibre():nul
 // la letra del título del botón (se achica si el botón es angosto) y el alto que necesita para su texto
 function FIN_tsBoton(w,tit,tecla){let ts=8;while(ts>5&&txtW(tit,ts)+(tecla?txtW(tecla,4)+6:0)>w-6)ts--;return ts;}
 function FIN_altoBoton(w,tit,sub,tecla){const ts=FIN_tsBoton(w,tit,tecla);return Math.max(sub?40:22,TXT_aj(ts)+8+(sub?FIN_renglones(sub,w-8,4).length*(TXT_aj(4)+2)+2:0));}
-function FIN_boton(x,y,w,h,tit,sub,tecla,on,clic,sobre){
+function FIN_boton(x,y,w,h,tit,sub,tecla,on,clic,sobre,nombre){
+  // estado al pasar el mouse y al apretar (prueba con personas: botones inequívocos); el elegido va lleno
+  const st=typeof RA_estado==='function'?RA_estado(x,y,w,h):{sobre:false,apretado:false};if(st.apretado){y+=1;h-=1;}
   ctx.fillStyle='#120c18';ctx.fillRect(x-1.5,y-1.5,w+3,h+3);
-  ctx.fillStyle=on?FIN_ACENTO:'#2a1f30';ctx.fillRect(x,y,w,h);
-  if(!on){ctx.strokeStyle='#5a4a60';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,w-1,h-1);}
+  ctx.fillStyle=on?FIN_ACENTO:st.sobre?'#3d2c45':'#2a1f30';ctx.fillRect(x,y,w,h);
+  if(!on){ctx.strokeStyle=st.sobre?FIN_ACENTO:'#5a4a60';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,w-1,h-1);}
+  if(!st.apretado){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(x+1,y+h-2,w-2,1);}
   const ts=FIN_tsBoton(w,tit,tecla);
   txt(tit,x+w/2,y+(sub?4:(h-TXT_aj(ts))/2),ts,on?'#120c18':'#ffffff','center',!on);
   if(sub)FIN_parrafo(sub,x+w/2,y+6+TXT_aj(ts),w-8,4,on?'#3a2a40':FIN_GRIS);
-  if(tecla)txt(tecla,x+w-3,y+2,4,on?'#3a2a40':'#7a6a80','right',false); // la tecla arriba a la derecha (no se pisa con el texto)
-  zona(x,y,w,h,{sobre,clic});
+  if(tecla&&typeof keycap==='function')keycap(tecla,x+w-3-keycapW(tecla),y+2,'#ffe08a'); // la tecla en chico adentro, arriba a la derecha (no se pisa con el texto)
+  else if(tecla)txt(tecla,x+w-3,y+2,4,on?'#3a2a40':'#7a6a80','right',false);
+  zona(x,y,w,h,{sobre,clic,nombre}); // nombre: 'reintentar' en CONTINUAR y OTRA VEZ (pruebas de Publicación)
 }
 // ---------- A) ¡CAÍSTE! ----------
 function FIN_updCaiste(){
@@ -88,6 +92,7 @@ function FIN_caiste(){
   ctx.fillStyle='#120c18';ctx.fillRect(bx-1,by-1,bw+2,6);ctx.fillStyle='#3a2f40';ctx.fillRect(bx,by,bw,4);
   const ar=L.arenas||[],finB=ar.length?ar[ar.length-1].at+40:(L.end||1);
   for(const a of ar.slice(0,-1)){const ax=bx+bw*clamp((a.at+40)/finB,0,1);ctx.fillStyle='#5a4a60';ctx.fillRect(ax-0.5,by-2,1,8);} // dónde termina cada tramo
+  if(PC_mis&&PC_mis.mitad&&!PC_mis.tramos.length){const mx=Math.round(bx+bw*clamp(PC_mis.mitad.x/finB,0,1));ctx.fillStyle='#7dff9a';ctx.fillRect(mx,by-4,1,6);ctx.fillRect(mx+1,by-4,3,2);} // banderita: desde acá volvés
   ctx.fillStyle='#ffffff';ctx.fillRect(bx,by,bw*d.fr,4);
   const yo=bx+bw*d.fr;ctx.fillStyle='#ffffff';ctx.fillRect(yo-1.5,by-3,3,10);
   if(d.antes&&d.antes.fr>d.fr+0.01){const mx=bx+bw*d.antes.fr;ctx.fillStyle=FIN_ACENTO;ctx.fillRect(mx-0.5,by-4,1,12);
@@ -95,9 +100,13 @@ function FIN_caiste(){
   else if(d.antes)txt(TX.caiste.masLejos,W/2,by+9,Math.round(4*tk),FIN_ACENTO,'center',false);
   // 2 · un consejo, destacado
   let y=by+10+TXT_aj(4);
-  if(d.consejo){const ts=6,lh=TXT_aj(ts)+2,r=FIN_renglones(d.consejo,250,ts),h=TXT_aj(4)+6+r.length*lh;
+  // el consejo nombra lo que te ganó, con su dibujo chico a la izquierda (prueba con personas; consejos.js)
+  if(d.consejo){const u=typeof CONS_ultima!=='undefined'?CONS_ultima:null,qn=u&&u.quien,ft=u&&u.foto,
+    fk=ft?Math.min(1,26/ft.height,34/ft.width):0,fw=ft?Math.round(ft.width*fk):0,fh=ft?Math.round(ft.height*fk):0,tx0=33+(ft?fw+6:0),
+    ts=6,lh=TXT_aj(ts)+2,r=FIN_renglones(d.consejo,250-(ft?fw+6:0),ts),h=Math.max(TXT_aj(qn?5:4)+6+r.length*lh,fh+6);
     ctx.fillStyle='rgba(255,224,102,0.12)';ctx.fillRect(26,y,268,h);ctx.fillStyle=FIN_ACENTO;ctx.fillRect(26,y,2,h);
-    txt(TX.caiste.consejo,33,y+2,4,FIN_ACENTO,'left',false);r.forEach((l,i)=>txt(l,33,y+TXT_aj(4)+4+i*lh,ts,'#ffffff','left',false));y+=h+5;}
+    if(ft){ctx.fillStyle='rgba(18,12,24,0.6)';ctx.fillRect(31,y+3,fw+2,h-6);ctx.imageSmoothingEnabled=fk<1;ctx.drawImage(ft,32,Math.round(y+(h-fh)/2),fw,fh);ctx.imageSmoothingEnabled=false;}
+    const hs=qn?5:4;txt(qn?tx(TX.caiste.teGano,{quien:qn}):TX.caiste.consejo,tx0,y+2,hs,FIN_ACENTO,'left',false);r.forEach((l,i)=>txt(l,tx0,y+TXT_aj(hs)+4+i*lh,ts,'#ffffff','left',false));y+=h+5+(qn?1:0);}
   // 2b · la oferta de ayuda (3 muertes en este tramo): ocupa el lugar de la meta
   if(FIN_ofrece()){const h=TXT_aj(6)+TXT_aj(4)+14,yy=y;ctx.fillStyle='rgba(125,255,154,0.10)';ctx.fillRect(26,yy,268,h);ctx.fillStyle='#7dff9a';ctx.fillRect(26,yy,2,h);
     txt(TX.caiste.ofrecerAyuda,33,yy+2,6,'#ffffff','left',false);
@@ -112,11 +121,11 @@ function FIN_caiste(){
   // 4 · dos botones grandes
   const quedan=contQuedan();if(quedan<=0){txt(TX.caiste.sinContinuar,W/2,128,Math.round(7*tk),FIN_ROJO,'center');return;}
   const v=DIFF().lives,fr=FIN_franja(),tot=fr.x1-fr.x0,angosto=tot<220,hechos=PC_mis?PC_mis.tramos.length:0,total=(L.arenas||[]).length;
-  const vuelve=hechos>0&&hechos<total?tx(TX.caiste.alTramo,{t:hechos+1}):TX.caiste.alPrincipio; // CONTINUAR vuelve al último tramo cerrado (partida.js)
+  const vuelve=hechos>0&&hechos<total?tx(TX.caiste.alTramo,{t:hechos+1}):hechos===0&&PC_mis&&PC_mis.mitad?(TX.caiste.alMitad||'a la mitad del tramo 1'):TX.caiste.alPrincipio; // CONTINUAR vuelve al último tramo cerrado, o a la mitad del tramo 1 (partida.js)
   const sub=tx(angosto?TX.caiste.contCorto:TX.caiste.contLargo,{adonde:vuelve,n:levelIdx+1,vidas:txPl(v,TX.palabras.vida,TX.palabras.vidas).toLowerCase(),quedan:quedan===1?TX.caiste.queda1:tx(TX.caiste.quedan,{n:quedan})});
   const w1=Math.round((tot-8)*0.62),w2=tot-8-w1,k1=fr.tactil?null:btn('ok'),k2=fr.tactil?null:btn('back');
   const hb=Math.max(FIN_altoBoton(w1,TX.caiste.continuar,sub,k1),FIN_altoBoton(w2,TX.caiste.terminar,null,k2)),by2=Math.min(Math.max(y+4,116),176-hb); // con TEXTO GRANDE el botón crece
-  FIN_boton(fr.x0,by2,w1,hb,TX.caiste.continuar,sub,k1,FIN_sel===0,()=>{if(overT>30)continuar();},()=>{FIN_sel=0;});
+  FIN_boton(fr.x0,by2,w1,hb,TX.caiste.continuar,sub,k1,FIN_sel===0,()=>{if(overT>30)continuar();},()=>{FIN_sel=0;},'reintentar');
   FIN_boton(fr.x0+w1+8,by2,w2,hb,TX.caiste.terminar,null,k2,FIN_sel===1,()=>{if(overT>30)FIN_terminar();},()=>{FIN_sel=1;});
 }
 function FIN_ayuda(si){
@@ -167,7 +176,7 @@ function FIN_fin(){
   }
   // 4 · botones: OTRA VEZ / MENÚ, y VER DETALLE chico abajo
   const fr=FIN_franja(),x0=fr.tactil?fr.x0:40,x1=fr.tactil?fr.x1:280,bw=(x1-x0-8)/2;
-  FIN_boton(x0,122,bw,22,TX.fin.otraVez,null,fr.tactil?null:btn('ok'),FIN_sel===0,()=>FIN_elegir(0),()=>{FIN_sel=0;});
+  FIN_boton(x0,122,bw,22,TX.fin.otraVez,null,fr.tactil?null:btn('ok'),FIN_sel===0,()=>FIN_elegir(0),()=>{FIN_sel=0;},'reintentar');
   FIN_boton(x0+bw+8,122,bw,22,TX.fin.menu,null,fr.tactil?null:btn('back'),FIN_sel===1,()=>FIN_elegir(1),()=>{FIN_sel=1;});
   const on=FIN_sel===2,lab=FIN_det?TX.fin.ocultarDetalle:TX.fin.verDetalle,lw=txtW(lab,Math.round(5*tk))+12;
   ctx.fillStyle=on?FIN_ACENTO:'rgba(255,255,255,0.08)';ctx.fillRect(W/2-lw/2,152,lw,10);

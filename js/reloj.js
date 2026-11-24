@@ -145,7 +145,7 @@ ON_HUD.push(()=>{
   const tt=JT_fmt(s),lim=m?m.n+' HASTA '+JT_fmt(c[tr]):'SIN MEDALLA',w1=txtW(tt,5),w2=txtW(lim,4),tot=8+w1+4+w2,x0=160-tot/2;
   ctx.fillStyle='rgba(18,12,24,0.7)';ctx.fillRect(x0-3,y-1,tot+6,ta+3);
   // medalla que todavía se puede sacar (late cuando faltan menos de 5 s para perderla)
-  const late=m&&c[tr]-s<5&&(T>>3)%2;
+  const late=m&&c[tr]-s<5; // blanca fija cuando faltan menos de 5 s (no titila: solo el aviso de ataque titila)
   ctx.fillStyle='#120c18';circle(x0+3,y+3,3.4);ctx.fillStyle=m?(late?'#fff':m.col):'#4a3f52';circle(x0+3,y+3,2.6);
   if(m){ctx.fillStyle='rgba(18,12,24,0.35)';ctx.fillRect(x0+2.5,y+1.5,1,3);}
   txt(tt,x0+8,y-0.5,5,m?'#fff':'#aaa','left',false);

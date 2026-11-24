@@ -255,10 +255,16 @@ const TEXTOS={es:{
     ofrecerAyudaSub:'Menos daño · se cambia en PAUSA · el récord va aparte',
     botonAyuda:'AYUDA: MENOS DAÑO',
     continuar:'CONTINUAR',terminar:'TERMINAR',
-    alTramo:'al tramo {t}',alPrincipio:'al principio',
+    alTramo:'al tramo {t}',alMitad:'a la mitad del tramo 1',alPrincipio:'al principio',
     contLargo:'Volvés {adonde} de la misión {n} con {vidas} y la mitad de los puntos · {quedan}',
     contCorto:'Misión {n}, {adonde} · {vidas} · mitad de los puntos · {quedan}',
     queda1:'queda 1 vez',quedan:'quedan {n} veces',
+    // quién te ganó (prueba con personas: el consejo nombra lo que te mató, con su dibujo chico). Código lo agregó; Textos lo puede pulir
+    teGano:'TE GANÓ: {quien}',
+    quien:{soldier:'UN SOLDADO',grenadier:'UN GRANADERO',shield:'EL DEL ESCUDO',rocket:'EL DEL LANZACOHETES',drone:'UN DRON',turret:'UNA TORRETA',
+      endo:'UN ROBOT DE CHATARRA',endoG:'EL ROBOT GRANDE',stalker:'EL CAZADOR',bat:'UN MURCIÉLAGO',escarabajo:'UN ESCARABAJO',mudling:'UN BICHO DEL BARRO',
+      momia:'UNA MOMIA',vigia:'EL VIGÍA',brote:'UN BROTE',garra:'LA GARRA',m7Bicho:'UN BICHO',m10Vibora:'UNA VÍBORA',m9Sabana:'UNA SÁBANA',m9Farol:'UN FAROL',
+      bullet:'UNA BALA',egren:'UNA GRANADA',bomb:'UNA BOMBA',fuego:'EL FUEGO',mud:'EL BARRO',onda:'LA ONDA',perdigon:'UN PERDIGÓN',ecohete:'UN COHETE',shell:'UN OBÚS'},
   },
 
   // ---------- FIN DEL JUEGO (fin.js) ----------

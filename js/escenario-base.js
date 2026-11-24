@@ -99,7 +99,7 @@ function ESC_normalizar(def){
     oscPersonajes:def.oscPersonajes??0.35,semilla:def.semilla||1,paso:def.paso||'fino',
     luzPersonajes:def.luzPersonajes||null,sombra:def.sombra||'#05040c',piso:def.piso||null,decor:def.decor||null,
     plat:def.plat||null,cobertura:def.cobertura||null,tunelFrente:def.tunelFrente||null,caja:def.caja||null,bajo:def.bajo||null,
-    extras:def.extras||null,halosAltos:def.halosAltos||null,extrasNivel:null,extrasPartida:-1,sprites:new Map()};
+    extras:def.extras||null,halosAltos:def.halosAltos||null,oscPiso:def.oscPiso,extrasNivel:null,extrasPartida:-1,sprites:new Map()};
   (def.capas||[]).forEach((c,i)=>{
     const cielo=!!c.cielo,par=c.par??(cielo?0:0.5),y=c.y??0;
     d.capas.push({i,id:c.id||'capa'+i,cielo,par,parY:c.parY??par,ancho:c.ancho||W,y,alto:c.alto||Math.max(1,GROUND-y),
@@ -463,7 +463,7 @@ if(typeof drawCover==='function'){const ESC_cob0=drawCover;drawCover=function(){
   try{if(ESC_activo()){const d=ESC_def();ESC_ambTick(d);const a=ESC.amb;
     if(a.oscuridad>0.01){
       if(ESC.oscFondo&&ESC.oscCam){ // el fondo ya se oscureció detrás de la bruma: acá solo el piso
-        ctx.save();ctx.beginPath();ctx.rect(camX-4,GROUND,VW+8,VH+8);ctx.clip();ESC_oscPintar(ESC_oscAlfas(d,a)[0]);ctx.restore();}
+        ctx.save();ctx.beginPath();ctx.rect(camX-4,GROUND,VW+8,d.oscPiso??(VH+8));ctx.clip(); /* oscPiso: hasta dónde baja la oscuridad del piso (M2: solo el muelle, no el agua de abajo) */ESC_oscPintar(ESC_oscAlfas(d,a)[0]);ctx.restore();}
       else{ESC.oscCam=null;const vis=ESC_enVista(ESC_lucesNivel(d).concat(ESC.temp),60);ESC_oscArmar(vis,a);ESC_oscPintar(ESC_oscAlfas(d,a)[0]);}}}}catch(e){console.warn('escenario: oscuridad',e);}
   return r;};}
 // después de los jugadores y antes de granadas y balas: primer plano, un poco de oscuridad sobre los personajes y luces

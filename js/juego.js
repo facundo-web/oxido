@@ -55,10 +55,42 @@ function setBanner(s,t){const pr=prioCartel(s);
   if(typeof DIB_jefeRef!=='undefined'&&DIB_jefeRef&&s===DIB_jefeRef.name)return; // el nombre del jefe ya está en su cartel (dibujito.js)
   if(banner&&banner.t>0&&(banner.prio||1)>pr&&typeof MO_fila!=='undefined'){MO_fila.push(['b',s,t]);return;} // espera al aviso de ataque
   if(pr<4&&typeof MO_guarda==='function'&&MO_guarda('b',s,t))return;
+  // recompensas (prueba con personas: competían con el peligro y no se entendía qué te sacó la vida): de a UNA y
+  // nunca con una amenaza cerca; esperan en su fila (AV_fila) y salen cuando se calma
+  if(pr<4&&AV_esPremio(s)&&!AV_soltando&&(AV_amenaza()||(banner&&banner.t>0&&banner.max-banner.t<40))){AV_guardar(s,t);return;}
   banner={s,t,max:t,prio:pr};}
+// ---------- amenaza cerca: aviso de ataque, jefe peleando, balas o enemigos encima de un jugador ----------
+function AV_amenaza(){
+  if(state!=='play')return false;
+  if(banner&&banner.t>0&&banner.prio>=4)return true;
+  const b=bossRef;if(b&&!b.gone&&b.hp>0&&b.state!=='enter'&&b.state!=='dying'&&(typeof bossShown!=='function'||bossShown()))return true;
+  for(const p of players){if(p.dead)continue;const o=p.ride||p,cx=o.x+(o.w||8)/2,cy=o.y+(o.h||18)/2;
+    for(const q of eproj)if(q&&!q.gone&&Math.abs(q.x-cx)<90&&Math.abs(q.y-cy)<60)return true;
+    for(const e of enemies)if(!e.gone&&!e.dying&&!e.inPractica&&Math.abs(e.x+(e.w||10)/2-cx)<56&&Math.abs(e.y+(e.h||16)/2-cy)<44)return true;}
+  return false;}
+// lo que es premio (espera); lo que informa del peligro o de volver a jugar no espera
+const AV_esPremio=s=>!/ESCUDO ROTO|DE NUEVO|SIN VIDAS|VUELVE|DESPEJADA|ADELANTE|CONTINUACI/i.test(s);
+// ---------- II de pausa en la computadora (feedback de la prueba con personas: no se podía pausar con el mouse) ----------
+// Jugando, si se mueve el mouse aparecen el cursor y un II chico arriba a la izquierda (donde va el de táctil), debajo de
+// la fila de BAJAS para no tapar el HUD. Se esconde a los 2 s sin movimiento (no mientras está el mouse encima). Clic = pausa.
+function PAU_botonII(){
+  const vis=state==='play'&&!onTouch()&&typeof RA_m!=='undefined'&&RA_m.mov!=null&&(T-RA_m.mov<120||(RA_m.x>=2&&RA_m.x<=24&&RA_m.y>=30&&RA_m.y<=70));
+  const ds=vis?'1':'';if(document.body.dataset.mouse!==ds)document.body.dataset.mouse=ds; // con el II se ve el cursor (index.html)
+  if(!vis)return;const hr=typeof HUD_reloj!=='undefined'?HUD_reloj:{y:31,k:1},s=TXT_aj(6)+7,y=Math.round(hr.y+7*(hr.k||1)+5);
+  botonUI(6,y,s,s,'II',null,{size:6,nombre:'pausa',clic:()=>{pressed.pause=true;}});
+}
+ON_HUD.push(PAU_botonII);
+const AV_fila=[];let AV_soltando=false;
+function AV_guardar(s,t){if(AV_fila.some(f=>f.s===s))return;AV_fila.push({s,t,t0:T});if(AV_fila.length>3)AV_fila.shift();}
+ON_START.push(()=>{AV_fila.length=0;});
+ON_STEP.push(()=>{
+  for(let i=AV_fila.length-1;i>=0;i--)if(T-AV_fila[i].t0>480)AV_fila.splice(i,1); // pasaron 8 s: ya no viene al caso (el HUD ya lo muestra)
+  if(!AV_fila.length||state!=='play'||(banner&&banner.t>0)||AV_amenaza())return;
+  const f=AV_fila.shift();AV_soltando=true;try{setBanner(f.s,f.t);}finally{AV_soltando=false;}
+});
 // hay un cartel importante en el centro (aviso de ataque o entrada de jefe): lo demás espera
 // uno por vez (guía de arte §7): las medallas esperan también a cualquier aviso de arriba y a la tarjeta de tramo
-const cartelOcupado=()=>!!((banner&&banner.t>0)||(typeof PC_aviso!=='undefined'&&PC_aviso)||(typeof PC_cartel!=='undefined'&&PC_cartel)||(state==='play'&&typeof AY_OBJ_T!=='undefined'&&T<AY_OBJ_T)||(typeof DIB_jefe!=='undefined'&&DIB_jefe&&DIB_jefe.t<150)||(typeof HIST_pops!=='undefined'&&HIST_pops.length&&HIST_pops[0].t0)||(typeof HIS!=='undefined'&&HIS.sueltos.length>0)); // y al logro que se está mostrando; y a la frase suelta de un personaje (el villano al caer: Guion)
+const cartelOcupado=()=>!!((banner&&banner.t>0)||(typeof PC_aviso!=='undefined'&&PC_aviso)||(typeof PC_cartel!=='undefined'&&PC_cartel)||(state==='play'&&typeof AY_OBJ_T!=='undefined'&&T<AY_OBJ_T)||(typeof DIB_jefe!=='undefined'&&DIB_jefe&&DIB_jefe.t<150)||(typeof HIST_pops!=='undefined'&&HIST_pops.length&&HIST_pops[0].t0)||(typeof HIS!=='undefined'&&HIS.sueltos.length>0)||AV_amenaza()); // y con una amenaza cerca, las medallas y premios esperan (prueba con personas) // y al logro que se está mostrando; y a la frase suelta de un personaje (el villano al caer: Guion)
 // devuelve el aviso (aunque espere en la fila), así quien lo llama puede sumarle datos (medallas.js: lvl, ico)
 function toast(title,sub,col){const o={title,sub,col,t:170};if(typeof MO_guarda==='function'&&MO_guarda('t',o))return o;toasts.push(o);return o;}
 function saveRecord(){
@@ -370,9 +402,13 @@ function GN_componer(){
 function drawPause(){
   const pad=onPad();
   dim(0.6);txt(TX.pausa.titulo,W/2,30,16,'#fff','center');
-  zona(W/2-110,50,108,11,{clic:()=>{pressed.pause=true;}});zona(W/2+2,50,108,11,{clic:()=>{pressed.quit=true;}}); // mouse: seguir · salir
-  if(!onTouch())txt(TX.pausa.controles,34,61,4,'#f3c969','left',false);
-  txt(onTouch()?tx(TX.pausa.pieTactil,{ok:btn('ok')}):tx(TX.pausa.pie,{seguir:btn('opt'),salir:btn('quit')}),W/2,52,6,'#ddd','center'); // una sola plantilla (textos.js), con los botones del control que se usa
+  if(!onTouch())txt(TX.pausa.controles,34,63,4,'#f3c969','left',false);
+  // SEGUIR y SALIR AL MENÚ son botones de verdad (prueba con personas), con la tecla del control que se usa adentro;
+  // las palabras salen de la misma plantilla de textos.js (TX.pausa.pie: "{seguir} SEGUIR · {salir} SALIR AL MENÚ")
+  {const [s1,s2]=TX.pausa.pie.split('·').map(s=>s.replace(/\{\w+\}/g,'').trim()),t=onTouch(),k1=t?null:btn('opt'),k2=t?null:btn('quit'),
+    bh=TXT_aj(6)+5,w1=botonW(s1,k1,6)+6,w2=botonW(s2,k2,6); // uno a cada lado del centro
+   botonUI(Math.round(W/2-3-w1),49,w1,bh,s1,k1,{on:true,clic:()=>{pressed.pause=true;}});
+   botonUI(Math.round(W/2+3),49,w2,bh,s2,k2,{clic:()=>{pressed.quit=true;}});}
   {const G=PAU_geo(),h=Math.min(90,G.y0-3-67-(typeof AYUDAS_on==='function'&&AYUDAS_on()?8:0)); // la tarjeta termina arriba de la franja (y del aviso de ayudas)
    if(G.lb){ctx.fillStyle='rgba(18,12,24,0.85)';ctx.fillRect(26,64,268,h+5);} // en táctil la tarjeta es transparente: que no se vean los carteles del piso
    CTRL_dibujar(28,67,264,h);} // el control dibujado (controles.js, de Arte)
@@ -382,8 +418,8 @@ function drawPause(){
     txt(back?tx(TX.pausa.joyVolvioSub,{seguir:btn('opt',{i:padLostIdx})}):(p2?TX.pausa.joy2FueraSub:TX.pausa.joyFueraSub),W/2,162,5,'#ddd','center',false);}
   // introducción jugable: OMITIR (con el joystick es la única forma)
   // (en táctil no: Publicación tiene su propio botón OMITIR INTRO, y ○ en la pausa es seguir). Arriba del título PAUSA.
-  if(typeof IN_activa==='function'&&IN_activa()&&!onTouch()){const s='OMITIR INTRODUCCIÓN: '+btn('bomb'),h=TXT_aj(6)+5,w=hudTW(s,6)+12,y=Math.max(2,28-h);ctx.fillStyle='rgba(18,12,24,0.92)';ctx.fillRect(W/2-w/2,y,w,h);ctx.fillStyle='#f3c969';ctx.fillRect(W/2-w/2,y,w,1);
-    txt(s,W/2,y+2.5,6,'#ffe08a','center',false);zona(W/2-w/2,y,w,h,{clic:()=>{state='play';IN_omitir();}});}
+  if(typeof IN_activa==='function'&&IN_activa()&&!onTouch()){const s='OMITIR INTRODUCCIÓN',k=btn('bomb'),h=TXT_aj(6)+5,w=botonW(s,k,6),y=Math.max(2,28-h);
+    botonUI(Math.round(W/2-w/2),y,w,h,s,k,{clic:()=>{state='play';IN_omitir();}});}
   // △ (o Y, o X) dos veces sale al menú: el aviso nombra el botón del joystick que lo apretó
   if(quitArm>0&&!onTouch()&&(T>>3)%2===0)txt(tx(TX.pausa.confirmarSalir,{salir:btn('quit',pad||onTouch()?undefined:'pad')}),W/2,padLost?141:150,7,'#ff8a7a','center');
 }

@@ -70,6 +70,10 @@ const IN_ARTE={
   // 2 · caja de práctica en un hueco del muro (el muro sube hasta arriba de la pantalla)
   caja(o){
     IA_muro(o.muro,Math.round(o.y));
+    if(o.rota){ // rota: el hueco queda libre; solo astillas chatas en el piso (nada que parezca pared ni caja)
+      const c=IA_lienzo('caja-rota',18,20,()=>[
+        ['r','#8a5a2a',0,18,5,2],['r','#b07a3a',6,19,6,1],['r','#6a4220',13,18,5,2],['d','#d8a060',[[2,18],[8,19],[15,18]]],['r','#f4e7c6',10,18,2,1]]);
+      IA_pon(c,o.x,o.y);return;}
     const ab=Math.max(0,3-Math.round(o.hp??3)),fl=o.flash>0;
     const c=IA_lienzo('caja'+ab,18,20,()=>{const op=[
       ['r','#8a5a2a',0,0,18,20],['r','#b07a3a',1,1,16,18],
@@ -116,8 +120,8 @@ const IN_ARTE={
     const t=IA_T();
     if(o.rota){
       const c=IA_lienzo('barr-rota',20,24,()=>[
-        ['p','#3a3c48',[[0,24],[3,17],[8,19],[12,15],[17,18],[20,24]]],['l','#8a4a2a',2,22,10,14],['l','#5c5f70',9,23,18,16],
-        ['r','#7d8794',4,20,3,2],['r','#8a6a3a',13,21,4,2]]);
+        ['p','#3a3c48',[[0,24],[4,21],[9,22],[13,20],[17,22],[20,24]]],['l','#8a4a2a',2,23,10,21],['l','#5c5f70',9,23,18,21], // restos chatos: se ve que se pasa
+        ['r','#7d8794',4,22,3,1],['r','#8a6a3a',13,22,4,1]]);
       IA_pon(c,o.x,o.y);
       if((t>>2)%3===0){ctx.fillStyle='rgba(110,104,112,0.6)';ctx.fillRect(Math.round(o.x+8+Math.sin(t/7)*2),Math.round(o.y+12-(t%30)/3),3,3);}
       return;}

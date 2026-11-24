@@ -141,7 +141,7 @@ ON_STEP.push(()=>{
   // trabado: tiempo cerca de la parada sin lograrla (lo que se intenta lo reinicia a medias)
   const p1=players.find(p=>!p.dead)||players[0];
   if(paso<6&&IN_cerca(paso,p1))IN.espera++;
-  if(paso===1&&Math.abs(p1.vx||0)<0.1&&p1.x<70)IN.quieto++;else IN.quieto=0;
+  if(paso===1&&Math.abs(p1.vx||0)<0.1&&p1.x<70&&!IN_hayOtraCosa())IN.quieto++;else IN.quieto=0; // mientras lee un cartel no cuenta como trabado
   // balas contra la caja, la barricada, los blancos y los muros
   for(const b of pbul){if(b.gone)continue;
     const c=o.caja;
@@ -162,7 +162,7 @@ ON_STEP.push(()=>{
   // animaciones
   if(o.caja.flash>0)o.caja.flash--;if(o.barr.golpe>0)o.barr.golpe=Math.max(0,o.barr.golpe-0.08);
   for(const t of o.blancos){if(t.golpe>0)t.golpe=Math.max(0,t.golpe-0.1);if(t.caido>0&&t.caido<1)t.caido=Math.min(1,t.caido+0.06);}
-  if(o.dron.gone&&o.porton.abre<1)o.porton.abre=Math.min(1,o.porton.abre+0.025);
+  if(o.dron.gone&&o.porton.abre<1){if(o.porton.abre===0)IN_polvo(o.porton.x-4,GROUND-6,o.porton.w+8,4,8);o.porton.abre=Math.min(1,o.porton.abre+0.025);} // polvo al despegar del piso
   if(o.blancos.length&&o.blancos.every(t=>t.caido>=0.5)&&o.reja.abre<1){if(o.reja.abre===0)IN_suena('reja');o.reja.abre=Math.min(1,o.reja.abre+0.025);}
   for(const z of o.piezas){z.vy+=0.2;z.x+=z.vx;z.y+=z.vy;z.r+=z.vr;if(z.y>GROUND-2){z.y=GROUND-2;z.vy*=-0.3;z.vx*=0.6;z.vr*=0.5;}z.t++;}
   o.piezas=o.piezas.filter(z=>z.t<160);
@@ -206,12 +206,16 @@ function IN_suena(q){
   if(q==='reja'){noise(0.25,0.1,700);tone('square',200,120,0.2,0.04);}
   if(q==='senal'){[0,180].forEach(dt=>later(dt,()=>{tone('square',880,880,0.12,0.04);later(90,()=>tone('square',660,660,0.12,0.04));}));}
 }
-function IN_rompeCaja(){const c=IN.o.caja;c.rota=true;SFX.down();if(typeof COMIC!=='undefined')try{COMIC.efecto('crash',{x:c.x+c.w/2,y:c.y});}catch(e){}
-  for(let i=0;i<10;i++)IN.o.piezas.push({x:c.x+c.w/2,y:c.y+c.h/2,vx:rand(-2,2),vy:rand(-3,-0.5),r:0,vr:rand(-0.3,0.3),t:0,col:i%2?'#9a6a3a':'#6e4824'});}
+// se rompe A LA VISTA (prueba con personas: la caja quedaba dibujada y parecía cerrada): tablas que saltan, polvo y el hueco libre
+function IN_polvo(x,y,w,h,n,col){for(let i=0;i<n;i++)parts.push({k:'p',x:x+Math.random()*w,y:y+Math.random()*h,vx:rand(-0.7,0.7),vy:rand(-0.9,-0.1),g:-0.004,life:44,maxl:44,size:3,col:col||(i%2?'rgba(150,130,110,0.7)':'rgba(120,104,92,0.6)')});}
+function IN_rompeCaja(){const c=IN.o.caja;c.rota=true;SFX.down();noise(0.2,0.25,900);kick(0,0.6);if(typeof COMIC!=='undefined')try{COMIC.efecto('crash',{x:c.x+c.w/2,y:c.y});}catch(e){}
+  for(let i=0;i<14;i++)IN.o.piezas.push({x:c.x+3+Math.random()*(c.w-6),y:c.y+3+Math.random()*(c.h-6),vx:rand(0.4,2.6)*(i%3?1:-0.6),vy:rand(-3.4,-0.8),r:0,vr:rand(-0.4,0.4),t:0,w:i%3?3:6,col:i%3===0?'#b07a3a':i%2?'#9a6a3a':'#6e4824'});
+  IN_polvo(c.x,c.y+4,c.w,c.h-4,10);}
 function IN_caeDron(d){SFX.hit();tone('square',900,200,0.3,0.04);explodeFx(d.x+d.w/2,d.y+d.h/2,8);
   for(let i=0;i<6;i++)IN.o.piezas.push({x:d.x+7,y:d.y+5,vx:rand(-1.5,1.5),vy:rand(-2,0),r:0,vr:rand(-0.3,0.3),t:0,col:i%2?'#7d8794':'#d9a43a'});IN_suena('reja');}
 function IN_rompeBarr(){const r=IN.o.barr;r.rota=true;if(typeof COMIC!=='undefined')try{COMIC.efecto('crash',{x:r.x+r.w/2,y:r.y});}catch(e){}
-  for(let i=0;i<12;i++)IN.o.piezas.push({x:r.x+r.w/2,y:r.y+r.h/2,vx:rand(-2.5,2.5),vy:rand(-3.5,-0.5),r:0,vr:rand(-0.4,0.4),t:0,col:i%3?'#5a3a22':'#9aa0a8'});}
+  for(let i=0;i<14;i++)IN.o.piezas.push({x:r.x+3+Math.random()*(r.w-6),y:r.y+3+Math.random()*(r.h-6),vx:rand(-1.2,2.8),vy:rand(-3.5,-0.8),r:0,vr:rand(-0.4,0.4),t:0,w:i%3?3:6,col:i%3?'#5a3a22':'#9aa0a8'});
+  IN_polvo(r.x,r.y+4,r.w,r.h-4,12);}
 
 // ================== dibujo (de Arte si está IN_ARTE; si no, el de respaldo) ==================
 const IN_art=n=>typeof IN_ARTE!=='undefined'&&IN_ARTE&&typeof IN_ARTE[n]==='function'?IN_ARTE[n]:null;
@@ -228,7 +232,7 @@ ON_DRAW.push(()=>{
   dib('senal',o.senal,IN_dibSenal);
   // el cable del dron al portón
   const d=o.dron;if(d&&!d.gone&&!IN_art('dron')){ctx.strokeStyle='#2a2a30';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(d.x+d.w/2,d.y+d.h);ctx.quadraticCurveTo((d.x+o.porton.x)/2+6,d.y+30,o.porton.x+7,GROUND-70);ctx.stroke();}
-  for(const z of o.piezas){ctx.fillStyle=z.col;ctx.save();ctx.translate(z.x,z.y);ctx.rotate(z.r);ctx.fillRect(-1.5,-1,3,2);ctx.restore();}
+  for(const z of o.piezas){const w=z.w||3;ctx.save();ctx.translate(z.x,z.y);ctx.rotate(z.r);ctx.fillStyle=IN_K;ctx.fillRect(-w/2-0.5,-1.5,w+1,3);ctx.fillStyle=z.col;ctx.fillRect(-w/2,-1,w,2);ctx.restore();}
 });
 function IN_dibOb(b){ // pila de neumáticos
   for(const[dx,dy]of[[0,7],[11,7],[5.5,0]]){const x=b.x+dx,y=b.y+dy;ctx.fillStyle=IN_K;ctx.fillRect(x-0.5,y-0.5,12,8);ctx.fillStyle='#2a2a30';ctx.fillRect(x,y,11,7);
@@ -287,15 +291,14 @@ function IN_dibDron(d){
 
 // ================== HUD: omitir, la teclita cuando alguien se traba y los fundidos ==================
 // rectángulo del botón OMITIR (para el táctil de Publicación: window.OXIDO_INTRO.rect())
-function IN_rectOmitir(){const s=IN_txtOmitir(),w=Math.ceil(txtW(s,4))+10;return{x:W/2-w/2,y:20,w,h:9};}
+function IN_rectOmitir(){const k=IN_teclaOmitir(),w=botonW('OMITIR',k,5);return{x:Math.round(W/2-w/2),y:20,w,h:TXT_aj(5)+5};}
 function IN_txtOmitir(){return onTouch()?'OMITIR':onPad()?'OMITIR: PAUSA '+btn('opt'):'OMITIR: '+btn('start');}
+const IN_teclaOmitir=()=>onTouch()?null:onPad()?btn('opt'):btn('start'); // la tecla va adentro del botón, en chico
 ON_HUD.push(()=>{
   if(IN.fadeIn>0){ctx.fillStyle=`rgba(0,0,0,${(IN.fadeIn/14).toFixed(3)})`;cubrir();}
   if(!IN.activa||state!=='play'||!IN.o)return;
   // OMITIR, chico, arriba al centro (clic o toque)
-  const r=IN_rectOmitir();ctx.fillStyle='rgba(18,12,24,0.75)';ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeStyle='#5a4a60';ctx.lineWidth=0.5;ctx.strokeRect(r.x+0.25,r.y+0.25,r.w-0.5,r.h-0.5);
-  txt(IN_txtOmitir(),W/2,r.y+2,4,'#b9adc8','center',false);
-  if(typeof zona==='function')zona(r.x,r.y,r.w,r.h,{clic:IN_omitir});
+  const r=IN_rectOmitir();botonUI(r.x,r.y,r.w,r.h,'OMITIR',IN_teclaOmitir(),{size:5,clic:IN_omitir,nombre:'omitir'}); // botón de verdad (prueba con personas)
   // la teclita del que se trabó: una sola, al lado del objeto
   const pista=IN_pista();
   if(pista){const k=Math.min(1,(IN.espera-IN_ESPERA)/20),bob=Math.round(Math.sin(T/8)*1.2);ctx.globalAlpha=k;
@@ -305,10 +308,11 @@ ON_HUD.push(()=>{
   if(IN.fade){ctx.fillStyle=`rgba(0,0,0,${(IN.fade/14).toFixed(3)})`;cubrir();}
 });
 const IN_ESPERA=240; // ~4 s trabado en una parada
+const IN_hayOtraCosa=()=>typeof cartelOcupado==='function'&&cartelOcupado(); // con un cartel en pantalla la teclita espera (no compiten)
 function IN_pista(){
   const o=IN.o,simple=typeof simpleDe==='function'&&simpleDe(0);
-  if(IN.paso===1&&IN.quieto>150)return{x:players[0].x+20,y:players[0].y-4,k:['→']};
-  if(IN.espera<IN_ESPERA)return null;
+  if(IN.paso===1&&IN.quieto>IN_ESPERA)return{x:players[0].x+20,y:players[0].y-4,k:['→']}; // como las demás: ~4 s quieto, no antes
+  if(IN.espera<IN_ESPERA||IN_hayOtraCosa())return null;
   switch(IN.paso){
   case 1:return{x:o.ob.x+o.ob.w/2,y:o.ob.y-12,k:[btn('jump',0)]};
   case 2:return{x:o.caja.x+o.caja.w/2,y:o.caja.y-12,k:[btn('shoot',0)]};

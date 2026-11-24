@@ -62,8 +62,12 @@ const VH_tam=i=>i===9&&!VH_artMonta()?VH_MONTA:AV_TAM[i];
 const VH_mult=m=>1+0.35*(((m&&m.lvl)||1)-1); // daño por nivel de fusión
 
 // ---------- cada misión con su vehículo ----------
+// 23 nov: Facu decidió quedarse con 3 vehículos (CHATARRA, uno con ruedas y uno que vuela de verdad). Los 9 de abajo
+// quedan RETIRADOS del juego: VH_ACTIVOS vacío = todas las misiones con la CHATARRA, como antes. El código sigue acá y
+// guardado en notas/mecanicas/archivo/vehiculos-9-v1.js y en el historial git; se reemplaza cuando estén los 2 nuevos.
+const VH_ACTIVOS=[];
 function VH_preparar(m,i){
-  if(!VH_ON()||!i||!AV_TAM[i]||m.tipo===i)return;
+  if(!VH_ON()||!i||!AV_TAM[i]||m.tipo===i||!VH_ACTIVOS.includes(i))return;
   const t=VH_tam(i),b=m.y+m.h;m.tipo=i;m.w=t.w;m.h=t.h;m.y=b-m.h;m.vhv=0;m.vhF=0;m.vhAtk=0;m.vhAlt=0;m.vhBase=b;
 }
 ON_START.push(()=>{

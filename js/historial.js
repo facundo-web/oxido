@@ -340,7 +340,9 @@ function histDrawPops(top=20,below=false,bot=false){ // bot: top es el borde de 
   const p=HIST_pops[0],now=performance.now();
   // en la pausa no se dibuja (se pisaba con el título) y el reloj del aviso queda quieto: sale al seguir
   // con un aviso de arriba encima, igual (uno por vez): se esconde y sigue cuando se va
-  if(state==='pause'||(state==='play'&&banner&&banner.t>0)){if(p.t0)p.t0+=now-(p.lp||now);p.lp=now;return;}
+  // (también bajo el cartel de VUELTA / CONTINUACIÓN, que descuenta solo: Pruebas vio 66 cuadros con los dos a la vez en M6.
+  // NO bajo el cartel de tramo (PC_aviso): ese ya espera a un logro arrancado (PC_espera, partida.js) y se trababan los dos)
+  if(state==='pause'||(state==='play'&&((banner&&banner.t>0)||(typeof PC_cartel!=='undefined'&&PC_cartel)))){if(p.t0)p.t0+=now-(p.lp||now);p.lp=now;return;}
   p.lp=now;if(!p.t0)p.t0=now;
   const e=(now-p.t0)/1000,DUR=3.4;if(e>DUR){HIST_pops.shift();return;}
   // en letra pixel, en el lugar de los avisos (below: entra desde abajo, en las pantallas de logros y récords)
