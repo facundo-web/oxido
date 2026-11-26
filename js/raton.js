@@ -28,6 +28,7 @@ cv.addEventListener('pointerleave',()=>{cv.style.cursor='';RA_sobre=null;RA_m.x=
 cv.addEventListener('pointerdown',e=>{
   if(e.pointerType!=='mouse'||e.button!==0)return;
   const pm=RA_pos(e);RA_m.x=pm.x;RA_m.y=pm.y;RA_m.abajo=true;
+  if(typeof AP!=='undefined'&&AP.on)return; // escena de apertura (oliver.js): el clic solo la saltea; no aprieta nada de abajo (el OMITIR de la intro seguía activo: Pruebas)
   // el clic se busca con un margen de 2 unidades (los bordes de un botón chico también cuentan) y responde al apretar,
   // nunca espera al segundo clic: ni el desbloqueo del sonido (audioInit) ni el foco se lo comen
   const z=RA_buscar(pm)||RA_buscarCerca(pm);if(!z)return;

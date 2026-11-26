@@ -208,6 +208,7 @@ function PL_cutHead(b,h){
 // rugido + crecimiento al pasar de fase: le sale otra cabeza y vuelven las cortadas
 function PL_grow(b){
   b.phase++;b.grow=90;b.scT=1+0.14*b.phase;
+  pickups.push({kind:'C',x:b.cx-5,y:GROUND-PL_bodyH(b)-14,w:10,h:10,vy:-3.2,life:900,eco:1}); // un corazón que cae entre fases (feedback de 2 jugadores)
   setBanner(b.phase===1?'¡LE CRECE OTRA CABEZA!':'¡ESTÁ FURIOSA!',90);PL_sfx('roar');shake=Math.max(shake,6);
   for(const h of b.heads){if(h.mode==='cut'){h.mode='emerge';h.len=0;h.cutT=0;}else if(h.mode!=='emerge'){h.mode='roar';h.mt=0;}}
   const nh=PL_newHead(b,b.heads.length);nh.mode='wait';nh.mt=-30;b.heads.push(nh);
@@ -454,7 +455,13 @@ function PL_updPlanta(b){
     return;}
   // --- pelea ---
   // el bulbo acorazado recibe menos daño (más si quedó abierto)
-  if(b.hp<b.lastHp){const d=b.lastHp-b.hp;b.hp=b.lastHp-d*(b.exposed?1.5:0.6);if(b.hp<=0){b.hp=0;b.lastHp=0;kill(b);return;}}
+  // Que se entienda sin leer (feedback de 2 jugadores): con la flor cerrada los tiros al centro REBOTAN a la vista (chispa
+  // gris, sonido metálico, sin el destello de "pegó"); el daño es el mismo de siempre (no se toca la dificultad)
+  if(!b.exposed)b._sonT=T+2; // calla el sonido de "pegó" de dmg() mientras está cerrada
+  if(b.hp<b.lastHp){const d=b.lastHp-b.hp;b.hp=b.lastHp-d*(b.exposed?1.5:0.6);if(b.hp<=0){b.hp=0;b.lastHp=0;kill(b);return;}
+    if(!b.exposed){b.flash=0;const sx=b.cx+rand(-12,12)*b.sc,sy=GROUND-PL_bodyH(b)*rand(0.45,0.95);
+      for(let i=0;i<4;i++)parts.push({k:'p',x:sx,y:sy,vx:rand(-1.8,1.8),vy:rand(-2.2,-0.3),g:0.16,life:14,maxl:14,size:1,col:i%2?'#c8ccd4':'#8a8e9a'});
+      if(T-(b._tin||-9)>=6){b._tin=T;try{tone('square',1900,1500,0.05,0.03);tone('triangle',2900,2300,0.07,0.02);}catch(e){}}}}
   b.lastHp=b.hp;
   if(b.phase===0&&b.hp<b.max*0.66||b.phase===1&&b.hp<b.max*0.33)PL_grow(b);
   for(const h of b.heads)if(!h.cutMax)h.cutMax=Math.round(34*DIFF().ehp);
@@ -578,3 +585,14 @@ function PL_drawPlanta(b){
 
 // ===== registro en BOSSES (misión 3 = índice 2) =====
 BOSSES[2]={mini:{name:'CHAPALEADOR',make:PL_mkHover},villain:{name:'MADRE YUYO',make:PL_mkPlanta}};
+
+// ---------- las cabezas son el punto débil: se marcan con una mira dorada que late (feedback de 2 jugadores) ----------
+// Solo las que se pueden cortar (con su caja de golpe) y mientras la flor está cerrada: "tirá acá" sin leer nada.
+ON_DRAW.push(()=>{
+  const b=typeof bossRef!=='undefined'&&bossRef;if(!b||b.type!=='plPlanta'||b.gone||b.state!=='fight'||b.exposed)return;
+  const red=typeof MOV_reducido==='function'&&MOV_reducido(),k=red?0.5:0.5+0.5*Math.sin(T/7),r=10+Math.round(k*2),L=4;
+  for(const h of b.heads){if(!h.box||h.box.gone||h.mode==='cut')continue;const an=h.ang??-Math.PI/2,cx=Math.round(h.x+Math.cos(an)*10),cy=Math.round(h.y-9); // centrada en el dibujo de la cabeza (queda adelante y arriba del punto de la caja)
+    if(typeof LUZ_halo==='function')LUZ_halo(cx,cy,12,'#ffd070',0.18+0.22*k);
+    ctx.fillStyle=k>0.5?'#fff0b0':'#ffd070';
+    for(const[sx,sy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){const x=cx+sx*r,y=cy+sy*r;ctx.fillRect(sx<0?x:x-L+1,y,L,1);ctx.fillRect(x,sy<0?y:y-L+1,1,L);}}
+});

@@ -27,7 +27,9 @@ function HIST_num(v,d){const n=typeof v==='number'?v:typeof v==='string'&&v.trim
 // mayúsculas sin tildes (la Ñ se queda)
 function HIST_plain(s){return String(s==null?'':s).toUpperCase().replace(/Ñ/g,'#').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/#/g,'Ñ');}
 function HIST_cleanName(s){return HIST_plain(s).split('').filter(c=>HIST_ABC.includes(c)).join('').slice(0,HIST_NLEN);}
-function HIST_cleanChars(a){return Array.isArray(a)?a.filter(c=>typeof c==='string'&&c).slice(0,2).map(c=>c.slice(0,10)):[];}
+// JOSE va sin acento (es de Josefina): lo guardado con el nombre viejo se lee igual
+const HIST_nomChar=c=>c==='JOS\u00c9'?'JOSE':c;
+function HIST_cleanChars(a){return Array.isArray(a)?a.filter(c=>typeof c==='string'&&c).slice(0,2).map(c=>HIST_nomChar(c.slice(0,10))):[];}
 function HIST_cleanRec(r){
   if(!r||typeof r!=='object')return null;
   const score=HIST_num(r.score,-1);if(score<0)return null;
@@ -47,7 +49,7 @@ function HIST_sanitize(d){
   if(Array.isArray(d.recordsAy)){h.recordsAy=[];for(const r of d.recordsAy){const c=HIST_cleanRec(r);if(c){c.ay=true;h.recordsAy.push(c);}}h.recordsAy.sort((a,b)=>b.score-a.score);h.recordsAy.length=Math.min(h.recordsAy.length,HIST_MAX);} // con ayudas
   const t=d.totals&&typeof d.totals==='object'?d.totals:{};
   for(const k in h.totals)if(k!=='chars')h.totals[k]=HIST_num(t[k],0);
-  h.totals.chars=Array.isArray(t.chars)?[...new Set(t.chars.filter(c=>typeof c==='string'&&c).map(c=>c.slice(0,10)))].slice(0,12):[];
+  h.totals.chars=Array.isArray(t.chars)?[...new Set(t.chars.filter(c=>typeof c==='string'&&c).map(c=>HIST_nomChar(c.slice(0,10))))].slice(0,12):[];
   return h;
 }
 function HIST_write(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
@@ -85,7 +87,7 @@ const HIST_LOGROS=[
   {id:'yuyo',n:'MADRE YUYO',d:'Vencé al villano de la misión 3',g:'Y',col:'#8fd65a',secret:true},
   {id:'intacto',n:'INTOCABLE',d:'Ganá una misión sin recibir daño',ico:'shield',col:'#7ab8ff'},
   {id:'rescate',n:'NADIE SE QUEDA',d:'Rescatá a todos los prisioneros de una misión',g:'R',col:'#9fe8a0'},
-  {id:'gatito',n:'MICHI A SALVO',d:'Ganá una misión con el gatito vivo',g:'M',col:'#ffb0d8'},
+  {id:'gatito',n:'MICHI A SALVO',d:'Ganá una misión con OLIVER vivo',g:'M',col:'#ffb0d8'},
   {id:'arsenal',n:'ARSENAL',d:'Usá las 5 armas en una partida',ico:'heavy',col:'#e8c25a'},
   {id:'cien',n:'100 BAJAS',d:'100 bajas en una partida',g:'100',col:'#ffb0a0'},
   {id:'k500',n:'500 EN TOTAL',d:'500 bajas sumando todas las partidas',g:'500',col:'#ff8a6a',prog:t=>[t.kills,500]},
@@ -101,7 +103,7 @@ const HIST_LOGROS=[
   {id:'leyenda',n:'LEYENDA',d:'Llegá a LEYENDA en una partida',g:'★',col:'#ff8ad8'},
   {id:'grillo',n:'CHATARRA FURIOSA',d:'30 bajas a bordo de la Chatarra en una partida',g:'C',col:'#9fb07a'},
   {id:'rescatista',n:'RESCATISTA',d:'50 rescates sumando todas las partidas',ico:'heart',col:'#9fe8a0',prog:t=>[t.rescued,50]},
-  {id:'tres',n:'LOS TRES',d:'Jugá con FACU, JOSÉ y LAUTI',g:'3P',col:'#f3c969',prog:t=>[t.chars.filter(c=>HIST_CHARN().includes(c)).length,HIST_CHARN().length]},
+  {id:'tres',n:'LOS TRES',d:'Jugá con FACU, JOSE y LAUTI',g:'3P',col:'#f3c969',prog:t=>[t.chars.filter(c=>HIST_CHARN().includes(c)).length,HIST_CHARN().length]},
   {id:'veterano',n:'10 PARTIDAS',d:'Jugá 10 partidas',g:'10',col:'#ddd',prog:t=>[t.games,10]}
 ];
 // villanos de la misión 4 en adelante: un logro secreto por villano, armado desde BOSSES (los archivos de misión cargan antes)
@@ -114,7 +116,7 @@ if(typeof BOSSES!=='undefined'){
   HIST_LOGROS.splice(at,0,...extra);
 }
 const HIST_BY={};for(const a of HIST_LOGROS)HIST_BY[a.id]=a;
-const HIST_CHARN=()=>typeof CHARS!=='undefined'?CHARS.map(c=>c.name):['FACU','JOSÉ','LAUTI'];
+const HIST_CHARN=()=>typeof CHARS!=='undefined'?CHARS.map(c=>c.name):['FACU','JOSE','LAUTI'];
 const HIST_pops=[];
 function HIST_chime(){try{[784,1047,1568].forEach((f,i)=>later(i*70,()=>tone('square',f,f*1.01,0.1,0.045)));}catch(e){}}
 // logros de desafío: con AYUDAS no cuentan

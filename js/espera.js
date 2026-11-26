@@ -1,7 +1,7 @@
 'use strict';
 // Óxido · Animaciones de espera: si no tocás nada ~5 s, cada personaje se pone a hacer otra cosa.
 //   FACU: se sienta en un banquito frente a una computadora y tipea (el monitor le ilumina la cara).
-//   JOSÉ: se sienta a jugar en una tablet; la pantalla le ilumina la cara con un brillo que titila.
+//   JOSE: se sienta a jugar en una tablet; la pantalla le ilumina la cara con un brillo que titila.
 //   LAUTI: hace jueguitos con una pelota de fútbol.
 // Cualquier botón la corta al instante (el disparo o el salto de ese cuadro se hace igual: esto solo dibuja).
 // No arranca arriba del Grillo, en el aire, en el barro, con enemigos en pantalla ni al ganar. En pausa no corre.
@@ -73,7 +73,7 @@ function ES_facu(p,a,set,f,fc){
   ES_r('#d8d2c4',ES_fx(p,14,2),g-12,2,3);
   for(let i=0;i<2;i++){const s=(a*0.25+i*6)%12;ctx.fillStyle=`rgba(230,230,240,${0.4-s/30})`;ctx.fillRect(q(ES_fx(p,15)+Math.sin((a+i*20)/8)*0.8),q(g-13-s),1,1);}
 }
-// JOSÉ: sentada, tablet en las manos a la altura de la cara; luz de colores que cambia según "el juego".
+// JOSE: sentada, tablet en las manos a la altura de la cara; luz de colores que cambia según "el juego".
 function ES_jose(p,a,set,f,fc){
   ctx.drawImage(set.crouch[f],q(p.x-3),q(p.y+3));
   const cols=['120,220,255','255,140,210','255,220,110','140,255,160'],ci=Math.floor(a/50)%4;

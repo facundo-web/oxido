@@ -4,7 +4,7 @@
 // desc y perk van en la tarjeta de selección: desc hasta ~28 caracteres, perk hasta ~34.
 // Rasgo de juego de cada uno (con los campos que ya usa el juego):
 //   FACU: el veterano, arranca con 15 granadas.
-//   JOSÉ: la más rápida, salta más alto y dispara más seguido (cd 0.85).
+//   JOSE: la más rápida, salta más alto y dispara más seguido (cd 0.85).
 //   LAUTI: el más duro, 4 corazones y arranca con escopeta.
 // Campos propuestos, todavía sin usar en el juego (pendientes de integrar en jugador.js / combate.js):
 //   grenadeR: multiplicador del radio de explosión de sus granadas.
@@ -13,12 +13,12 @@
 const CHARS=[
   {name:'FACU',desc:'El veterano',perk:'15 granadas · explotan más',hp:3,speed:1.45,jump:6.1,bombs:15,cd:1,start:null,
    grenadeR:1.3,pal:PAL_P,head:HEAD_P,torso:TORSO,helmet:'#4f6a2c'},
-  {name:'JOSÉ',desc:'Rápida y ágil',perk:'Doble salto · dispara rápido',hp:3,speed:1.75,jump:6.6,bombs:8,cd:0.85,start:null,
+  {name:'JOSE',desc:'Rápida y ágil',perk:'Doble salto · dispara rápido',hp:3,speed:1.75,jump:6.6,bombs:8,cd:0.85,start:null,
    airJump:1,pal:PAL_T,head:HEAD_T,torso:TORSO_T,helmet:'#2f8a96'},
   {name:'LAUTI',desc:'Chico y duro',perk:'4 ♥ · escopeta · aguanta un golpe',hp:4,speed:1.3,jump:5.9,bombs:10,cd:1.1,start:['shotgun',20],
    armor:1,pal:PAL_B,head:HEAD_B,torso:TORSO_B,helmet:'#d23a2e'}
 ];
-// 4 colores por personaje (casco de FACU, gorra de JOSÉ, vincha de LAUTI). El 0 es el de siempre; el 1 es el que
+// 4 colores por personaje (casco de FACU, gorra de JOSE, vincha de LAUTI). El 0 es el de siempre; el 1 es el que
 // usaba el jugador 2 cuando repetía personaje. Se eligen en la pantalla de personaje (hud.js) y se guardan:
 // oxido-colores (jugador 1) y oxido-colores2 (jugador 2), un número por personaje. De a 2, mismo personaje y mismo
 // color no se puede: colFix() corre el del jugador 2.

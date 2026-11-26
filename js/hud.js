@@ -519,7 +519,7 @@ function updSelect(){
   if(selNo>0)selNo--;
   if(selT>8&&(pressed.start||pressed.shoot||pressed.jump)){
     if(selLocked(selLevel)){selNo=16;selRow=1;SFX.hit();}
-    else{SFX.pick();if(!(typeof IN_arrancar==='function'&&IN_arrancar(selLevel)))startLevel(selLevel,false);}} // introducción jugable (intro.js)
+    else{SFX.pick();if(!(typeof IN_arrancar==='function'&&IN_arrancar(selLevel)))startLevel(selLevel,false);if(selLevel===0&&typeof AP_empezar==='function')AP_empezar();}} // partida nueva desde la misión 1: escena de apertura (oliver.js) // introducción jugable (intro.js)
   else if(pressed.back){state='title';}
 }
 // ================== fin de juego y misión cumplida ==================

@@ -19,7 +19,7 @@ const TEXTOS={es:{
   palabras:{
     vida:'VIDA',vidas:'VIDAS',corazon:'♥',baja:'BAJA',bajas:'BAJAS',rescate:'RESCATE',rescates:'RESCATES',
     punto:'PUNTO',puntos:'PUNTOS',mision:'MISIÓN',tramo:'TRAMO',vuelta:'VUELTA',mundo:'MUNDO',
-    jefeChico:'JEFE CHICO',villano:'VILLANO',guardian:'GUARDIÁN',emboscada:'EMBOSCADA',gatito:'GATITO',
+    jefeChico:'JEFE CHICO',villano:'VILLANO',guardian:'GUARDIÁN',emboscada:'EMBOSCADA',gatito:'OLIVER',
     si:'SÍ',no:'NO',normal:'NORMAL',grande:'GRANDE',volver:'VOLVER',jugador:'JUGADOR {n}',
     vez:'vez',veces:'veces',
   },
@@ -125,9 +125,9 @@ const TEXTOS={es:{
     p2Teclado:'JUGADOR 2 EN ESTE TECLADO: {ok}',
     deADosTeclado:'DE A 2 CON UN TECLADO',deADosTecladoSub:'controles simples',
   },
-  personajes:{ // según notas/guion/biblia.md (FACU papá, JOSÉ mamá, LAUTI hijo, TUERCA robotito)
+  personajes:{ // según notas/guion/biblia.md (FACU papá, JOSE mamá, LAUTI hijo, TUERCA robotito)
     facu:{nombre:'FACU',rol:'El veterano',ayuda:'15 granadas · explotan más'},
-    jose:{nombre:'JOSÉ',rol:'La rápida',ayuda:'Doble salto · dispara rápido'},
+    jose:{nombre:'JOSE',rol:'La rápida',ayuda:'Doble salto · dispara rápido'},
     lauti:{nombre:'LAUTI',rol:'Chico y duro',ayuda:'4 ♥ · escopeta · aguanta un golpe'},
     tuerca:{nombre:'TUERCA',rol:'El robotito',ayuda:'Se prende con 6 engranajes dorados'},
     // TUERCA es el ROBOT de arte-personaje.js. RITA y NIEBLA son bocetos que no se eligieron: sin textos
@@ -153,7 +153,7 @@ const TEXTOS={es:{
   aliados:{
     hayPrisionero:'¡PRISIONERO! PASÁ PARA LIBERARLO',
     liberado:'¡PRISIONERO LIBERADO!',seSuma:'¡UN AMIGO SE SUMA!',perdiste:'¡PERDISTE UN AMIGO!',
-    hayGatito:'¡UN GATITO! PASÁ PARA LIBERARLO',gatitoSeSuma:'¡UN GATITO SE SUMA!',
+    hayGatito:'¡ES OLIVER! PASÁ PARA LIBERARLO',gatitoSeSuma:'¡OLIVER SE SUMA!', // el gato se llama OLIVER (feedback de 2 jugadores, 25 nov)
   },
   globos:{ // fuente pixel fija: 12 caracteres ideal, 18 máximo. A completar con el Guionista.
     ayuda:'¡AYUDA!',gracias:'¡GRACIAS!',vamos:'¡VAMOS!',ay:'¡AY!',miau:'¡MIAU!',gol:'¡GOL!',
@@ -223,7 +223,7 @@ const TEXTOS={es:{
   tramo:{
     cabeza:'TRAMO {n} · {tipo} · {tiempo}',
     tipos:{tramo:'TRAMO',villano:'VILLANO',jefeChico:'JEFE CHICO',emboscada:'EMBOSCADA'},
-    gatito:'GATITO',punteria:'PUNTERÍA {n} %',sinDano:'SIN DAÑO',racha:'RACHA {n}',sinBonus:'ESTA VEZ, SIN BONUS',
+    gatito:'OLIVER',punteria:'PUNTERÍA {n} %',sinDano:'SIN DAÑO',racha:'RACHA {n}',sinBonus:'ESTA VEZ, SIN BONUS',
     vuelta:'VUELTA {n}',vueltaSub:'ENEMIGOS MÁS DUROS Y MÁS RÁPIDOS',
     continuar:'CONTINUAR {n} DE {de}',continuarSub:'MITAD DE LOS PUNTOS · {vidas}',
   },
@@ -345,7 +345,7 @@ const TEXTOS={es:{
       vill10:['QUE VUELVA A GIRAR','Vencé al Custodio en la misión 10'],
       intacto:['NI UN RASPÓN','Ganá una misión sin perder ♥'],
       rescate:['NADIE SE QUEDA','Rescatá a todos en una misión'],
-      gatito:['SIETE VIDAS','Ganá una misión con el gatito vivo'], // ícono: '7' en vez de 'M'
+      gatito:['SIETE VIDAS','Ganá una misión con OLIVER vivo'], // ícono: '7' en vez de 'M'
       arsenal:['FERRETERÍA','Usá las 5 armas en una partida'],
       cien:['MANO PESADA','Hacé 100 bajas en una partida'],
       k500:['DESARMADERO','Sumá 500 bajas en total',['baja','bajas']],
@@ -361,7 +361,7 @@ const TEXTOS={es:{
       leyenda:['DE LEYENDA','Llegá a LEYENDA en una partida'],
       grillo:['CHATARRA FURIOSA','30 bajas con la Chatarra en una partida'],
       rescatista:['RESCATISTA','Sumá 50 rescates en total',['rescate','rescates']],
-      tres:['TODA LA FAMILIA','Jugá con FACU, JOSÉ y LAUTI',['personaje','personajes']],
+      tres:['TODA LA FAMILIA','Jugá con FACU, JOSE y LAUTI',['personaje','personajes']],
       veterano:['DE LA CASA','Jugá 10 partidas',['partida','partidas']],
       jtOro:['A TIEMPO','Vencé a un villano con medalla de ORO'],
       jtOro5:['RELOJ DE ORO','Sacá 5 medallas de ORO con villanos',['medalla','medallas']],
@@ -455,6 +455,7 @@ const TEXTOS={es:{
   // La fuente no tiene '…' ni '$' ni comillas: se usa '...'. g1 = momento, g2 = vehículo, g3 = después de la página del villano.
   // Cada globo tiene la versión de quien juega: facu, jose, lauti, tuerca.
   historia:{
+    apertura:'¡OLIVER!', // escena inicial: lo grita quien juega cuando la banda se lleva al gato (notas/guion/apertura.md)
     carteles:{compro:'COMPRO ORO',comproTodo:'COMPRO TODO',vendido:'VENDIDO',seVende:'SE VENDE',noSeVende:'NO SE VENDE',
       desarmadero:'DESARMADERO',vuelvo:'VUELVO EN\n5 MINUTOS'},
     misiones:[

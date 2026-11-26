@@ -323,4 +323,4 @@ function IN_pista(){
   return null;
 }
 // para los controles táctiles (Publicación): saber si está la intro, omitirla y dónde está el botón
-window.OXIDO_INTRO={activa:()=>IN.activa,omitir:()=>IN_omitir(),rect:()=>IN.activa?IN_rectOmitir():null};
+window.OXIDO_INTRO={activa:()=>IN.activa,omitir:()=>IN_omitir(),rect:()=>IN.activa&&!(typeof AP!=='undefined'&&AP.on)?IN_rectOmitir():null}; // durante la apertura no hay OMITIR

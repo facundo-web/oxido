@@ -50,10 +50,13 @@ function CAT_mk(x,y){
 // ---------- arranque de cada misión ----------
 ON_START.push(function(carry){
   gatoMarcas=[];gatoVigila=[];gatoHint=false;gatoComida=[];gatoComidaT=0;gatoReserva=0;
-  if(!carry||(gato&&!CAT_vivo()))gato=null; // el ángel no pasa de misión: hay que rescatar otro gato
+  if(!carry||(gato&&!CAT_vivo()))gato=null; // el ángel no pasa de misión: OLIVER vuelve en la siguiente (siete vidas)
+  // Un solo gato: OLIVER (notas/guion/apertura.md). Ya no hay jaulas en el camino. En la misión 1 de la primera vuelta
+  // está preso en la arena de DON BULÓN (oliver.js lo suelta al vencerlo); en todo lo demás arranca con vos.
+  gatoJaula=null;
   if(gato){ // pasa de misión con vos, con la vida que tenía
-    const hp=gato.hp,own=gato.owner;gato=CAT_mk(26,GROUND-CAT_H);gato.hp=gato.shown=hp;gato.owner=own;gato.onGround=true;gato.heartT=150;gatoJaula=null;
-  }else gatoJaula=CAT_mkCage();
+    const hp=gato.hp,own=gato.owner;gato=CAT_mk(26,GROUND-CAT_H);gato.hp=gato.shown=hp;gato.owner=own;gato.onGround=true;gato.heartT=150;
+  }else if(!(levelIdx===0&&(carry?vuelta:1)===1)&&!(typeof IN!=='undefined'&&IN.activa)){gato=CAT_mk(26,GROUND-CAT_H);gato.onGround=true;gato.heartT=150;}
 });
 
 // ---------- ayudas ----------
@@ -300,7 +303,7 @@ function CAT_free(){
 function CAT_updCage(){
   const c=gatoJaula;if(!c)return;c.t++;
   if(c.st==='shut'){
-    if(!gatoHint&&onScreen(c,-30)){gatoHint=true;if(!banner||banner.t<=0)setBanner('¡UN GATITO! PASÁ POR LA JAULA',110);}
+    if(!gatoHint&&onScreen(c,-30)){gatoHint=true;if(!banner||banner.t<=0)setBanner('¡ES OLIVER! PASÁ POR LA JAULA',110);}
     if(touchAny(c)){CAT_free();return;} // pasando por la jaula (rescate.js): los tiros ya no la abren
   }else if(c.t>90)gatoJaula=null;
 }
@@ -333,7 +336,7 @@ ON_STEP.push(function(){
   switch(g.st){
   case 'free':
     CAT_phys(g,true);
-    if(g.t>34&&g.onGround){g.st='follow';g.cd=50;setBanner('¡UN GATITO SE SUMA!',70);}
+    if(g.t>34&&g.onGround){g.st='follow';g.cd=50;setBanner('¡OLIVER SE SUMA!',70);}
     break;
   case 'ascend':CAT_updAngel(g);break; // el angelito sube hasta salir por arriba (y ahí gato=null)
   case 'follow':case 'hop':{
@@ -496,8 +499,33 @@ ON_DRAW.push(function(){
   if(typeof REM_dibuja==='function'&&REM_dibuja(g)){if(g.st!=='free')CAT_drawBar(g);return;}
   // rastro de velocidad mientras araña
   g.trail.forEach((p,i)=>CAT_drawPose(CAT_pose(g),p.x,p.y,g.face,0.15+i*0.08));
-  if(!(g.inv>0&&(g.inv>>2)%2))CAT_drawPose(CAT_pose(g),g.x,g.y,g.face);
+  if(!(g.inv>0&&(g.inv>>2)%2)&&!g.oculto)CAT_drawPose(CAT_pose(g),g.x,g.y,g.face); // oculto: lo dibuja el gesto del collar (oliver.js)
   if(typeof REM_mareo==='function')REM_mareo(g);
   if(g.st==='scratch'&&(T>>1)%2){ctx.fillStyle='rgba(255,255,255,0.7)';const sx=g.face>0?g.x-3:g.x+g.w+1;ctx.fillRect(q(sx),q(g.y+2),2,0.6);ctx.fillRect(q(sx-1),q(g.y+5),3,0.6);}
   if(g.st!=='free')CAT_drawBar(g);
+});
+
+// ---------- acariciar a OLIVER (feedback de 2 jugadores, 25 nov) ----------
+// Quieto al lado de OLIVER 1 s (o agachado a su lado): un gesto corto con un corazoncito que sube y un ronroneo.
+// Es solo un mimo: no frena el juego, no cura ni da ventaja. Vuelve a salir recién a los 4 s.
+const CAT_MIMO={t:0,cd:0,quieto:[0,0],x:0,y:0};
+ON_START.push(()=>{CAT_MIMO.t=0;CAT_MIMO.cd=0;CAT_MIMO.quieto=[0,0];});
+ON_STEP.push(()=>{
+  const g=typeof gato!=='undefined'?gato:null,M=CAT_MIMO;if(M.t>0)M.t--;if(M.cd>0)M.cd--;
+  if(state!=='play'||!g||!CAT_vivo()||g.st!=='follow'||!g.onGround){M.quieto=[0,0];return;}
+  players.forEach((p,i)=>{
+    const cerca=!p.dead&&!p.ride&&p.onGround&&Math.abs(p.x+4-(g.x+g.w/2))<16&&Math.abs(p.y+p.h-(g.y+g.h))<6;
+    if(!cerca||Math.abs(p.vx||0)>0.15||Math.abs(g.vx||0)>0.4){M.quieto[i]=0;return;}
+    M.quieto[i]++;
+    if(M.cd<=0&&(M.quieto[i]>=60||(p.crouch&&M.quieto[i]>=6))){M.t=46;M.cd=240;M.quieto[i]=0;M.x=g.x+g.w/2;M.y=g.y-2;
+      g.face=p.x+4<g.x+g.w/2?-1:1;g.blink=10; // lo mira y entrecierra los ojos
+      try{tone('triangle',95,80,0.5,0.03);later(160,()=>tone('triangle',105,85,0.4,0.025));}catch(e){}} // ronroneo
+  });
+});
+ON_DRAW.push(()=>{
+  const M=CAT_MIMO;if(M.t<=0)return;const k=1-M.t/46,x=Math.round(M.x-2),y=Math.round(M.y-4-k*10);
+  ctx.globalAlpha=Math.min(1,M.t/10);
+  ctx.fillStyle='#17141f';ctx.fillRect(x-1,y-1,3,4);ctx.fillRect(x+2,y-1,3,4);ctx.fillRect(x,y+2,4,2);ctx.fillRect(x+1,y+3,2,2); // tinta
+  ctx.fillStyle='#ff6b8a';ctx.fillRect(x,y,2,2);ctx.fillRect(x+2,y,2,2);ctx.fillRect(x,y+1,4,1);ctx.fillRect(x+1,y+2,2,1);ctx.fillRect(x+1,y+3,2,1);
+  ctx.fillStyle='#ffd0da';ctx.fillRect(x,y,1,1);ctx.globalAlpha=1;
 });

@@ -138,7 +138,7 @@ function step(){
   updMechs();updCam();
   // 2 jugadores: nadie se queda fuera de cuadro cuando la cámara avanza con el que va adelante
   if(players.length>1)for(const p of players){if(p.dead)continue;
-    if(p.ride)p.ride.x=clamp(p.ride.x,camX+2,camX+VW-24);else p.x=clamp(p.x,camX+2,camX+VW-10);}
+    if(p.ride)p.ride.x=clamp(p.ride.x,camX+2,camX+VW-(p.ride.w||22)-2);else p.x=clamp(p.x,camX+2,camX+VW-10);}
   updArena();updPrisoners();
   // los amigos siguen al jugador 1 (o al otro si el 1 está caído)
   usePlayer(players[0].dead?leadP():players[0]);updAllies();usePlayer(players[0]);
@@ -193,7 +193,8 @@ function update(){
   case 'ayuda':playMusic('title');updAyuda();break; // CÓMO JUGAR: la tarjeta de controles (ayuda.js)
   case 'opciones':updOpciones();break; // OPCIONES (partida.js)
   case 'reasignar':REA_upd();break; // OPCIONES → CONTROLES → TECLAS / JOYSTICK (reasignar.js)
-  case 'play':if(pressed.pause||pressed.back){state='pause';ruCerrar();break;}
+  case 'play':if(typeof AP_paso==='function'&&AP_paso())break; // escena de apertura (oliver.js): el juego espera; cualquier tecla la saltea
+    if(pressed.pause||pressed.back){state='pause';ruCerrar();break;}
     ruedaFrame(); // rueda de armas: cada cuadro real, aunque el juego vaya lento
     if(typeof MC!=='undefined'&&MC&&MC.ir){MC_siguiente();break;} // misión cumplida: pasa sola a la siguiente (cumplida.js)
     if(typeof VIN_paso==='function'&&VIN_paso())break; // página de historieta de un jefe: el juego espera (pagina.js)
@@ -405,7 +406,8 @@ function drawPause(){
   if(!onTouch())txt(TX.pausa.controles,34,63,4,'#f3c969','left',false);
   // SEGUIR y SALIR AL MENÚ son botones de verdad (prueba con personas), con la tecla del control que se usa adentro;
   // las palabras salen de la misma plantilla de textos.js (TX.pausa.pie: "{seguir} SEGUIR · {salir} SALIR AL MENÚ")
-  {const [s1,s2]=TX.pausa.pie.split('·').map(s=>s.replace(/\{\w+\}/g,'').trim()),t=onTouch(),k1=t?null:btn('opt'),k2=t?null:btn('quit'),
+  // (en táctil no: Publicación ya pone ▶ SEGUIR y SALIR AL MENÚ arriba a la izquierda, con la confirmación de salir; se veían dos veces)
+  if(!onTouch()){const [s1,s2]=TX.pausa.pie.split('·').map(s=>s.replace(/\{\w+\}/g,'').trim()),t=false,k1=t?null:btn('opt'),k2=t?null:btn('quit'),
     bh=TXT_aj(6)+5,w1=botonW(s1,k1,6)+6,w2=botonW(s2,k2,6); // uno a cada lado del centro
    botonUI(Math.round(W/2-3-w1),49,w1,bh,s1,k1,{on:true,clic:()=>{pressed.pause=true;}});
    botonUI(Math.round(W/2+3),49,w2,bh,s2,k2,{clic:()=>{pressed.quit=true;}});}

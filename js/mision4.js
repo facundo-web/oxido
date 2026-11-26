@@ -201,7 +201,7 @@ function M4_vendas(e,n){
   parts.push({k:'smoke',col:'200,180,140',x:e.x+5,y:e.y+8,vx:0,vy:-0.2,life:18,maxl:18,size:2});
 }
 function M4_push(p,dir){
-  if(p.ride){const m=p.ride;m.x=clamp(m.x+dir*10,camX+2,camX+VW-24);return;}
+  if(p.ride){const m=p.ride;m.x=clamp(m.x+dir*10,camX+2,camX+VW-(m.w||22)-2);return;}
   p.x=clamp(p.x+dir*14,camX+2,camX+VW-10);if(p.onGround){p.vy=-1.6;p.onGround=false;p.plat=null;}
 }
 function M4_updMomia(e){

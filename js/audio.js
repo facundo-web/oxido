@@ -49,18 +49,26 @@ function clack(at,freq,vol){
   const g=actx.createGain();g.gain.setValueAtTime(0.0001,at);g.gain.linearRampToValueAtTime(vol,at+0.002);g.gain.exponentialRampToValueAtTime(0.001,at+0.035);
   s.connect(f).connect(g).connect(actx.destination);s.start(at,Math.random()*0.5);s.stop(at+0.05);
 }
-// escopeta: golpe grave (seno que cae) + cuerpo en triángulo + soplido de ruido corto y oscuro, y la recarga
+// escopeta: seca y con cuerpo (feedback de 2 jugadores: sonaba a "bum bum"). Un chasquido corto y brillante al frente
+// (ruido pasabanda), un cuerpo medio que se apaga rápido y un golpe grave corto (ya no la caída larga), y la recarga
 function shotgunSfx(){
   if(!actx||muted)return;const t=actx.currentTime,v=vary(0.05);
+  // golpe grave corto: da peso sin retumbar
   const o=actx.createOscillator(),g=actx.createGain();o.type='sine';
-  o.frequency.setValueAtTime(170*v,t);o.frequency.exponentialRampToValueAtTime(50,t+0.15);
-  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.24,t+0.004);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-  o.connect(g).connect(actx.destination);o.start(t);o.stop(t+0.22);
-  tone('triangle',260*v,80,0.09,0.08);
+  o.frequency.setValueAtTime(210*v,t);o.frequency.exponentialRampToValueAtTime(75,t+0.06);
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.17,t+0.003);g.gain.exponentialRampToValueAtTime(0.001,t+0.075);
+  o.connect(g).connect(actx.destination);o.start(t);o.stop(t+0.1);
+  tone('square',340*v,120,0.045,0.05); // cuerpo: un toque de madera
+  // chasquido seco al frente
+  const c=actx.createBufferSource();c.buffer=noiseBuf;
+  const bp=actx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1900*v;bp.Q.value=0.9;
+  const cg=actx.createGain();cg.gain.setValueAtTime(0.0001,t);cg.gain.linearRampToValueAtTime(0.36,t+0.002);cg.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+  c.connect(bp).connect(cg).connect(actx.destination);c.start(t,Math.random()*0.5);c.stop(t+0.07);
+  // cuerpo de ruido medio, corto
   const n=actx.createBufferSource();n.buffer=noiseBuf;
-  const lp=actx.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;lp.frequency.setValueAtTime(2200,t);lp.frequency.exponentialRampToValueAtTime(150,t+0.12);
-  const ng=actx.createGain();ng.gain.setValueAtTime(0.0001,t);ng.gain.linearRampToValueAtTime(0.28,t+0.003);ng.gain.exponentialRampToValueAtTime(0.001,t+0.13);
-  n.connect(lp).connect(ng).connect(actx.destination);n.start(t,Math.random()*0.5);n.stop(t+0.15);
+  const lp=actx.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;lp.frequency.setValueAtTime(3200,t);lp.frequency.exponentialRampToValueAtTime(400,t+0.07);
+  const ng=actx.createGain();ng.gain.setValueAtTime(0.0001,t);ng.gain.linearRampToValueAtTime(0.2,t+0.003);ng.gain.exponentialRampToValueAtTime(0.001,t+0.085);
+  n.connect(lp).connect(ng).connect(actx.destination);n.start(t,Math.random()*0.5);n.stop(t+0.1);
   clack(t+0.27,1300,0.16);clack(t+0.36,950,0.18);
 }
 // explosión en capas: golpe grave (seno que cae) + cuerpo de ruido filtrado; si llegan varias juntas, las de atrás van más bajas

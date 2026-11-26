@@ -4,12 +4,12 @@
 const HEAD=["....kkkkkk....","...kHHhhhhk...","..khhhhhhhhk..","..kkkkkkkkkkk.","...ksssssesk..","...ksssssssk..","....kSSSSSk..."];
 // FACU (el mayor): casco verde, canas en la patilla (z), bigote y barba (m) con alguna cana
 const HEAD_P=["....kkkkkk....","...kHHhhhhk...","..khhhhhhhhk..","..kkkkkkkkkkk.","...kzssssesk..","...kzssssmmk..","...kmmmmmmmk.."];
-// JOSÉ: casco chico, pelo cobrizo que sale del casco en cola de caballo (sigue en TORSO_T), pestaña y labios
+// JOSE: casco chico, pelo cobrizo que sale del casco en cola de caballo (sigue en TORSO_T), pestaña y labios
 const HEAD_T=["....kkkkkk....","...kCCcccck...","..kcccccccckk.",".kYysssssskk..","kyyysssssesk..","kyyksssssssk..",".kyykSSSlSk..."];
 // LAUTI (el chico): gorra con visera, sin casco, mechón, cara redonda con cachetes y sin barba
 const HEAD_B=["..............","....kkkkkk....","...kHHhhhhk...","..khhhhhhhuuuk","..kysssssesk..","..ksssssslsk..","...kSssssSk..."];
 const TORSO=["...krrrrrrrk..","..kvvvvVvvvvk.","..kvvvvVvvvvk.","..kvvvvVvvvvk.","..kVVVVVVVVVk."];
-// torsos propios: JOSÉ con la cola de caballo sobre la espalda y cintura apenas más fina;
+// torsos propios: JOSE con la cola de caballo sobre la espalda y cintura apenas más fina;
 // LAUTI con camiseta a rayas celeste y blanca
 const TORSO_T=["kyykrrrrrrrk..","kykvvvvVvvvvk.",".kkvvvvVvvvvk.","..kvvvvVvvvvk.","...kVVVVVVVk.."];
 const TORSO_B=["...kwrwrwrwk..","..krwrwrwrwrk.","..krwrwrwrwrk.","..krwrwrwrwrk.","...kRwRwRwRk.."];

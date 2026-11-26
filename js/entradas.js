@@ -3,7 +3,7 @@
 // de espera (espera.js), y esa gracia despeja el lugar para que no te maten apenas volvés.
 //   LAUTI (fútbol): cae, festeja deslizándose de rodillas con los brazos abiertos, se acomoda la pelota y la patea como un
 //     misil. La pelota atraviesa al primero, le pega, rebota y puede tocar a dos más. Al primer golpe: "¡gol!" de tribuna.
-//   JOSÉ (tablet): se arma de píxeles de abajo para arriba con una barrita de carga, levanta la tablet y saca una foto:
+//   JOSE (tablet): se arma de píxeles de abajo para arriba con una barrita de carga, levanta la tablet y saca una foto:
 //     el flash congela 1,5 s a los enemigos cerca (quedan quietos, con un marco de color). No les hace daño.
 //   FACU (compu): baja "descargándose" (líneas de datos, barrita y %), tipea en un teclado que flota y aprieta Enter:
 //     las máquinas cerca (drones, torretas, robots, vigías) fallan 2 s: no disparan y se ven con fallas. Soldados: nada.
@@ -104,7 +104,7 @@ function EN_pasoFacu(p,en){
   if(en.t===70)EN_efecto(p,en,false);
   if(en.t>=82)EN_fin(p);
 }
-// JOSÉ: se arma (0–34), levanta la tablet (34–46), foto (50), baja la tablet y listo (80)
+// JOSE: se arma (0–34), levanta la tablet (34–46), foto (50), baja la tablet y listo (80)
 function EN_pasoJose(p,en){
   p.vx=0;en.fase=en.t<=34?'arma':en.t<50?'tablet':'foto';p.y=en.gy;p.vy=0;p.onGround=true;p.plat=en.gpl;
   if(en.t<=34&&en.t%9===0&&en.t>0)EN_snd(()=>{const f=392*Math.pow(1.26,en.t/9);tone('square',f,f,0.03,0.012);});
@@ -369,7 +369,7 @@ function EN_dibFacu(p,en,set,f){
   }
   return k>=1;
 }
-// JOSÉ
+// JOSE
 function EN_dibJose(p,en,set,f){
   const t=en.t,pose=EN_pose(p),cx=p.x+4;
   if(t<=34){

@@ -168,7 +168,7 @@ function M8_gigWalk(g,sp,kPaso){
 }
 function M8_empuja(p,g){
   const dir=(p.ride?p.ride.x+11:p.x+4)<g.x?-1:1;
-  if(p.ride){p.ride.x=clamp(p.ride.x+dir*16,camX+2,camX+VW-24);return;}
+  if(p.ride){p.ride.x=clamp(p.ride.x+dir*16,camX+2,camX+VW-(p.ride.w||22)-2);return;} // el ancho de cada vehículo (RESORTE mide 40)
   p.x=clamp(p.x+dir*18,camX+2,camX+VW-10);if(p.onGround){p.vy=-2.2;p.onGround=false;p.plat=null;}
 }
 // golpe del gigante a los jugadores que no estén escondidos. Devuelve true si le pegó a alguno.

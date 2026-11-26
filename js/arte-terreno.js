@@ -251,3 +251,22 @@ const TR_ARTE={
   luz(z){TRA_luz(z);},
   corriente(z){TRA_corriente(z);}
 };
+
+// ---------- M1 · aceite: señal más clara ANTES de pisarlo (feedback de 2 jugadores, 25 nov; lo sumó Código: nota para Arte) ----------
+// Sobre el charco sin prender: destellos tornasol que suben (1 px, de los colores del brillo) y una gotita de fuego de
+// aviso que flota y late arriba de cada punta ("esto se prende"). Con movimiento reducido quedan quietos.
+{const ac0=TR_ARTE.aceite;TR_ARTE.aceite=function(z){ac0.call(this,z);
+  if(z.arde||z.quemado)return;const x0=Math.round(z.x0),x1=Math.round(z.x1),y=Math.round(z.y),red=TRA_red(),t=red?0:(typeof T==='number'?T:0);
+  // destellos tornasol que suben del charco
+  for(let i=0;i<6;i++){const f=((t*0.6+i*13)%40)/40,x=x0+4+((i*37+((t/40+i)|0)*11)%Math.max(1,x1-x0-8)),yy=y-3-Math.round(f*9);
+    ctx.globalAlpha=red?0.8:1-f;ctx.fillStyle=TRA_A.banda[i%4];ctx.fillRect(x,yy,1,1);if(f<0.3)ctx.fillRect(x+1,yy,1,1);}
+  ctx.globalAlpha=1;
+  // gotita de fuego de aviso (5 × 7) en cada punta del charco, con un brillo chico
+  const lat=red?0:Math.round(Math.sin(t/9)*1.2),on=red||(t>>3)%4!==3;
+  for(const gx of[x0+3,x1-8]){const gy=y-17+lat;
+    if(typeof LUZ_halo==='function')LUZ_halo(gx+2.5,gy+4,7,'#ff9a3c',on?0.4:0.15);
+    ctx.fillStyle=TRA_C.tinta;ctx.fillRect(gx+1,gy-1,3,1);ctx.fillRect(gx,gy,5,1);ctx.fillRect(gx-1,gy+1,7,6);ctx.fillRect(gx,gy+7,5,1);
+    ctx.fillStyle=on?'#ff7a2a':'#b3543a';ctx.fillRect(gx+2,gy,1,1);ctx.fillRect(gx+1,gy+1,3,1);ctx.fillRect(gx,gy+2,5,4);ctx.fillRect(gx+1,gy+6,3,1);
+    ctx.fillStyle=on?'#ffd25a':'#e8964e';ctx.fillRect(gx+2,gy+3,1,1);ctx.fillRect(gx+1,gy+4,3,2);
+    ctx.fillStyle=TRA_C.tinta;ctx.fillRect(gx+2,gy+9,1,2);ctx.fillRect(gx+1,gy+10,3,1);} // flechita hacia el charco
+};}

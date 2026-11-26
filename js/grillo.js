@@ -115,7 +115,7 @@ function updMech(m){
   if(tapped('jump')&&m.onGround){m.vy=-6.6;m.onGround=false;m.plat=null;SFX.jump();dust(m.x+11,m.y+m.h,8);}
   // un toque de X es un salto normal; si se mantiene, el jetpack prende cerca de la cima del salto
   mechJet(m,held('jump')&&!D&&!m.onGround&&(m.jet||m.vy>-2.2));
-  m.x=clamp(m.x+m.vx,camX+2-(typeof MC_margenIzq==='function'?MC_margenIzq():0),camX+VW-24+(typeof MC_margen==='function'?MC_margen():0));
+  m.x=clamp(m.x+m.vx,camX+2-(typeof MC_margenIzq==='function'?MC_margenIzq():0),camX+VW-(m.w||22)-2+(typeof MC_margen==='function'?MC_margen():0)); // el ancho de cada vehículo (RESORTE mide 40: con 24 fijo quedaba 16 px afuera, Publicación)
   const pb=m.y+m.h,wasAir=!m.onGround,fall=m.vy;
   m.vy=Math.min(m.vy+0.28,6.5);m.y+=m.vy;
   if(m.y<8){m.y=8;if(m.vy<0)m.vy=0;} // techo de vuelo
@@ -224,3 +224,21 @@ function drawMechHUD(m){
   else txt(J+' EN EL AIRE: VOLAR',W-6,28.5,4,'#aaa','right',false);
   txt('↓+'+J+': BAJAR',W-6,33.5,4,'#aaa','right',false);
 }
+
+// ---------- vehículo estacionado: invitación a subirse (feedback de 2 jugadores, 25 nov) ----------
+// Arriba de cada vehículo libre: una flecha que rebota y la tecla REAL de subir (la del control que se está usando).
+// Vale para CHATARRA, RESORTE y VENTARRÓN. No sale si ya hay alguien arriba de ese vehículo, ni en la intro.
+ON_HUD.push(()=>{
+  if(state!=='play'||(typeof IN!=='undefined'&&IN.activa))return;
+  for(const m of mechs){if(m.ride||m.dying||m.gone||m.cool>0||!onScreen(m,-6))continue;
+    if(!players.some(p=>!p.dead&&!p.ride))continue; // todos montados: nadie puede subir
+    const cerca=players.some(p=>!p.dead&&!p.ride&&Math.abs(p.x+4-(m.x+m.w/2))<m.w/2+26);
+    const red=typeof MOV_reducido==='function'&&MOV_reducido(),bob=red?0:Math.round(Math.abs(Math.sin(T/(cerca?6:10)))*4);
+    const x=Math.round(HX(m.x+m.w/2)),y=Math.round(HY(m.y)-10-bob),k=onTouch()?'↑':btn('up',0),kw=keycapW(k);
+    if(y<26)continue; // nunca encima del HUD
+    // flecha hacia abajo (7 × 6), con tinta
+    ctx.fillStyle='#120c18';ctx.fillRect(x-2,y-7,5,5);ctx.fillRect(x-4,y-3,9,3);ctx.fillRect(x-3,y,7,1);ctx.fillRect(x-2,y+1,5,1);ctx.fillRect(x-1,y+2,3,1);
+    ctx.fillStyle=cerca?'#fff0b0':'#ffe08a';ctx.fillRect(x-1,y-6,3,4);ctx.fillRect(x-3,y-2,7,1);ctx.fillRect(x-2,y-1,5,1);ctx.fillRect(x-1,y,3,1);ctx.fillRect(x,y+1,1,1);
+    keycap(k,x-Math.round(kw/2),y-16,cerca?'#fff0b0':'#ffe08a'); // la tecla real, arriba de la flecha
+  }
+});

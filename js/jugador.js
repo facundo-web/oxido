@@ -111,7 +111,7 @@ function drawPlayer(){
     ctx.save();ctx.translate(q(p.x+4+p.face*2+gx),q(sy+9.5+gy+(p.crouch?0:set.dy||0)));if(p.face<0)ctx.scale(-1,1);
     ctx.rotate(p.aim==='up'?-Math.PI/2:p.aim==='down'?Math.PI/2:0);
     ctx.translate(-q(p.rec||0),0);
-    drawGunShape(p.weapon,p.fireCd<4);ctx.restore();
+    if(!p.sinArma)drawGunShape(p.weapon,p.fireCd<4);ctx.restore(); // sinArma: el gesto del collar de OLIVER (oliver.js), para que el arma no tape el brazo
   }
   if(p.shield>0){
     // anillo de píxeles de 1 px que titila lento entre 2 tonos de celeste (quieto con MOVIMIENTO REDUCIDO): Dirección de Arte

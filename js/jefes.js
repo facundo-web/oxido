@@ -16,7 +16,7 @@ function bossTouch(b){
   if(!P.dead&&overlap(hb,b)){
     hurtPlayer(b.touch||2);
     if(b.noPush)return;const c=b.x+b.w/2;
-    if(P.ride){const m=P.ride;m.x=clamp((m.x+11<c)?b.x-m.w-1:b.x+b.w+1,camX+2,camX+VW-24);}
+    if(P.ride){const m=P.ride;m.x=clamp((m.x+11<c)?b.x-m.w-1:b.x+b.w+1,camX+2,camX+VW-(m.w||22)-2);}
     else{P.x=clamp((P.x+4<c)?b.x-9:b.x+b.w+1,camX+2,camX+VW-10);}
   }
 }

@@ -10,7 +10,7 @@
 // HIS_dice(s, x, y): un globo suelto de 2 s en (x, y) del mundo (DON BULÓN al perder, CHATARRA).
 const HIS={dichos:new Set(),fila:[],activos:[],sueltos:[]},HIS_DUR=150,HIS_DE_A_DOS=48,HIS_VENCE=240; // un globo que espera más de 4 s se descarta
 ON_START.push(()=>{HIS.dichos.clear();HIS.fila.length=0;HIS.activos.length=0;HIS.sueltos.length=0;});
-// "JOSÉ" → "jose"
+// "JOSE" → "jose"
 const HIS_nombre=p=>String((CHARS[p.ci]&&CHARS[p.ci].name)||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 function HIS_mision(){try{return TX.historia.misiones[levelIdx]||null;}catch(e){return null;}}
 function HIS_frase(m,clave,p){const v=m&&m[clave];if(!v)return null;if(typeof v==='string')return v;return v[HIS_nombre(p)]||v.facu||null;}
